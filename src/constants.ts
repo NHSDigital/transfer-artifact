@@ -3,7 +3,8 @@ export enum Inputs {
   Name = 'name',
   Path = 'path',
   IfNoFilesFound = 'if-no-files-found',
-  RetentionDays = 'retention-days'
+  RetentionDays = 'retention-days',
+  ArtifactBucket = 'artifact-bucket',
 }
 
 export enum NoFileOptions {

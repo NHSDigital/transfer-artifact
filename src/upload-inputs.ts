@@ -7,6 +7,11 @@ export interface UploadInputs {
   artifactName: string
 
   /**
+   * The S3 bucket to upload to
+   */
+  artifactBucket: string
+
+  /**
    * The search path used to describe what to upload as part of the artifact
    */
   searchPath: string

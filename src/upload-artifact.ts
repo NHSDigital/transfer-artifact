@@ -1,8 +1,12 @@
+import fs from 'node:fs';
 import * as core from '@actions/core'
 import {create, UploadOptions} from '@actions/artifact'
 import {findFilesToUpload} from './search'
 import {getInputs} from './input-helper'
 import {NoFileOptions} from './constants'
+import {uploadObjectToS3} from "./aws";
+import {UploadResponse} from "@actions/artifact/lib/internal/upload-response";
+import {uploadArtifact} from "./aws/uploader";
 
 async function run(): Promise<void> {
   try {
@@ -54,12 +58,26 @@ async function run(): Promise<void> {
       core.info(
           `Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`
       )
-      const uploadResponse = await artifactClient.uploadArtifact(
-        inputs.artifactName,
-        searchResult.filesToUpload,
-        searchResult.rootDirectory,
-        options
-      )
+
+      let uploadResponse: UploadResponse;
+      const useS3 = true;
+      if (useS3) {
+        uploadResponse = await uploadArtifact(
+            inputs.artifactName,
+            searchResult.filesToUpload,
+            searchResult.rootDirectory,
+            options,
+            inputs.artifactBucket,
+        )
+      } else {
+
+        uploadResponse = await artifactClient.uploadArtifact(
+            inputs.artifactName,
+            searchResult.filesToUpload,
+            searchResult.rootDirectory,
+            options
+        )
+      }
 
       if (uploadResponse.failedItems.length > 0) {
         core.setFailed(
