@@ -55706,48 +55706,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.env = exports.region = void 0;
 const node_process_1 = __importDefault(__nccwpck_require__(97742));
-const region = () => { var _a; return (_a = node_process_1.default.env.AWS_REGION) !== null && _a !== void 0 ? _a : 'eu-west-2'; };
+const region = () => node_process_1.default.env.AWS_REGION ?? 'eu-west-2';
 exports.region = region;
-const env = () => { var _a; return (_a = node_process_1.default.env.ENVIRONMENT) !== null && _a !== void 0 ? _a : 'unknown'; };
+const env = () => node_process_1.default.env.ENVIRONMENT ?? 'unknown';
 exports.env = env;
 
 
 /***/ }),
 
 /***/ 7548:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.uploadObjectToS3 = exports.putDataS3 = void 0;
 const client_s3_1 = __nccwpck_require__(19250);
 const s3_client_1 = __nccwpck_require__(2915);
-function putDataS3(fileData, { Bucket, Key }) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const parameters = {
-                Bucket,
-                Key,
-                Body: JSON.stringify(fileData, null, 2),
-            };
-            const data = yield (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
-            console.log(`Data uploaded to ${Bucket}/${Key}`);
-            return data;
-        }
-        catch (error) {
-            throw new Error(`Upload to ${Bucket}/${Key} failed, error: ${String(error)}`);
-        }
-    });
+async function putDataS3(fileData, { Bucket, Key }) {
+    try {
+        const parameters = {
+            Bucket,
+            Key,
+            Body: JSON.stringify(fileData, null, 2),
+        };
+        const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
+        console.log(`Data uploaded to ${Bucket}/${Key}`);
+        return data;
+    }
+    catch (error) {
+        throw new Error(`Upload to ${Bucket}/${Key} failed, error: ${String(error)}`);
+    }
 }
 exports.putDataS3 = putDataS3;
 /**
@@ -55765,23 +55754,21 @@ exports.putDataS3 = putDataS3;
  *       ACL: 'bucket-owner-full-control',
  *     });
  */
-function uploadObjectToS3(parameters, log) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
-            return yield (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
+async function uploadObjectToS3(parameters, log) {
+    try {
+        log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
+        return await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            const newMessage = `Upload to ${parameters.Bucket}/${parameters.Key} failed, error: ${error.message}`;
+            log.error(newMessage);
+            throw error;
         }
-        catch (error) {
-            if (error instanceof Error) {
-                const newMessage = `Upload to ${parameters.Bucket}/${parameters.Key} failed, error: ${error.message}`;
-                log.error(newMessage);
-                throw error;
-            }
-            else {
-                throw error;
-            }
+        else {
+            throw error;
         }
-    });
+    }
 }
 exports.uploadObjectToS3 = uploadObjectToS3;
 
@@ -55837,15 +55824,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -55855,29 +55833,27 @@ const put_data_s3_1 = __nccwpck_require__(7548);
 const node_fs_1 = __importDefault(__nccwpck_require__(87561));
 const core = __importStar(__nccwpck_require__(42186));
 const upload_specification_1 = __nccwpck_require__(86096);
-function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const uploadResponse = {
-            artifactName: artifactName,
-            artifactItems: [],
-            size: -1,
-            failedItems: [],
-        };
-        const uploadSpec = (0, upload_specification_1.getUploadSpecification)(artifactName, rootDirectory, filesToUpload);
-        for (const fileSpec of uploadSpec) {
-            try {
-                yield (0, put_data_s3_1.uploadObjectToS3)({
-                    Body: node_fs_1.default.createReadStream(fileSpec.absoluteFilePath),
-                    Bucket: bucket,
-                    Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
-                }, core);
-            }
-            catch (err) {
-                uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
-            }
+async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket) {
+    const uploadResponse = {
+        artifactName: artifactName,
+        artifactItems: [],
+        size: -1,
+        failedItems: [],
+    };
+    const uploadSpec = (0, upload_specification_1.getUploadSpecification)(artifactName, rootDirectory, filesToUpload);
+    for (const fileSpec of uploadSpec) {
+        try {
+            await (0, put_data_s3_1.uploadObjectToS3)({
+                Body: node_fs_1.default.createReadStream(fileSpec.absoluteFilePath),
+                Bucket: bucket,
+                Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
+            }, core);
         }
-        return uploadResponse;
-    });
+        catch (err) {
+            uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
+        }
+    }
+    return uploadResponse;
 }
 exports.uploadArtifact = uploadArtifact;
 
@@ -56088,15 +56064,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.findFilesToUpload = void 0;
 const glob = __importStar(__nccwpck_require__(28090));
@@ -56164,64 +56131,62 @@ function getMultiPathLCA(searchPaths) {
     }
     return path.join(...commonPaths);
 }
-function findFilesToUpload(searchPath, globOptions) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const searchResults = [];
-        const globber = yield glob.create(searchPath, globOptions || getDefaultGlobOptions());
-        const rawSearchResults = yield globber.glob();
-        /*
-          Files are saved with case insensitivity. Uploading both a.txt and A.txt will files to be overwritten
-          Detect any files that could be overwritten for user awareness
-        */
-        const set = new Set();
-        /*
-          Directories will be rejected if attempted to be uploaded. This includes just empty
-          directories so filter any directories out from the raw search results
-        */
-        for (const searchResult of rawSearchResults) {
-            const fileStats = yield stats(searchResult);
-            // isDirectory() returns false for symlinks if using fs.lstat(), make sure to use fs.stat() instead
-            if (!fileStats.isDirectory()) {
-                (0, core_1.debug)(`File:${searchResult} was found using the provided searchPath`);
-                searchResults.push(searchResult);
-                // detect any files that would be overwritten because of case insensitivity
-                if (set.has(searchResult.toLowerCase())) {
-                    (0, core_1.info)(`Uploads are case insensitive: ${searchResult} was detected that it will be overwritten by another file with the same path`);
-                }
-                else {
-                    set.add(searchResult.toLowerCase());
-                }
+async function findFilesToUpload(searchPath, globOptions) {
+    const searchResults = [];
+    const globber = await glob.create(searchPath, globOptions || getDefaultGlobOptions());
+    const rawSearchResults = await globber.glob();
+    /*
+      Files are saved with case insensitivity. Uploading both a.txt and A.txt will files to be overwritten
+      Detect any files that could be overwritten for user awareness
+    */
+    const set = new Set();
+    /*
+      Directories will be rejected if attempted to be uploaded. This includes just empty
+      directories so filter any directories out from the raw search results
+    */
+    for (const searchResult of rawSearchResults) {
+        const fileStats = await stats(searchResult);
+        // isDirectory() returns false for symlinks if using fs.lstat(), make sure to use fs.stat() instead
+        if (!fileStats.isDirectory()) {
+            (0, core_1.debug)(`File:${searchResult} was found using the provided searchPath`);
+            searchResults.push(searchResult);
+            // detect any files that would be overwritten because of case insensitivity
+            if (set.has(searchResult.toLowerCase())) {
+                (0, core_1.info)(`Uploads are case insensitive: ${searchResult} was detected that it will be overwritten by another file with the same path`);
             }
             else {
-                (0, core_1.debug)(`Removing ${searchResult} from rawSearchResults because it is a directory`);
+                set.add(searchResult.toLowerCase());
             }
         }
-        // Calculate the root directory for the artifact using the search paths that were utilized
-        const searchPaths = globber.getSearchPaths();
-        if (searchPaths.length > 1) {
-            (0, core_1.info)(`Multiple search paths detected. Calculating the least common ancestor of all paths`);
-            const lcaSearchPath = getMultiPathLCA(searchPaths);
-            (0, core_1.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
-            return {
-                filesToUpload: searchResults,
-                rootDirectory: lcaSearchPath
-            };
+        else {
+            (0, core_1.debug)(`Removing ${searchResult} from rawSearchResults because it is a directory`);
         }
-        /*
-          Special case for a single file artifact that is uploaded without a directory or wildcard pattern. The directory structure is
-          not preserved and the root directory will be the single files parent directory
-        */
-        if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
-            return {
-                filesToUpload: searchResults,
-                rootDirectory: (0, path_1.dirname)(searchResults[0])
-            };
-        }
+    }
+    // Calculate the root directory for the artifact using the search paths that were utilized
+    const searchPaths = globber.getSearchPaths();
+    if (searchPaths.length > 1) {
+        (0, core_1.info)(`Multiple search paths detected. Calculating the least common ancestor of all paths`);
+        const lcaSearchPath = getMultiPathLCA(searchPaths);
+        (0, core_1.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
         return {
             filesToUpload: searchResults,
-            rootDirectory: searchPaths[0]
+            rootDirectory: lcaSearchPath
         };
-    });
+    }
+    /*
+      Special case for a single file artifact that is uploaded without a directory or wildcard pattern. The directory structure is
+      not preserved and the root directory will be the single files parent directory
+    */
+    if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
+        return {
+            filesToUpload: searchResults,
+            rootDirectory: (0, path_1.dirname)(searchResults[0])
+        };
+    }
+    return {
+        filesToUpload: searchResults,
+        rootDirectory: searchPaths[0]
+    };
 }
 exports.findFilesToUpload = findFilesToUpload;
 
@@ -56256,15 +56221,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(42186));
 const artifact_1 = __nccwpck_require__(52605);
@@ -56272,63 +56228,61 @@ const search_1 = __nccwpck_require__(13930);
 const input_helper_1 = __nccwpck_require__(46455);
 const constants_1 = __nccwpck_require__(69042);
 const uploader_1 = __nccwpck_require__(87256);
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const inputs = (0, input_helper_1.getInputs)();
-            const searchResult = yield (0, search_1.findFilesToUpload)(inputs.searchPath);
-            if (searchResult.filesToUpload.length === 0) {
-                // No files were found, different use cases warrant different types of behavior if nothing is found
-                switch (inputs.ifNoFilesFound) {
-                    case constants_1.NoFileOptions.warn: {
-                        core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                        break;
-                    }
-                    case constants_1.NoFileOptions.error: {
-                        core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                        break;
-                    }
-                    case constants_1.NoFileOptions.ignore: {
-                        core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                        break;
-                    }
+async function run() {
+    try {
+        const inputs = (0, input_helper_1.getInputs)();
+        const searchResult = await (0, search_1.findFilesToUpload)(inputs.searchPath);
+        if (searchResult.filesToUpload.length === 0) {
+            // No files were found, different use cases warrant different types of behavior if nothing is found
+            switch (inputs.ifNoFilesFound) {
+                case constants_1.NoFileOptions.warn: {
+                    core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
                 }
+                case constants_1.NoFileOptions.error: {
+                    core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case constants_1.NoFileOptions.ignore: {
+                    core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+            }
+        }
+        else {
+            const s = searchResult.filesToUpload.length === 1 ? '' : 's';
+            core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
+            core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
+            if (searchResult.filesToUpload.length > 10000) {
+                core.warning(`There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`);
+            }
+            const artifactClient = (0, artifact_1.create)();
+            const options = {
+                continueOnError: false
+            };
+            if (inputs.retentionDays) {
+                options.retentionDays = inputs.retentionDays;
+            }
+            core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
+            let uploadResponse;
+            const useS3 = true;
+            if (useS3) {
+                uploadResponse = await (0, uploader_1.uploadArtifact)(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket);
             }
             else {
-                const s = searchResult.filesToUpload.length === 1 ? '' : 's';
-                core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
-                core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
-                if (searchResult.filesToUpload.length > 10000) {
-                    core.warning(`There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`);
-                }
-                const artifactClient = (0, artifact_1.create)();
-                const options = {
-                    continueOnError: false
-                };
-                if (inputs.retentionDays) {
-                    options.retentionDays = inputs.retentionDays;
-                }
-                core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
-                let uploadResponse;
-                const useS3 = true;
-                if (useS3) {
-                    uploadResponse = yield (0, uploader_1.uploadArtifact)(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket);
-                }
-                else {
-                    uploadResponse = yield artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
-                }
-                if (uploadResponse.failedItems.length > 0) {
-                    core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
-                }
-                else {
-                    core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
-                }
+                uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
+            }
+            if (uploadResponse.failedItems.length > 0) {
+                core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
+            }
+            else {
+                core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
             }
         }
-        catch (error) {
-            core.setFailed(error.message);
-        }
-    });
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
 }
 run();
 
