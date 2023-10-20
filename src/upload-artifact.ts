@@ -51,6 +51,9 @@ async function run(): Promise<void> {
         options.retentionDays = inputs.retentionDays
       }
 
+      core.info(
+          `Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`
+      )
       const uploadResponse = await artifactClient.uploadArtifact(
         inputs.artifactName,
         searchResult.filesToUpload,

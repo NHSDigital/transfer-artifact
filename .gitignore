@@ -1,3 +1,5 @@
+.idea/
+.tool-versions
 node_modules/
 lib/
 __tests__/_temp/
