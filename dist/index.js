@@ -55875,7 +55875,7 @@ var Inputs;
     Inputs["IfNoFilesFound"] = "if-no-files-found";
     Inputs["RetentionDays"] = "retention-days";
     Inputs["ArtifactBucket"] = "artifact-bucket";
-})(Inputs = exports.Inputs || (exports.Inputs = {}));
+})(Inputs || (exports.Inputs = Inputs = {}));
 var NoFileOptions;
 (function (NoFileOptions) {
     /**
@@ -55890,7 +55890,7 @@ var NoFileOptions;
      * Do not output any warnings or errors, the action does not fail
      */
     NoFileOptions["ignore"] = "ignore";
-})(NoFileOptions = exports.NoFileOptions || (exports.NoFileOptions = {}));
+})(NoFileOptions || (exports.NoFileOptions = NoFileOptions = {}));
 
 
 /***/ }),
