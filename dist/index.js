@@ -55754,7 +55754,9 @@ exports.putDataS3 = putDataS3;
  *       ACL: 'bucket-owner-full-control',
  *     });
  */
-async function uploadObjectToS3(parameters, log) {
+async function uploadObjectToS3(
+// 2009 - edit here????
+parameters, log) {
     try {
         log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
         return await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
@@ -55845,7 +55847,9 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
         try {
             await (0, put_data_s3_1.uploadObjectToS3)({
                 Body: node_fs_1.default.createReadStream(fileSpec.absoluteFilePath),
+                // 2009 - CHANGE THIS BACK!!!!
                 Bucket: bucket,
+                // Bucket: `caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts`,
                 Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
             }, core);
         }
