@@ -7,6 +7,7 @@ import {GetObjectCommand, ListObjectsV2Command} from '@aws-sdk/client-s3';
 import {getS3Client} from './s3-client';
 import {StreamCounter} from './stream-counter';
 import type {S3Location} from './types';
+import {getInputs} from '../input-helper';
 
 const pipelineP = promisify(pipeline);
 
@@ -117,7 +118,7 @@ export async function listS3Objects({
 		};
 
 		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
-
+		console.log(`I am data: ${JSON.stringify(data)}`)
 		return data.Contents?.map(element => element.Key ?? '') ?? [];
 	} catch (error_) {
 		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;

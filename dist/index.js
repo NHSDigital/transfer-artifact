@@ -644,7 +644,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DownloadHttpClient = void 0;
 const fs = __importStar(__nccwpck_require__(57147));
 const core = __importStar(__nccwpck_require__(42186));
-const zlib = __importStar(__nccwpck_require__(59796));
+const zlib = __importStar(__nccwpck_require__(15206));
 const utils_1 = __nccwpck_require__(36327);
 const url_1 = __nccwpck_require__(57310);
 const status_reporter_1 = __nccwpck_require__(39081);
@@ -1309,7 +1309,7 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createGZipFileInBuffer = exports.createGZipFileOnDisk = void 0;
 const fs = __importStar(__nccwpck_require__(57147));
-const zlib = __importStar(__nccwpck_require__(59796));
+const zlib = __importStar(__nccwpck_require__(15206));
 const util_1 = __nccwpck_require__(73837);
 const stat = (0, util_1.promisify)(fs.stat);
 /**
@@ -39219,7 +39219,7 @@ tslib_1.__exportStar(__nccwpck_require__(32964), exports);
 tslib_1.__exportStar(__nccwpck_require__(83495), exports);
 tslib_1.__exportStar(__nccwpck_require__(74857), exports);
 tslib_1.__exportStar(__nccwpck_require__(15342), exports);
-tslib_1.__exportStar(__nccwpck_require__(53456), exports);
+tslib_1.__exportStar(__nccwpck_require__(59796), exports);
 tslib_1.__exportStar(__nccwpck_require__(1752), exports);
 tslib_1.__exportStar(__nccwpck_require__(92480), exports);
 
@@ -39670,7 +39670,7 @@ exports.resolvedPath = resolvedPath;
 
 /***/ }),
 
-/***/ 53456:
+/***/ 59796:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -55695,6 +55695,200 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 16239:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runDownload = void 0;
+const core = __importStar(__nccwpck_require__(42186));
+const input_helper_1 = __nccwpck_require__(46455);
+const aws_1 = __nccwpck_require__(30934);
+async function runDownload() {
+    try {
+        console.log('I am running a download...');
+        const inputs = (0, input_helper_1.getInputs)();
+        const myBucket = inputs.artifactBucket;
+        const myName = inputs.artifactName;
+        (0, aws_1.listS3Objects)({
+            Bucket: myBucket,
+            Key: myName
+        });
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+exports.runDownload = runDownload;
+
+
+/***/ }),
+
+/***/ 32051:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
+/* eslint-disable unicorn/prefer-type-error */
+const node_buffer_1 = __nccwpck_require__(72254);
+const node_fs_1 = __importDefault(__nccwpck_require__(87561));
+const node_util_1 = __nccwpck_require__(47261);
+const node_stream_1 = __nccwpck_require__(84492);
+const client_s3_1 = __nccwpck_require__(19250);
+const s3_client_1 = __nccwpck_require__(2915);
+const stream_counter_1 = __nccwpck_require__(76024);
+const pipelineP = (0, node_util_1.promisify)(node_stream_1.pipeline);
+function isReadable(body) {
+    return body !== undefined && body && body.read !== undefined;
+}
+async function streamToString(Body) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        Body.on('data', (chunk) => chunks.push(node_buffer_1.Buffer.from(chunk)));
+        Body.on('error', error => {
+            reject(error);
+        });
+        Body.on('end', () => {
+            resolve(node_buffer_1.Buffer.concat(chunks).toString('utf8'));
+        });
+    });
+}
+exports.streamToString = streamToString;
+/**
+ * Stream to file, and return number of bytes saved to the file
+ */
+async function writeToFile(inputStream, filePath) {
+    const counter = new stream_counter_1.StreamCounter();
+    await pipelineP(inputStream, counter, node_fs_1.default.createWriteStream(filePath));
+    return counter.totalBytesTransfered();
+}
+async function getS3ObjectStream({ Bucket, Key, }) {
+    const parameters = {
+        Bucket,
+        Key,
+    };
+    try {
+        const { Body } = await (0, s3_client_1.getS3Client)().send(new client_s3_1.GetObjectCommand(parameters));
+        // https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+        if (isReadable(Body)) {
+            return Body;
+        }
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Could not retrieve from bucket 's3://${Bucket}/${Key}' from S3: ${error.message}`);
+        }
+        else {
+            throw error;
+        }
+    }
+    throw new Error(`Could not read file from bucket. 's3://${Bucket}/${Key}'`);
+}
+exports.getS3ObjectStream = getS3ObjectStream;
+async function getS3Object(location, defaultValue) {
+    try {
+        return await streamToString(await getS3ObjectStream(location));
+    }
+    catch (error) {
+        if (defaultValue) {
+            return defaultValue;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}' from S3: ${message}`);
+    }
+}
+exports.getS3Object = getS3Object;
+async function writeS3ObjectToFile(location, filename) {
+    try {
+        return await writeToFile(await getS3ObjectStream(location), filename);
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${error.message}`);
+        }
+        else {
+            throw error;
+        }
+    }
+}
+exports.writeS3ObjectToFile = writeS3ObjectToFile;
+async function listS3Objects({ Bucket, Key, }) {
+    try {
+        const parameters = {
+            Bucket,
+            Key,
+        };
+        const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
+        console.log(`I am data: ${JSON.stringify(data)}`);
+        return data.Contents?.map(element => element.Key ?? '') ?? [];
+    }
+    catch (error_) {
+        const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
+        throw error;
+    }
+}
+exports.listS3Objects = listS3Objects;
+
+
+/***/ }),
+
+/***/ 30934:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(32051), exports);
+__exportStar(__nccwpck_require__(2291), exports);
+__exportStar(__nccwpck_require__(7548), exports);
+__exportStar(__nccwpck_require__(28374), exports);
+
+
+/***/ }),
+
 /***/ 2291:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -55798,6 +55992,49 @@ exports.getS3Client = getS3Client;
 
 /***/ }),
 
+/***/ 76024:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.StreamCounter = void 0;
+const node_stream_1 = __nccwpck_require__(84492);
+/**
+ * Duplex (Transform) stream that counts the number of bytes that pass through it.
+ *
+ * The data itself is pushed through as-is.
+ */
+class StreamCounter extends node_stream_1.Transform {
+    totalBytes = 0;
+    /**
+   * Get the total of all bytes transfered
+   */
+    totalBytesTransfered() {
+        return this.totalBytes;
+    }
+    _transform(chunk, encoding, cb) {
+        if (typeof chunk?.length === 'number') {
+            this.totalBytes += chunk.length;
+        }
+        cb(null, chunk);
+    }
+}
+exports.StreamCounter = StreamCounter;
+
+
+/***/ }),
+
+/***/ 28374:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
 /***/ 87256:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -55870,7 +56107,7 @@ exports.uploadArtifact = uploadArtifact;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.NoFileOptions = exports.Inputs = void 0;
+exports.NoFileOptions = exports.UploadOrDownloadOptions = exports.Inputs = void 0;
 /* eslint-disable no-unused-vars */
 var Inputs;
 (function (Inputs) {
@@ -55879,7 +56116,13 @@ var Inputs;
     Inputs["IfNoFilesFound"] = "if-no-files-found";
     Inputs["RetentionDays"] = "retention-days";
     Inputs["ArtifactBucket"] = "artifact-bucket";
+    Inputs["UploadOrDownload"] = "upload-or-download";
 })(Inputs || (exports.Inputs = Inputs = {}));
+var UploadOrDownloadOptions;
+(function (UploadOrDownloadOptions) {
+    UploadOrDownloadOptions["upload"] = "upload";
+    UploadOrDownloadOptions["download"] = "download";
+})(UploadOrDownloadOptions || (exports.UploadOrDownloadOptions = UploadOrDownloadOptions = {}));
 var NoFileOptions;
 (function (NoFileOptions) {
     /**
@@ -55941,6 +56184,7 @@ function getInputs() {
     const name = core.getInput(constants_1.Inputs.Name);
     const path = core.getInput(constants_1.Inputs.Path, { required: true });
     const bucket = core.getInput(constants_1.Inputs.ArtifactBucket) || process.env.ARTIFACTS_S3_BUCKET || raiseError('no artifact-bucket supplied');
+    const UploadOrDownload = core.getInput(constants_1.Inputs.UploadOrDownload);
     const ifNoFilesFound = core.getInput(constants_1.Inputs.IfNoFilesFound);
     const noFileBehavior = constants_1.NoFileOptions[ifNoFilesFound];
     if (!noFileBehavior) {
@@ -55950,7 +56194,8 @@ function getInputs() {
         artifactName: name,
         artifactBucket: bucket,
         searchPath: path,
-        ifNoFilesFound: noFileBehavior
+        ifNoFilesFound: noFileBehavior,
+        UploadOrDownload: UploadOrDownload
     };
     const retentionDaysStr = core.getInput(constants_1.Inputs.RetentionDays);
     if (retentionDaysStr) {
@@ -55959,6 +56204,7 @@ function getInputs() {
             core.setFailed('Invalid retention-days');
         }
     }
+    // console.log(`I am inputs: ${JSON.stringify(inputs)}`)
     return inputs;
 }
 exports.getInputs = getInputs;
@@ -56226,13 +56472,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runUpload = void 0;
 const core = __importStar(__nccwpck_require__(42186));
 const artifact_1 = __nccwpck_require__(52605);
 const search_1 = __nccwpck_require__(13930);
 const input_helper_1 = __nccwpck_require__(46455);
 const constants_1 = __nccwpck_require__(69042);
 const uploader_1 = __nccwpck_require__(87256);
-async function run() {
+async function runUpload() {
     try {
         const inputs = (0, input_helper_1.getInputs)();
         const searchResult = await (0, search_1.findFilesToUpload)(inputs.searchPath);
@@ -56267,6 +56514,9 @@ async function run() {
             if (inputs.retentionDays) {
                 options.retentionDays = inputs.retentionDays;
             }
+            if (inputs.UploadOrDownload) {
+                console.log(`I am UploadOrDownload: ${inputs.UploadOrDownload}`);
+            }
             core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
             let uploadResponse;
             const useS3 = true;
@@ -56288,7 +56538,21 @@ async function run() {
         core.setFailed(error.message);
     }
 }
-run();
+exports.runUpload = runUpload;
+// if (getInputs().UploadOrDownload=='upload'){
+//   console.log('I am running an upload...')
+//   runUpload()
+// }
+// if (getInputs().UploadOrDownload=='download'){
+//   console.log('I am running a download...')
+//   const inputs = getInputs();
+//   const myBucket = inputs.artifactBucket;
+//   const myName = inputs.artifactName;
+//   listS3Objects({
+//     Bucket: myBucket,
+//     Key: myName
+//   })
+// }
 
 
 /***/ }),
@@ -56485,6 +56749,14 @@ module.exports = require("net");
 
 /***/ }),
 
+/***/ 72254:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:buffer");
+
+/***/ }),
+
 /***/ 87561:
 /***/ ((module) => {
 
@@ -56498,6 +56770,22 @@ module.exports = require("node:fs");
 
 "use strict";
 module.exports = require("node:process");
+
+/***/ }),
+
+/***/ 84492:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:stream");
+
+/***/ }),
+
+/***/ 47261:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:util");
 
 /***/ }),
 
@@ -56565,7 +56853,7 @@ module.exports = require("util");
 
 /***/ }),
 
-/***/ 59796:
+/***/ 15206:
 /***/ ((module) => {
 
 "use strict";
@@ -56651,12 +56939,27 @@ module.exports = JSON.parse('{"name":"aws-crt","version":"1.18.1","description":
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(10334);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+var exports = __webpack_exports__;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const downloader_1 = __nccwpck_require__(16239);
+const input_helper_1 = __nccwpck_require__(46455);
+const upload_artifact_1 = __nccwpck_require__(10334);
+if ((0, input_helper_1.getInputs)().UploadOrDownload == 'upload') {
+    console.log('I am calling runUpload()');
+    (0, upload_artifact_1.runUpload)();
+}
+if ((0, input_helper_1.getInputs)().UploadOrDownload == 'download') {
+    console.log('I am calling runDownload()');
+    (0, downloader_1.runDownload)();
+}
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;

@@ -1,4 +1,4 @@
-name: 'Upload a Build Artifact'
+name: 'Upload or Download a Build Artifact'
 description: 'Upload a build artifact that can be used by subsequent workflow steps'
 author: 'GitHub'
 inputs: 
@@ -23,6 +23,10 @@ inputs:
 
       Minimum 1 day.
       Maximum 90 days unless changed from the repository settings page.
+  upload-or-download: 
+    description: >
+      Whether to upload or download
+    default: 'upload'
 runs:
   using: node20
   main: 'dist/index.js'
