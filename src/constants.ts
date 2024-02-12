@@ -5,6 +5,12 @@ export enum Inputs {
   IfNoFilesFound = 'if-no-files-found',
   RetentionDays = 'retention-days',
   ArtifactBucket = 'artifact-bucket',
+  UploadOrDownload = 'upload-or-download'
+}
+
+export enum UploadOrDownloadOptions {
+  upload = 'upload',
+  download = 'download'
 }
 
 export enum NoFileOptions {

@@ -4,11 +4,11 @@ import {create, UploadOptions} from '@actions/artifact'
 import {findFilesToUpload} from './search'
 import {getInputs} from './input-helper'
 import {NoFileOptions} from './constants'
-import {uploadObjectToS3} from "./aws";
+import {listS3Objects, uploadObjectToS3} from "./aws";
 import {UploadResponse} from "@actions/artifact/lib/internal/upload-response";
 import {uploadArtifact} from "./aws/uploader";
 
-async function run(): Promise<void> {
+export async function runUpload(): Promise<void> {
   try {
     const inputs = getInputs()
     const searchResult = await findFilesToUpload(inputs.searchPath)
@@ -54,6 +54,9 @@ async function run(): Promise<void> {
       if (inputs.retentionDays) {
         options.retentionDays = inputs.retentionDays
       }
+      if (inputs.UploadOrDownload){
+        console.log(`I am UploadOrDownload: ${inputs.UploadOrDownload}`)
+      }
 
       core.info(
           `Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`
@@ -94,4 +97,18 @@ async function run(): Promise<void> {
   }
 }
 
-run()
+// if (getInputs().UploadOrDownload=='upload'){
+//   console.log('I am running an upload...')
+//   runUpload()
+// }
+
+// if (getInputs().UploadOrDownload=='download'){
+//   console.log('I am running a download...')
+//   const inputs = getInputs();
+//   const myBucket = inputs.artifactBucket;
+//   const myName = inputs.artifactName;
+//   listS3Objects({
+//     Bucket: myBucket,
+//     Key: myName
+//   })
+// }
