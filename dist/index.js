@@ -55728,16 +55728,21 @@ exports.runDownload = void 0;
 const core = __importStar(__nccwpck_require__(42186));
 const input_helper_1 = __nccwpck_require__(46455);
 const aws_1 = __nccwpck_require__(30934);
+const get_object_s3_1 = __nccwpck_require__(32051);
 async function runDownload() {
     try {
         console.log('I am running a download...');
         const inputs = (0, input_helper_1.getInputs)();
         const myBucket = inputs.artifactBucket;
         const myName = inputs.artifactName;
+        const myLocation = { Bucket: myBucket, Key: myName };
+        console.log('I am doing listS3Objects:');
         (0, aws_1.listS3Objects)({
             Bucket: myBucket,
             Key: myName
         });
+        console.log('I am doing writeS3ObjectToFile:');
+        await (0, get_object_s3_1.writeS3ObjectToFile)(myLocation, myName);
     }
     catch (error) {
         core.setFailed(error.message);
