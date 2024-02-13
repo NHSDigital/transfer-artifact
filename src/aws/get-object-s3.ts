@@ -77,6 +77,7 @@ export async function getS3Object(
 	defaultValue?: string,
 ): Promise<string> {
 	try {
+		console.log(`I am location for getS3Object: ${JSON.stringify(location)}`)
 		return await streamToString(await getS3ObjectStream(location));
 	} catch (error) {
 		if (defaultValue) {
@@ -95,7 +96,10 @@ export async function writeS3ObjectToFile(
 	filename: string,
 ): Promise<number> {
 	try {
+		console.log(`I am location for writeS3ObjectToFile: ${JSON.stringify(location)}`)
+		console.log(`I am filename for writeS3ObjectToFile: ${JSON.stringify(filename)}`)
 		return await writeToFile(await getS3ObjectStream(location), filename);
+		
 	} catch (error) {
 		if (error instanceof Error) {
 			throw new Error(
@@ -118,7 +122,18 @@ export async function listS3Objects({
 		};
 
 		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
-		console.log(`I am data: ${JSON.stringify(data)}`)
+		// console.log(`I am data: ${JSON.stringify(data)}`)
+		console.log(`I am data.Contents.length: ${JSON.stringify(data.Contents?.length)}`)
+		console.log(`I am data.Contents.[Key]: ${JSON.stringify(data.Contents?.[Key])}`)
+		console.log(`I am name?: ${data.Contents?.map(element => element.Key ?? '') ?? []}`)
+		const downloadSpec = [data.Contents?.map(element => element.Key ?? '')] ?? [];
+		for(const item of downloadSpec) {
+			console.log(`I am an item to download: ${item}`)
+		}
+		const downloadSpec2 = data.Contents?.map(element => [element.Key] ?? []) ?? [];
+		for(const item of downloadSpec2) {
+			console.log(`I am an item2 to download2: ${item}`)
+		}
 		return data.Contents?.map(element => element.Key ?? '') ?? [];
 	} catch (error_) {
 		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
