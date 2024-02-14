@@ -30,7 +30,9 @@ export async function uploadArtifact(
                 // Bucket: `caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts`,
                 Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`,  // TODO: fix path
             }, core)
-            console.log(`I am Key from uploader.ts: ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`)
+            console.log(`I am from uploader.ts bucket: ${bucket}`)
+            console.log(`I am from uploader.ts filespec.uploadFilePath: ${fileSpec.uploadFilePath}`)
+            console.log(`I am from uploader.ts Key: ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`)
         } catch (err) {
             uploadResponse.failedItems.push(fileSpec.absoluteFilePath)
         }
