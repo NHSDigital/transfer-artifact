@@ -55729,6 +55729,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runDownload = void 0;
 const core = __importStar(__nccwpck_require__(42186));
+const promises_1 = __importDefault(__nccwpck_require__(93977));
 const input_helper_1 = __nccwpck_require__(46455);
 const aws_1 = __nccwpck_require__(30934);
 const get_object_s3_1 = __nccwpck_require__(32051);
@@ -55737,27 +55738,40 @@ async function runDownload() {
     try {
         console.log('I am running a download...');
         const inputs = (0, input_helper_1.getInputs)();
-        const myBucket = inputs.artifactBucket;
-        const myName = inputs.artifactName;
-        // const myLocation = { Bucket: myBucket, Key: myName }
-        const myFilename = node_path_1.default.join(myBucket, 'ci-pipeline-upload-artifacts/aaa', myName);
-        const myLocation = { Bucket: myBucket, Key: myFilename };
         console.log('I am doing listS3Objects:');
-        (0, aws_1.listS3Objects)({
-            Bucket: myBucket,
-            // Key: myName
-            Key: myFilename
+        const bucket = inputs.artifactBucket;
+        const name = inputs.artifactName;
+        console.log(`I am name: ${name}`);
+        const myList = await (0, aws_1.listS3Objects)({
+            Bucket: bucket,
+            Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts/aaa', name)
         });
-        console.log('I am doing getS3Object:');
-        console.log(`I am location for getS3Object in downloader.ts: ${JSON.stringify(myLocation)}`);
-        await (0, get_object_s3_1.getS3Object)(myLocation);
-        console.log('I am doing writeS3ObjectToFile:');
-        console.log(`I am location for writeS3ObjectToFile in downloader.ts: ${JSON.stringify(myLocation)}`);
-        console.log(`I am filename for writeS3ObjectToFile in downloader.ts: ${JSON.stringify(myFilename)}`);
-        await (0, get_object_s3_1.writeS3ObjectToFile)(myLocation, 
-        // 2009 - suspect this is wrong but let's give it a go
-        // myName
-        myFilename);
+        console.log(`I am myList: ${myList}`);
+        await promises_1.default.mkdir('./newDirectory');
+        // NOTE TO SELF - this gets everything from every pipeline 
+        // Instead I need just the things from THIS pipeline
+        for (const item of myList) {
+            console.log(`I am item: ${item}`);
+            console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
+            const newFilename = node_path_1.default.join('./newDirectory', `temp.zip`);
+            console.log(`I am newFilename: ${newFilename}`);
+            promises_1.default.writeFile(newFilename, '');
+            // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
+            await (0, get_object_s3_1.writeS3ObjectToFile)({
+                Bucket: bucket,
+                Key: `${item}`
+            }, newFilename);
+            console.log('writeS3ObjectToFile done');
+            // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
+            function getSecondPart(str) {
+                return str.split('/dist/')[1];
+            }
+            const newNewFilename = getSecondPart(item);
+            console.log('Trying to rename...');
+            console.log(`I am newNewFilename: ${newNewFilename}`);
+            promises_1.default.rename(newFilename, `./newDirectory/${newNewFilename}`);
+        }
+        console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -55836,7 +55850,6 @@ async function getS3ObjectStream({ Bucket, Key, }) {
 exports.getS3ObjectStream = getS3ObjectStream;
 async function getS3Object(location, defaultValue) {
     try {
-        console.log(`I am location for getS3Object: ${JSON.stringify(location)}`);
         return await streamToString(await getS3ObjectStream(location));
     }
     catch (error) {
@@ -55850,8 +55863,6 @@ async function getS3Object(location, defaultValue) {
 exports.getS3Object = getS3Object;
 async function writeS3ObjectToFile(location, filename) {
     try {
-        console.log(`I am location for writeS3ObjectToFile: ${JSON.stringify(location)}`);
-        console.log(`I am filename for writeS3ObjectToFile: ${JSON.stringify(filename)}`);
         return await writeToFile(await getS3ObjectStream(location), filename);
     }
     catch (error) {
@@ -55871,18 +55882,6 @@ async function listS3Objects({ Bucket, Key, }) {
             Key,
         };
         const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
-        // console.log(`I am data: ${JSON.stringify(data)}`)
-        console.log(`I am data.Contents.length: ${JSON.stringify(data.Contents?.length)}`);
-        console.log(`I am data.Contents.[Key]: ${JSON.stringify(data.Contents?.[Key])}`);
-        console.log(`I am name?: ${data.Contents?.map(element => element.Key ?? '') ?? []}`);
-        const downloadSpec = [data.Contents?.map(element => element.Key ?? '')] ?? 0;
-        for (const item of downloadSpec) {
-            console.log(`I am an item to download: ${item}`);
-        }
-        const downloadSpec2 = data.Contents?.map(element => [element.Key] ?? 0) ?? [];
-        for (const item of downloadSpec2) {
-            console.log(`I am an item2 to download2: ${item}`);
-        }
         return data.Contents?.map(element => element.Key ?? '') ?? [];
     }
     catch (error_) {
@@ -56123,7 +56122,9 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
                 // Bucket: `caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts`,
                 Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
             }, core);
-            console.log(`I am Key from uploader.ts: ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`);
+            console.log(`I am from uploader.ts bucket: ${bucket}`);
+            console.log(`I am from uploader.ts filespec.uploadFilePath: ${fileSpec.uploadFilePath}`);
+            console.log(`I am from uploader.ts Key: ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`);
         }
         catch (err) {
             uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
@@ -56797,6 +56798,14 @@ module.exports = require("node:buffer");
 
 "use strict";
 module.exports = require("node:fs");
+
+/***/ }),
+
+/***/ 93977:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:fs/promises");
 
 /***/ }),
 
