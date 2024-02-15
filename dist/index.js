@@ -55736,12 +55736,12 @@ const get_object_s3_1 = __nccwpck_require__(32051);
 const node_path_1 = __importDefault(__nccwpck_require__(49411));
 async function runDownload() {
     try {
-        console.log('I am running a download...');
         const inputs = (0, input_helper_1.getInputs)();
-        console.log('I am doing listS3Objects:');
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         console.log(`I am name: ${name}`);
+        const pipeline_id = inputs.ci_pipeline_iid;
+        console.log(`I am pipeline ID: ${pipeline_id}`);
         const myList = await (0, aws_1.listS3Objects)({
             Bucket: bucket,
             Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts/aaa', name)
@@ -55751,25 +55751,30 @@ async function runDownload() {
         // NOTE TO SELF - this gets everything from every pipeline 
         // Instead I need just the things from THIS pipeline
         for (const item of myList) {
-            console.log(`I am item: ${item}`);
-            console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
-            const newFilename = node_path_1.default.join('./newDirectory', `temp.zip`);
-            console.log(`I am newFilename: ${newFilename}`);
-            promises_1.default.writeFile(newFilename, '');
-            // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
-            await (0, get_object_s3_1.writeS3ObjectToFile)({
-                Bucket: bucket,
-                Key: `${item}`
-            }, newFilename);
-            console.log('writeS3ObjectToFile done');
-            // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
-            function getSecondPart(str) {
-                return str.split('/dist/')[1];
+            if (item.includes(pipeline_id)) {
+                console.log(`I am item: ${item}`);
+                console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
+                const newFilename = node_path_1.default.join('./newDirectory', `temp.zip`);
+                console.log(`I am newFilename: ${newFilename}`);
+                promises_1.default.writeFile(newFilename, '');
+                // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
+                await (0, get_object_s3_1.writeS3ObjectToFile)({
+                    Bucket: bucket,
+                    Key: `${item}`
+                }, newFilename);
+                console.log('writeS3ObjectToFile done');
+                // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
+                function getSecondPart(str) {
+                    return str.split('/dist/')[1];
+                }
+                const newNewFilename = getSecondPart(item);
+                console.log('Trying to rename...');
+                console.log(`I am newNewFilename: ${newNewFilename}`);
+                promises_1.default.rename(newFilename, `./newDirectory/${newNewFilename}`);
             }
-            const newNewFilename = getSecondPart(item);
-            console.log('Trying to rename...');
-            console.log(`I am newNewFilename: ${newNewFilename}`);
-            promises_1.default.rename(newFilename, `./newDirectory/${newNewFilename}`);
+            else {
+                console.log(`Pipeline ID is ${pipeline_id}.  I am skipping download for ${item}`);
+            }
         }
         console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
     }
@@ -56153,6 +56158,7 @@ var Inputs;
     Inputs["RetentionDays"] = "retention-days";
     Inputs["ArtifactBucket"] = "artifact-bucket";
     Inputs["UploadOrDownload"] = "upload-or-download";
+    Inputs["ci_pipeline_iid"] = "ci_pipeline_iid";
 })(Inputs || (exports.Inputs = Inputs = {}));
 var UploadOrDownloadOptions;
 (function (UploadOrDownloadOptions) {
@@ -56221,6 +56227,7 @@ function getInputs() {
     const path = core.getInput(constants_1.Inputs.Path, { required: true });
     const bucket = core.getInput(constants_1.Inputs.ArtifactBucket) || process.env.ARTIFACTS_S3_BUCKET || raiseError('no artifact-bucket supplied');
     const UploadOrDownload = core.getInput(constants_1.Inputs.UploadOrDownload);
+    const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
     const ifNoFilesFound = core.getInput(constants_1.Inputs.IfNoFilesFound);
     const noFileBehavior = constants_1.NoFileOptions[ifNoFilesFound];
     if (!noFileBehavior) {
@@ -56231,7 +56238,8 @@ function getInputs() {
         artifactBucket: bucket,
         searchPath: path,
         ifNoFilesFound: noFileBehavior,
-        UploadOrDownload: UploadOrDownload
+        UploadOrDownload: UploadOrDownload,
+        ci_pipeline_iid: ci_pipeline_iid
     };
     const retentionDaysStr = core.getInput(constants_1.Inputs.RetentionDays);
     if (retentionDaysStr) {

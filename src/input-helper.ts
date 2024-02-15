@@ -16,6 +16,7 @@ export function getInputs(): UploadInputs {
   const path = core.getInput(Inputs.Path, {required: true})
   const bucket = core.getInput(Inputs.ArtifactBucket) || process.env.ARTIFACTS_S3_BUCKET || raiseError('no artifact-bucket supplied');
   const UploadOrDownload = core.getInput(Inputs.UploadOrDownload)
+  const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
 
   const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound)
   const noFileBehavior: NoFileOptions = NoFileOptions[ifNoFilesFound]
@@ -35,7 +36,8 @@ export function getInputs(): UploadInputs {
     artifactBucket: bucket,
     searchPath: path,
     ifNoFilesFound: noFileBehavior,
-    UploadOrDownload: UploadOrDownload
+    UploadOrDownload: UploadOrDownload,
+    ci_pipeline_iid: ci_pipeline_iid
   } as UploadInputs
 
   const retentionDaysStr = core.getInput(Inputs.RetentionDays)

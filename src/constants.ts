@@ -5,7 +5,8 @@ export enum Inputs {
   IfNoFilesFound = 'if-no-files-found',
   RetentionDays = 'retention-days',
   ArtifactBucket = 'artifact-bucket',
-  UploadOrDownload = 'upload-or-download'
+  UploadOrDownload = 'upload-or-download',
+  ci_pipeline_iid = 'ci_pipeline_iid'
 }
 
 export enum UploadOrDownloadOptions {
