@@ -55747,19 +55747,32 @@ async function runDownload() {
         const downloadLocation = inputs.searchPath;
         const myList = await (0, aws_1.listS3Objects)({
             Bucket: bucket,
-            Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts/aaa', name)
+            Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name)
         });
-        console.log(`I am myList: ${myList}`);
+        console.log(`I am bucket: ${bucket}`);
+        console.log(`I am name: ${name}`);
+        console.log(`I am pipeline_id: ${pipeline_id}`);
+        // console.log(`I am myList: ${myList}`)
+        // the problem is that the inbuilt ListObjectsV2Command only returns the most recent 1000 objects
+        // which is actually not that many, when 5 objects are created by each pipeline
+        // need to try to get ALL objects
+        const myList2 = await (0, aws_1.listAllS3Objects)({
+            Bucket: bucket,
+            Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name)
+        });
+        console.log(`I am myList2: ${myList2}`);
         // create a temporary directory to hold the artifacts
-        await promises_1.default.mkdir(`./${downloadLocation}`);
+        await promises_1.default.mkdir(`${downloadLocation}`);
         // listS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline
-        for (const item of myList) {
+        for (const item of myList2) {
             if (item.includes(pipeline_id)) {
                 console.log(`I am item: ${item}`);
+                console.log(`I am downloadLocation: ${downloadLocation}`);
                 // create and activate the new file before writing to it
                 // needs to be named ./artifacts/ because that is what our TF testing step is looking for
-                const newFilename = node_path_1.default.join(`./${downloadLocation}`, getItemName(item));
+                // const newFilename = path.join(`${downloadLocation}`, getItemName(item))
+                const newFilename = getItemName(item);
                 promises_1.default.writeFile(newFilename, '');
                 await (0, get_object_s3_1.writeS3ObjectToFile)({
                     Bucket: bucket,
@@ -55768,7 +55781,8 @@ async function runDownload() {
                 console.log(`${item} has been downloaded to ${newFilename}`);
             }
         }
-        console.log(`Items successfully downloaded to ./${downloadLocation} folder: ${await promises_1.default.readdir(`./${downloadLocation}`)}`);
+        // console.log(`Items successfully downloaded to ${downloadLocation} folder: ${await fs.readdir(`${downloadLocation}`)}`)
+        console.log(`Items successfully downloaded: ${await promises_1.default.readdir(`./`)}`);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -55788,7 +55802,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
+exports.listAllS3Objects = exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
 /* eslint-disable unicorn/prefer-type-error */
 const node_buffer_1 = __nccwpck_require__(72254);
 const node_fs_1 = __importDefault(__nccwpck_require__(87561));
@@ -55878,7 +55892,9 @@ async function listS3Objects({ Bucket, Key, }) {
             Bucket,
             Key,
         };
+        // console.log(`I am parameters: ${JSON.stringify(parameters)}`)
         const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
+        // console.log(`I am data: ${JSON.stringify(data)}`)
         return data.Contents?.map(element => element.Key ?? '') ?? [];
     }
     catch (error_) {
@@ -55887,6 +55903,29 @@ async function listS3Objects({ Bucket, Key, }) {
     }
 }
 exports.listS3Objects = listS3Objects;
+async function listAllS3Objects({ Bucket, Key, }) {
+    try {
+        let isTruncated = true;
+        console.log("Your bucket contains the following objects:\n");
+        let contents = "";
+        while (isTruncated) {
+            const { Contents, IsTruncated, NextContinuationToken } = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command({ Bucket }));
+            const contentsList = Contents?.map(element => element.Key ?? '') ?? [];
+            console.log(`I am contentsList: ${contentsList}`);
+            // contents += contentsList + "\n";
+            isTruncated = IsTruncated;
+            (new client_s3_1.ListObjectsV2Command({ Bucket })).input.ContinuationToken = NextContinuationToken;
+        }
+        // console.log(`I am contents: ${contents}`)
+        // return contents
+        return '';
+    }
+    catch (error_) {
+        const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
+        throw error;
+    }
+}
+exports.listAllS3Objects = listAllS3Objects;
 
 
 /***/ }),
@@ -55983,6 +56022,7 @@ async function uploadObjectToS3(
 parameters, log) {
     try {
         log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
+        console.log(`I am parameters: ${JSON.stringify(parameters)}`);
         return await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
     }
     catch (error) {
@@ -56110,6 +56150,10 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
         failedItems: [],
     };
     const uploadSpec = (0, upload_specification_1.getUploadSpecification)(artifactName, rootDirectory, filesToUpload);
+    console.log(`I am artifactName: ${artifactName}`);
+    console.log(`I am rootDirectory: ${rootDirectory}`);
+    console.log(`I am filesToUpload: ${filesToUpload}`);
+    console.log(`I am bucket: ${bucket}`);
     for (const fileSpec of uploadSpec) {
         try {
             await (0, put_data_s3_1.uploadObjectToS3)({
@@ -56117,8 +56161,10 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
                 // 2009 - CHANGE THIS BACK!!!!
                 Bucket: bucket,
                 // Bucket: `caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts`,
-                Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
+                Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}`, // TODO: fix path
             }, core);
+            console.log(`I am fileSpec: ${JSON.stringify(fileSpec)}`);
+            console.log(`I am fileSpec.uploadFilePath: ${fileSpec.uploadFilePath}`);
         }
         catch (err) {
             uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
