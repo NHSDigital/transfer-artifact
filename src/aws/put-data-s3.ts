@@ -47,6 +47,7 @@ export async function uploadObjectToS3(
 ): Promise<PutObjectCommandOutput> {
 	try {
 		log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
+		console.log(`I am parameters: ${JSON.stringify(parameters)}`)
 		return await getS3Client().send(new PutObjectCommand(parameters));
 	} catch (error) {
 		if (error instanceof Error) {

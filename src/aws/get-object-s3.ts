@@ -3,7 +3,7 @@ import {Buffer} from 'node:buffer';
 import fs from 'node:fs';
 import {promisify} from 'node:util';
 import {pipeline, type Readable} from 'node:stream';
-import {GetObjectCommand, ListObjectsV2Command} from '@aws-sdk/client-s3';
+import {GetObjectCommand, ListObjectsV2Command, S3LocationFilterSensitiveLog} from '@aws-sdk/client-s3';
 import {getS3Client} from './s3-client';
 import {StreamCounter} from './stream-counter';
 import type {S3Location} from './types';
@@ -117,9 +117,37 @@ export async function listS3Objects({
 			Bucket,
 			Key,
 		};
-
+		// console.log(`I am parameters: ${JSON.stringify(parameters)}`)
 		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
+		// console.log(`I am data: ${JSON.stringify(data)}`)
 		return data.Contents?.map(element => element.Key ?? '') ?? [];
+	} catch (error_) {
+		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
+		throw error;
+	}
+}
+
+export async function listAllS3Objects({
+	Bucket,
+	Key,
+}: S3Location
+): Promise<string> {
+	try {
+		let isTruncated:boolean|undefined = true;
+		console.log("Your bucket contains the following objects:\n");
+    	let contents = "";
+    	while (isTruncated) {
+		const { Contents, IsTruncated, NextContinuationToken } = 
+		await getS3Client().send(new ListObjectsV2Command({Bucket}));
+		const contentsList = Contents?.map(element => element.Key ?? '') ?? [];
+		console.log(`I am contentsList: ${contentsList}`)
+		// contents += contentsList + "\n";
+		isTruncated= IsTruncated;
+		(new ListObjectsV2Command({Bucket})).input.ContinuationToken = NextContinuationToken;
+		}
+		// console.log(`I am contents: ${contents}`)
+		// return contents
+		return ''
 	} catch (error_) {
 		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
 		throw error;
