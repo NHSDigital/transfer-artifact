@@ -55744,19 +55744,22 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const pipeline_id = inputs.ci_pipeline_iid;
+        const downloadLocation = inputs.searchPath;
         const myList = await (0, aws_1.listS3Objects)({
             Bucket: bucket,
             Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts/aaa', name)
         });
+        console.log(`I am myList: ${myList}`);
         // create a temporary directory to hold the artifacts
-        await promises_1.default.mkdir(`./artifacts`);
+        await promises_1.default.mkdir(`./${downloadLocation}`);
         // listS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline
         for (const item of myList) {
             if (item.includes(pipeline_id)) {
+                console.log(`I am item: ${item}`);
                 // create and activate the new file before writing to it
                 // needs to be named ./artifacts/ because that is what our TF testing step is looking for
-                const newFilename = node_path_1.default.join(`./artifacts`, getItemName(item));
+                const newFilename = node_path_1.default.join(`./${downloadLocation}`, getItemName(item));
                 promises_1.default.writeFile(newFilename, '');
                 await (0, get_object_s3_1.writeS3ObjectToFile)({
                     Bucket: bucket,
@@ -55765,7 +55768,7 @@ async function runDownload() {
                 console.log(`${item} has been downloaded to ${newFilename}`);
             }
         }
-        console.log(`Items successfully downloaded to ./artifacts folder: ${await promises_1.default.readdir(`./artifacts`)}`);
+        console.log(`Items successfully downloaded to ./${downloadLocation} folder: ${await promises_1.default.readdir(`./${downloadLocation}`)}`);
     }
     catch (error) {
         core.setFailed(error.message);
