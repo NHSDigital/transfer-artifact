@@ -1,35 +1,41 @@
 import * as core from '@actions/core';
 import fs from 'node:fs/promises';
-import os, { homedir } from 'node:os';
 import {getInputs} from '../input-helper';
 import {listS3Objects} from "../aws";
-import { getS3Object, writeS3ObjectToFile } from './get-object-s3';
+import { writeS3ObjectToFile } from './get-object-s3';
 import path from 'node:path';
+
+// used for getting the name of the item
+function getItemName(str) {
+  return str.split('/dist/')[1];
+}
 
 export async function runDownload(): Promise<void> {
     try {
         const inputs = getInputs();
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
-        console.log(`I am name: ${name}`)
         const pipeline_id = inputs.ci_pipeline_iid
-        console.log(`I am pipeline ID: ${pipeline_id}`)
+
         const myList = await listS3Objects({
           Bucket: bucket,
           Key: path.join(bucket,'ci-pipeline-upload-artifacts/aaa',name)
         })
-        console.log(`I am myList: ${myList}`)
-        await fs.mkdir('./newDirectory')
-        // NOTE TO SELF - this gets everything from every pipeline 
-        // Instead I need just the things from THIS pipeline
+
+        // create a temporary directory to hold the artifacts
+        await fs.mkdir(`./artifacts`)
+
+        // listS3Objects brings back ALL objects
+        // but we only want the ones for THIS Github pipeline
+
         for(const item of myList){
+
           if(item.includes(pipeline_id)){
-            console.log(`I am item: ${item}`)
-            console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
-            const newFilename = path.join('./newDirectory', `temp.zip`);
-            console.log(`I am newFilename: ${newFilename}`)
+            // create and activate the new file before writing to it
+            // needs to be named ./artifacts/ because that is what our TF testing step is looking for
+            const newFilename = path.join(`./artifacts`, getItemName(item))
             fs.writeFile(newFilename,'')
-            // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
+
             await writeS3ObjectToFile(
                   {
                     Bucket: bucket,
@@ -37,20 +43,10 @@ export async function runDownload(): Promise<void> {
                   },
                   newFilename
             )
-            console.log('writeS3ObjectToFile done')
-            // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
-            function getSecondPart(str) {
-              return str.split('/dist/')[1];
-            }
-            const newNewFilename = getSecondPart(item)
-            console.log('Trying to rename...')
-            console.log(`I am newNewFilename: ${newNewFilename}`)
-            fs.rename(newFilename,`./newDirectory/${newNewFilename}`)
+            console.log(`${item} has been downloaded to ${newFilename}`)
           }
-          else
-          { console.log(`Pipeline ID is ${pipeline_id}.  I am skipping download for ${item}`)}
         }
-    console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
+        console.log(`Items successfully downloaded to ./artifacts folder: ${await fs.readdir(`./artifacts`)}`)
     } catch (error) {
         core.setFailed((error as Error).message)
       }

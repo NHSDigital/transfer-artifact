@@ -55,7 +55,7 @@ export async function runUpload(): Promise<void> {
         options.retentionDays = inputs.retentionDays
       }
       if (inputs.UploadOrDownload){
-        console.log(`I am UploadOrDownload: ${inputs.UploadOrDownload}`)
+        console.log(`I am UploadOrDownload choice: ${inputs.UploadOrDownload}`)
       }
 
       core.info(
@@ -96,19 +96,3 @@ export async function runUpload(): Promise<void> {
     core.setFailed((error as Error).message)
   }
 }
-
-// if (getInputs().UploadOrDownload=='upload'){
-//   console.log('I am running an upload...')
-//   runUpload()
-// }
-
-// if (getInputs().UploadOrDownload=='download'){
-//   console.log('I am running a download...')
-//   const inputs = getInputs();
-//   const myBucket = inputs.artifactBucket;
-//   const myName = inputs.artifactName;
-//   listS3Objects({
-//     Bucket: myBucket,
-//     Key: myName
-//   })
-// }

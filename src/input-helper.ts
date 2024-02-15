@@ -48,7 +48,5 @@ export function getInputs(): UploadInputs {
     }
   }
 
-  // console.log(`I am inputs: ${JSON.stringify(inputs)}`)
-
   return inputs
 }
