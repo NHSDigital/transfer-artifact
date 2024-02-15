@@ -55734,49 +55734,38 @@ const input_helper_1 = __nccwpck_require__(46455);
 const aws_1 = __nccwpck_require__(30934);
 const get_object_s3_1 = __nccwpck_require__(32051);
 const node_path_1 = __importDefault(__nccwpck_require__(49411));
+// used for getting the name of the item
+function getItemName(str) {
+    return str.split('/dist/')[1];
+}
 async function runDownload() {
     try {
         const inputs = (0, input_helper_1.getInputs)();
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
-        console.log(`I am name: ${name}`);
         const pipeline_id = inputs.ci_pipeline_iid;
-        console.log(`I am pipeline ID: ${pipeline_id}`);
         const myList = await (0, aws_1.listS3Objects)({
             Bucket: bucket,
             Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts/aaa', name)
         });
-        console.log(`I am myList: ${myList}`);
-        await promises_1.default.mkdir('./newDirectory');
-        // NOTE TO SELF - this gets everything from every pipeline 
-        // Instead I need just the things from THIS pipeline
+        // create a temporary directory to hold the artifacts
+        await promises_1.default.mkdir(`./artifacts`);
+        // listS3Objects brings back ALL objects
+        // but we only want the ones for THIS Github pipeline
         for (const item of myList) {
             if (item.includes(pipeline_id)) {
-                console.log(`I am item: ${item}`);
-                console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
-                const newFilename = node_path_1.default.join('./newDirectory', `temp.zip`);
-                console.log(`I am newFilename: ${newFilename}`);
+                // create and activate the new file before writing to it
+                // needs to be named ./artifacts/ because that is what our TF testing step is looking for
+                const newFilename = node_path_1.default.join(`./artifacts`, getItemName(item));
                 promises_1.default.writeFile(newFilename, '');
-                // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
                 await (0, get_object_s3_1.writeS3ObjectToFile)({
                     Bucket: bucket,
                     Key: `${item}`
                 }, newFilename);
-                console.log('writeS3ObjectToFile done');
-                // console.log(`I am current files: ${await fs.readdir('./newDirectory')}`)
-                function getSecondPart(str) {
-                    return str.split('/dist/')[1];
-                }
-                const newNewFilename = getSecondPart(item);
-                console.log('Trying to rename...');
-                console.log(`I am newNewFilename: ${newNewFilename}`);
-                promises_1.default.rename(newFilename, `./newDirectory/${newNewFilename}`);
-            }
-            else {
-                console.log(`Pipeline ID is ${pipeline_id}.  I am skipping download for ${item}`);
+                console.log(`${item} has been downloaded to ${newFilename}`);
             }
         }
-        console.log(`I am current files: ${await promises_1.default.readdir('./newDirectory')}`);
+        console.log(`Items successfully downloaded to ./artifacts folder: ${await promises_1.default.readdir(`./artifacts`)}`);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -56127,9 +56116,6 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
                 // Bucket: `caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts`,
                 Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
             }, core);
-            console.log(`I am from uploader.ts bucket: ${bucket}`);
-            console.log(`I am from uploader.ts filespec.uploadFilePath: ${fileSpec.uploadFilePath}`);
-            console.log(`I am from uploader.ts Key: ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`);
         }
         catch (err) {
             uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
@@ -56248,7 +56234,6 @@ function getInputs() {
             core.setFailed('Invalid retention-days');
         }
     }
-    // console.log(`I am inputs: ${JSON.stringify(inputs)}`)
     return inputs;
 }
 exports.getInputs = getInputs;
@@ -56559,7 +56544,7 @@ async function runUpload() {
                 options.retentionDays = inputs.retentionDays;
             }
             if (inputs.UploadOrDownload) {
-                console.log(`I am UploadOrDownload: ${inputs.UploadOrDownload}`);
+                console.log(`I am UploadOrDownload choice: ${inputs.UploadOrDownload}`);
             }
             core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
             let uploadResponse;
@@ -56583,20 +56568,6 @@ async function runUpload() {
     }
 }
 exports.runUpload = runUpload;
-// if (getInputs().UploadOrDownload=='upload'){
-//   console.log('I am running an upload...')
-//   runUpload()
-// }
-// if (getInputs().UploadOrDownload=='download'){
-//   console.log('I am running a download...')
-//   const inputs = getInputs();
-//   const myBucket = inputs.artifactBucket;
-//   const myName = inputs.artifactName;
-//   listS3Objects({
-//     Bucket: myBucket,
-//     Key: myName
-//   })
-// }
 
 
 /***/ }),
@@ -57010,11 +56981,11 @@ const downloader_1 = __nccwpck_require__(16239);
 const input_helper_1 = __nccwpck_require__(46455);
 const upload_artifact_1 = __nccwpck_require__(10334);
 if ((0, input_helper_1.getInputs)().UploadOrDownload == 'upload') {
-    console.log('I am calling runUpload()');
+    console.log('Calling runUpload()...');
     (0, upload_artifact_1.runUpload)();
 }
 if ((0, input_helper_1.getInputs)().UploadOrDownload == 'download') {
-    console.log('I am calling runDownload()');
+    console.log('Calling runDownload()...');
     (0, downloader_1.runDownload)();
 }
 
