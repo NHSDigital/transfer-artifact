@@ -8,6 +8,7 @@ import {getS3Client} from './s3-client';
 import {StreamCounter} from './stream-counter';
 import type {S3Location} from './types';
 import {getInputs} from '../input-helper';
+import { startGroup } from '@actions/core';
 
 const pipelineP = promisify(pipeline);
 
@@ -117,9 +118,7 @@ export async function listS3Objects({
 			Bucket,
 			Key,
 		};
-		// console.log(`I am parameters: ${JSON.stringify(parameters)}`)
 		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
-		// console.log(`I am data: ${JSON.stringify(data)}`)
 		return data.Contents?.map(element => element.Key ?? '') ?? [];
 	} catch (error_) {
 		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
@@ -127,27 +126,46 @@ export async function listS3Objects({
 	}
 }
 
+// the inbuilt ListObjectsV2Command only returns the most recent 1000 objects
+// this command includes a loop to return all objects in the S3 bucket
 export async function listAllS3Objects({
 	Bucket,
-	Key,
-}: S3Location
-): Promise<string> {
+	Key
+}: S3Location,
+	StartAfter:string): Promise<string[]> {
 	try {
-		let isTruncated:boolean|undefined = true;
-		console.log("Your bucket contains the following objects:\n");
-    	let contents = "";
-    	while (isTruncated) {
-		const { Contents, IsTruncated, NextContinuationToken } = 
-		await getS3Client().send(new ListObjectsV2Command({Bucket}));
-		const contentsList = Contents?.map(element => element.Key ?? '') ?? [];
-		console.log(`I am contentsList: ${contentsList}`)
-		// contents += contentsList + "\n";
-		isTruncated= IsTruncated;
-		(new ListObjectsV2Command({Bucket})).input.ContinuationToken = NextContinuationToken;
+
+		const parameters = {
+			Bucket,
+			Key,
+			StartAfter
+		};
+		
+		let allMyData:string[]=[]
+		let startPosition:string=''
+		
+		while(true){
+			if(startPosition){
+				parameters.StartAfter=startPosition
+				console.log(`I am StartAfter: ${StartAfter}`)
+			}
+			const data = await getS3Client().send(new ListObjectsV2Command(parameters));
+			const dataAsArray = data.Contents?.map(element => element.Key ?? '') ?? [];
+			console.log(`I am dataAsArray.length: ${dataAsArray.length}`)
+			console.log(`I am dataAsArray[dataAsArray.length-1]: ${dataAsArray[dataAsArray.length-1]}`)
+			if(dataAsArray){
+				allMyData.push(...dataAsArray)
+			}
+			console.log(`I am allMyData.length: ${allMyData.length}`)
+			const lastItem=dataAsArray[dataAsArray.length-1]
+			console.log(`I am lastItem: ${lastItem}`)
+			startPosition=lastItem
+			if(dataAsArray.length===0 ){
+				console.log(`No further items found.  Scanned ${allMyData.length} objects in total.`)
+				break
+			}
 		}
-		// console.log(`I am contents: ${contents}`)
-		// return contents
-		return ''
+		return allMyData
 	} catch (error_) {
 		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
 		throw error;

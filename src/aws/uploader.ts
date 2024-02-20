@@ -29,9 +29,7 @@ export async function uploadArtifact(
         try {
             await uploadObjectToS3({
                 Body: fs.createReadStream(fileSpec.absoluteFilePath),
-                // 2009 - CHANGE THIS BACK!!!!
                 Bucket: bucket,
-                // Bucket: `caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts`,
                 Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}`,  // TODO: fix path
             }, core)
             console.log(`I am fileSpec: ${JSON.stringify(fileSpec)}`)

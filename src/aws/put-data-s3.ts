@@ -38,7 +38,6 @@ export async function putDataS3(
  *     });
  */
 export async function uploadObjectToS3(
-	// 2009 - edit here????
 	parameters: Upload,
 	log: {
 		info: (message: string) => void;
