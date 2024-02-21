@@ -55748,10 +55748,15 @@ async function runDownload() {
         console.log(`I am bucket: ${bucket}`);
         console.log(`I am name: ${name}`);
         console.log(`I am pipeline_id: ${pipeline_id}`);
+        console.log(`I am key: ${node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name)}`);
         const myList2 = await (0, aws_1.listAllS3Objects)({
             Bucket: bucket,
             Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name),
         }, startAfter);
+        const getObjects = await (0, get_object_s3_1.getSpecificS3Object)(bucket, 
+        // path.join(bucket,'ci-pipeline-upload-artifacts',name,'apps/authentication/caas-sso-lambda/target/dist'),
+        node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name, 'apps', 'authentication', 'caas-sso-lambda', 'target', 'dist'));
+        console.log(`I am getObjects: ${getObjects}`);
         // listAllS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline
         for (const item of myList2) {
@@ -55787,7 +55792,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.listAllS3Objects = exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
+exports.listAllS3Objects = exports.listS3Objects = exports.writeS3ObjectToFile = exports.getSpecificS3Object = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
 /* eslint-disable unicorn/prefer-type-error */
 const node_buffer_1 = __nccwpck_require__(72254);
 const node_fs_1 = __importDefault(__nccwpck_require__(87561));
@@ -55857,6 +55862,26 @@ async function getS3Object(location, defaultValue) {
     }
 }
 exports.getS3Object = getS3Object;
+async function getSpecificS3Object(
+// location: S3Location,
+Bucket, Prefix) {
+    try {
+        const parameters = {
+            Bucket,
+            Prefix
+        };
+        const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
+        console.log(`I am raw data: ${JSON.stringify(data)}`);
+        console.log(`I am data as array: ${data.Contents?.map(element => element.Key ?? '') ?? []}`);
+        return data.Contents?.map(element => element.Key ?? '') ?? [];
+        // return await streamToString(await getS3ObjectStream(location));
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Could not retrieve from bucket 's3://${Bucket}/${Prefix}' from S3: ${message}`);
+    }
+}
+exports.getSpecificS3Object = getSpecificS3Object;
 async function writeS3ObjectToFile(location, filename) {
     try {
         return await writeToFile(await getS3ObjectStream(location), filename);

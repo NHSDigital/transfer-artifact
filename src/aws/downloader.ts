@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import fs from 'node:fs/promises';
 import {getInputs} from '../input-helper';
 import {listAllS3Objects} from "../aws";
-import { writeS3ObjectToFile } from './get-object-s3';
+import { getS3Object, writeS3ObjectToFile, getS3ObjectStream, getSpecificS3Object } from './get-object-s3';
 import path from 'node:path';
 
 // used for getting the name of the item
@@ -21,6 +21,7 @@ export async function runDownload(): Promise<void> {
         console.log(`I am bucket: ${bucket}`)
         console.log(`I am name: ${name}`)
         console.log(`I am pipeline_id: ${pipeline_id}`)
+        console.log(`I am key: ${path.join(bucket,'ci-pipeline-upload-artifacts',name)}`)
 
         const myList2 = await listAllS3Objects(
           {
@@ -29,6 +30,14 @@ export async function runDownload(): Promise<void> {
           },
           startAfter
         )
+
+        const getObjects = await getSpecificS3Object(
+          bucket,
+          // path.join(bucket,'ci-pipeline-upload-artifacts',name,'apps/authentication/caas-sso-lambda/target/dist'),
+          path.join(bucket,'ci-pipeline-upload-artifacts',name,'apps','authentication','caas-sso-lambda','target','dist'),
+        )
+
+        console.log(`I am getObjects: ${getObjects}`)
 
         // listAllS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline
