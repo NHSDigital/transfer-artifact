@@ -91,6 +91,31 @@ export async function getS3Object(
 	}
 }
 
+export async function getSpecificS3Object(
+	// location: S3Location,
+	Bucket: string,
+	Prefix?: string,
+): Promise<string[]> {
+	try {
+		const parameters = {
+			Bucket,
+			Prefix
+		}
+		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
+		console.log(`I am raw data: ${JSON.stringify(data)}`)
+		console.log(`I am data as array: ${data.Contents?.map(element => element.Key ?? '') ?? []}`)
+		return data.Contents?.map(element => element.Key ?? '') ?? [];
+		// return await streamToString(await getS3ObjectStream(location));
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Could not retrieve from bucket 's3://${Bucket}/${Prefix}' from S3: ${message}`,
+		);
+	}
+}
+
+
+
 export async function writeS3ObjectToFile(
 	location: S3Location,
 	filename: string,
