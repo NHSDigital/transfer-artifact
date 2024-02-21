@@ -1,8 +1,8 @@
 import * as core from '@actions/core';
 import fs from 'node:fs/promises';
 import {getInputs} from '../input-helper';
-import {listAllS3Objects} from "../aws";
-import { getS3Object, writeS3ObjectToFile, getS3ObjectStream, getSpecificS3Object } from './get-object-s3';
+import {listAllS3Objects } from "../aws";
+import { writeS3ObjectToFile } from './get-object-s3';
 import path from 'node:path';
 
 // used for getting the name of the item
@@ -31,13 +31,13 @@ export async function runDownload(): Promise<void> {
           startAfter
         )
 
-        const getObjects = await getSpecificS3Object(
-          bucket,
-          // path.join(bucket,'ci-pipeline-upload-artifacts',name,'apps/authentication/caas-sso-lambda/target/dist'),
-          path.join(bucket,'ci-pipeline-upload-artifacts',name,'apps','authentication','caas-sso-lambda','target','dist'),
-        )
+        // const getObjects = await getSpecificS3Object(
+        //   bucket,
+        //   path.join(bucket,'ci-pipeline-upload-artifacts',name),
+        //   path.join(bucket,'ci-pipeline-upload-artifacts',name)
+        // )
 
-        console.log(`I am getObjects: ${getObjects}`)
+        // console.log(`I am getObjects: ${getObjects}`)
 
         // listAllS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline

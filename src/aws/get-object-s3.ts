@@ -91,28 +91,42 @@ export async function getS3Object(
 	}
 }
 
-export async function getSpecificS3Object(
-	// location: S3Location,
-	Bucket: string,
-	Prefix?: string,
-): Promise<string[]> {
-	try {
-		const parameters = {
-			Bucket,
-			Prefix
-		}
-		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
-		console.log(`I am raw data: ${JSON.stringify(data)}`)
-		console.log(`I am data as array: ${data.Contents?.map(element => element.Key ?? '') ?? []}`)
-		return data.Contents?.map(element => element.Key ?? '') ?? [];
-		// return await streamToString(await getS3ObjectStream(location));
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		throw new Error(
-			`Could not retrieve from bucket 's3://${Bucket}/${Prefix}' from S3: ${message}`,
-		);
-	}
-}
+// export async function getSpecificS3Object(
+// 	// location: S3Location,
+// 	Bucket: string,
+// 	Key: string,
+// 	Prefix?: string,
+// ): Promise<string[]> {
+// 	try {
+// 		const parameters = {
+// 			Bucket,
+// 			Key,
+// 			Prefix
+// 		}
+// 		// const data = await getS3Client().send(new ListObjectsV2Command(parameters));
+// 		// console.log(`I am raw data: ${JSON.stringify(data)}`)
+// 		// console.log(`I am raw data.contents: ${JSON.stringify(data.Contents)}`)
+// 		// console.log(`I am data as array: ${data.Contents?.map(element => element.Key ?? '') ?? []}`)
+// 		// return data.Contents?.map(element => element.Key ?? '') ?? [];
+
+// 		// return await streamToString(await getS3ObjectStream(location));
+// 		const {Body} = await getS3Client().send(new GetObjectCommand(parameters));
+
+// 		// https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+// 		if (isReadable(Body)) {
+// 			console.log(`I am Body: ${JSON.stringify(Body)}`)
+// 			return [];
+// 		}
+// 		else {
+// 			return [];
+// 		}
+// 	} catch (error) {
+// 		const message = error instanceof Error ? error.message : String(error);
+// 		throw new Error(
+// 			`Could not retrieve from bucket 's3://${Bucket}/${Prefix}' from S3: ${message}`,
+// 		);
+// 	}
+// }
 
 
 
