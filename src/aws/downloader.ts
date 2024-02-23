@@ -10,6 +10,12 @@ function getItemName(str) {
   return str.split('/dist/')[1];
 }
 
+function getItemNameWithSplit(str){
+  const splitString = str.split('/');
+  const splitStringLast = splitString[splitString.length-1]
+  return splitStringLast
+}
+
 export async function runDownload(): Promise<void> {
     try {
         const inputs = getInputs();
@@ -31,14 +37,6 @@ export async function runDownload(): Promise<void> {
           startAfter
         )
 
-        // const getObjects = await getSpecificS3Object(
-        //   bucket,
-        //   path.join(bucket,'ci-pipeline-upload-artifacts',name),
-        //   path.join(bucket,'ci-pipeline-upload-artifacts',name)
-        // )
-
-        // console.log(`I am getObjects: ${getObjects}`)
-
         // listAllS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline
 
@@ -59,6 +57,26 @@ export async function runDownload(): Promise<void> {
             )
             console.log(`${item} has been downloaded to ${newFilename}`)
           }
+
+          if(item.includes(`/pipeline_files/`)){
+            console.log(`I am json file: ${item}`)
+            // create and activate the new file before writing to it
+            const newFilename = path.join(getItemNameWithSplit(item))
+            console.log(`I am getItemNameWithSplit: ${newFilename}`)
+            fs.writeFile(newFilename,'')
+
+            await writeS3ObjectToFile(
+                  {
+                    Bucket: bucket,
+                    // 2009 - this feels dodgy
+                    // tried adding pipeline_files/ to see if that deals with the problem of not finding files
+                    Key: item
+                  },
+                  newFilename
+            )
+            console.log(`JSON file ${item} has been downloaded to ${newFilename}`)
+          }
+
         }
         console.log(`Items successfully downloaded: ${await fs.readdir(`./`)}`)
     } catch (error) {

@@ -55738,6 +55738,11 @@ const node_path_1 = __importDefault(__nccwpck_require__(49411));
 function getItemName(str) {
     return str.split('/dist/')[1];
 }
+function getItemNameWithSplit(str) {
+    const splitString = str.split('/');
+    const splitStringLast = splitString[splitString.length - 1];
+    return splitStringLast;
+}
 async function runDownload() {
     try {
         const inputs = (0, input_helper_1.getInputs)();
@@ -55753,12 +55758,6 @@ async function runDownload() {
             Bucket: bucket,
             Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name),
         }, startAfter);
-        // const getObjects = await getSpecificS3Object(
-        //   bucket,
-        //   path.join(bucket,'ci-pipeline-upload-artifacts',name),
-        //   path.join(bucket,'ci-pipeline-upload-artifacts',name)
-        // )
-        // console.log(`I am getObjects: ${getObjects}`)
         // listAllS3Objects brings back ALL objects
         // but we only want the ones for THIS Github pipeline
         for (const item of myList2) {
@@ -55772,6 +55771,20 @@ async function runDownload() {
                     Key: `${item}`
                 }, newFilename);
                 console.log(`${item} has been downloaded to ${newFilename}`);
+            }
+            if (item.includes(`/pipeline_files/`)) {
+                console.log(`I am json file: ${item}`);
+                // create and activate the new file before writing to it
+                const newFilename = node_path_1.default.join(getItemNameWithSplit(item));
+                console.log(`I am getItemNameWithSplit: ${newFilename}`);
+                promises_1.default.writeFile(newFilename, '');
+                await (0, get_object_s3_1.writeS3ObjectToFile)({
+                    Bucket: bucket,
+                    // 2009 - this feels dodgy
+                    // tried adding pipeline_files/ to see if that deals with the problem of not finding files
+                    Key: item
+                }, newFilename);
+                console.log(`JSON file ${item} has been downloaded to ${newFilename}`);
             }
         }
         console.log(`Items successfully downloaded: ${await promises_1.default.readdir(`./`)}`);
