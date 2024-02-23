@@ -55734,11 +55734,8 @@ const input_helper_1 = __nccwpck_require__(46455);
 const aws_1 = __nccwpck_require__(30934);
 const get_object_s3_1 = __nccwpck_require__(32051);
 const node_path_1 = __importDefault(__nccwpck_require__(49411));
-// used for getting the name of the item
+// used for getting the name of the item, which is the last part of the file path
 function getItemName(str) {
-    return str.split('/dist/')[1];
-}
-function getItemNameWithSplit(str) {
     const splitString = str.split('/');
     const splitStringLast = splitString[splitString.length - 1];
     return splitStringLast;
@@ -55775,7 +55772,7 @@ async function runDownload() {
             if (item.includes(`/pipeline_files/`)) {
                 console.log(`I am json file: ${item}`);
                 // create and activate the new file before writing to it
-                const newFilename = node_path_1.default.join(getItemNameWithSplit(item));
+                const newFilename = node_path_1.default.join(getItemName(item));
                 console.log(`I am getItemNameWithSplit: ${newFilename}`);
                 promises_1.default.writeFile(newFilename, '');
                 await (0, get_object_s3_1.writeS3ObjectToFile)({

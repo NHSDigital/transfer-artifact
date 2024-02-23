@@ -5,12 +5,8 @@ import {listAllS3Objects } from "../aws";
 import { writeS3ObjectToFile } from './get-object-s3';
 import path from 'node:path';
 
-// used for getting the name of the item
-function getItemName(str) {
-  return str.split('/dist/')[1];
-}
-
-function getItemNameWithSplit(str){
+// used for getting the name of the item, which is the last part of the file path
+function getItemName(str){
   const splitString = str.split('/');
   const splitStringLast = splitString[splitString.length-1]
   return splitStringLast
@@ -61,7 +57,7 @@ export async function runDownload(): Promise<void> {
           if(item.includes(`/pipeline_files/`)){
             console.log(`I am json file: ${item}`)
             // create and activate the new file before writing to it
-            const newFilename = path.join(getItemNameWithSplit(item))
+            const newFilename = path.join(getItemName(item))
             console.log(`I am getItemNameWithSplit: ${newFilename}`)
             fs.writeFile(newFilename,'')
 
