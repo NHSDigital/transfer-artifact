@@ -26,13 +26,13 @@ export interface UploadInputs {
    */
   retentionDays: number
 
-    /**
+  /**
    * Whether to upload to S3, or download from S3
    */
   UploadOrDownload: UploadOrDownloadOptions
 
-      /**
+  /**
    * The pipeline ID, used to download only the correct artifact from S3
    */
-  ci_pipeline_iid: string 
+  ci_pipeline_iid: string
 }

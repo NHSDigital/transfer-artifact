@@ -55732,12 +55732,10 @@ const core = __importStar(__nccwpck_require__(42186));
 const promises_1 = __importDefault(__nccwpck_require__(93977));
 const input_helper_1 = __nccwpck_require__(46455);
 const get_object_s3_1 = __nccwpck_require__(32051);
-const node_path_1 = __importDefault(__nccwpck_require__(49411));
 // used for getting the name of the item, which is the last part of the file path
 function getItemName(str) {
     const splitString = str.split('/');
-    const splitStringLast = splitString[splitString.length - 1];
-    return splitStringLast;
+    return splitString[splitString.length - 1];
 }
 async function runDownload() {
     try {
@@ -55745,19 +55743,13 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const pipeline_id = inputs.ci_pipeline_iid;
-        const startAfter = '';
-        console.log(`I am bucket: ${bucket}`);
-        console.log(`I am name: ${name}`);
-        console.log(`I am pipeline_id: ${pipeline_id}`);
-        console.log(`I am key: ${node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name)}`);
-        console.log('Calling myList3:');
-        const myList3 = await (0, get_object_s3_1.listS3Objects)({
+        const objectList = await (0, get_object_s3_1.listS3Objects)({
             Bucket: 'caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts',
             Prefix: name
         });
-        for (const item of myList3) {
-            // without the if statement, it brings back everything
-            // see example here: https://github.com/NHSDigital/caas/actions/runs/8046725250/job/21974594476
+        let countOfObjects = 0;
+        for (const item of objectList) {
+            // objectList brings back everything, this if statement finds only relevant files
             if (item.includes(pipeline_id) || item.includes(`/pipeline_files/`)) {
                 const newFilename = getItemName(item);
                 promises_1.default.writeFile(newFilename, '');
@@ -55766,49 +55758,10 @@ async function runDownload() {
                     Key: `${item}`
                 }, newFilename);
                 console.log(`${item} has been downloaded to ${newFilename}`);
+                countOfObjects++;
             }
+            console.log(`Total objects downloaded: ${countOfObjects}`);
         }
-        // console.log('Calling myList2:')
-        // const myList2 = await listAllS3Objects(
-        //   {
-        //     Bucket: bucket,
-        //     Key: path.join(bucket,'ci-pipeline-upload-artifacts',name),
-        //   },
-        //   startAfter
-        // )
-        // listAllS3Objects brings back ALL objects
-        // but we only want the ones for THIS Github pipeline
-        // for(const item of myList2){
-        //   if(item.includes(pipeline_id)){
-        //     console.log(`I am item: ${item}`)
-        //     // create and activate the new file before writing to it
-        //     const newFilename = getItemName(item)
-        //     fs.writeFile(newFilename,'')
-        //     await writeS3ObjectToFile(
-        //           {
-        //             Bucket: bucket,
-        //             Key: `${item}`
-        //           },
-        //           newFilename
-        //     )
-        //     console.log(`${item} has been downloaded to ${newFilename}`)
-        //   }
-        //   if(item.includes(`/pipeline_files/`)){
-        //     console.log(`I am json file: ${item}`)
-        //     // create and activate the new file before writing to it
-        //     const newFilename = path.join(getItemName(item))
-        //     fs.writeFile(newFilename,'')
-        //     await writeS3ObjectToFile(
-        //           {
-        //             Bucket: bucket,
-        //             Key: item
-        //           },
-        //           newFilename
-        //     )
-        //     console.log(`JSON file ${item} has been downloaded to ${newFilename}`)
-        // }
-        // }
-        console.log(`Items successfully downloaded: ${await promises_1.default.readdir(`./`)}`);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -55829,7 +55782,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.listAllS3Objects = exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
-/* eslint-disable unicorn/prefer-type-error */
+/* eslint-disable unicorn/prefer-type-error prettier/prettier */
 const node_buffer_1 = __nccwpck_require__(72254);
 const node_fs_1 = __importDefault(__nccwpck_require__(87561));
 const node_util_1 = __nccwpck_require__(47261);
@@ -55862,10 +55815,10 @@ async function writeToFile(inputStream, filePath) {
     await pipelineP(inputStream, counter, node_fs_1.default.createWriteStream(filePath));
     return counter.totalBytesTransfered();
 }
-async function getS3ObjectStream({ Bucket, Key, }) {
+async function getS3ObjectStream({ Bucket, Key }) {
     const parameters = {
         Bucket,
-        Key,
+        Key
     };
     try {
         const { Body } = await (0, s3_client_1.getS3Client)().send(new client_s3_1.GetObjectCommand(parameters));
@@ -55898,40 +55851,6 @@ async function getS3Object(location, defaultValue) {
     }
 }
 exports.getS3Object = getS3Object;
-// export async function getSpecificS3Object(
-// 	// location: S3Location,
-// 	Bucket: string,
-// 	Key: string,
-// 	Prefix?: string,
-// ): Promise<string[]> {
-// 	try {
-// 		const parameters = {
-// 			Bucket,
-// 			Key,
-// 			Prefix
-// 		}
-// 		// const data = await getS3Client().send(new ListObjectsV2Command(parameters));
-// 		// console.log(`I am raw data: ${JSON.stringify(data)}`)
-// 		// console.log(`I am raw data.contents: ${JSON.stringify(data.Contents)}`)
-// 		// console.log(`I am data as array: ${data.Contents?.map(element => element.Key ?? '') ?? []}`)
-// 		// return data.Contents?.map(element => element.Key ?? '') ?? [];
-// 		// return await streamToString(await getS3ObjectStream(location));
-// 		const {Body} = await getS3Client().send(new GetObjectCommand(parameters));
-// 		// https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
-// 		if (isReadable(Body)) {
-// 			console.log(`I am Body: ${JSON.stringify(Body)}`)
-// 			return [];
-// 		}
-// 		else {
-// 			return [];
-// 		}
-// 	} catch (error) {
-// 		const message = error instanceof Error ? error.message : String(error);
-// 		throw new Error(
-// 			`Could not retrieve from bucket 's3://${Bucket}/${Prefix}' from S3: ${message}`,
-// 		);
-// 	}
-// }
 async function writeS3ObjectToFile(location, filename) {
     try {
         return await writeToFile(await getS3ObjectStream(location), filename);
@@ -55946,18 +55865,19 @@ async function writeS3ObjectToFile(location, filename) {
     }
 }
 exports.writeS3ObjectToFile = writeS3ObjectToFile;
-async function listS3Objects({ Bucket, Prefix: Key, }) {
+async function listS3Objects({ Bucket, Prefix: Key }) {
     try {
         const parameters = {
             Bucket,
-            Key,
+            Key
         };
         const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
-        console.log(data);
         return data.Contents?.map(element => element.Key ?? '') ?? [];
     }
     catch (error_) {
-        const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
+        const error = error_ instanceof Error
+            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
+            : error_;
         throw error;
     }
 }
@@ -55976,18 +55896,13 @@ async function listAllS3Objects({ Bucket, Key }, StartAfter) {
         while (true) {
             if (startPosition) {
                 parameters.StartAfter = startPosition;
-                console.log(`I am StartAfter: ${StartAfter}`);
             }
             const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
             const dataAsArray = data.Contents?.map(element => element.Key ?? '') ?? [];
-            console.log(`I am dataAsArray.length: ${dataAsArray.length}`);
-            console.log(`I am dataAsArray[dataAsArray.length-1]: ${dataAsArray[dataAsArray.length - 1]}`);
             if (dataAsArray) {
                 allMyData.push(...dataAsArray);
             }
-            console.log(`I am allMyData.length: ${allMyData.length}`);
             const lastItem = dataAsArray[dataAsArray.length - 1];
-            console.log(`I am lastItem: ${lastItem}`);
             startPosition = lastItem;
             if (dataAsArray.length === 0) {
                 console.log(`No further items found.  Scanned ${allMyData.length} objects in total.`);
@@ -55997,7 +55912,9 @@ async function listAllS3Objects({ Bucket, Key }, StartAfter) {
         return allMyData;
     }
     catch (error_) {
-        const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
+        const error = error_ instanceof Error
+            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
+            : error_;
         throw error;
     }
 }
@@ -56039,7 +55956,7 @@ async function putDataS3(fileData, { Bucket, Key }) {
         const parameters = {
             Bucket,
             Key,
-            Body: JSON.stringify(fileData, null, 2),
+            Body: JSON.stringify(fileData, null, 2)
         };
         const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
         console.log(`Data uploaded to ${Bucket}/${Key}`);
@@ -56068,7 +55985,6 @@ exports.putDataS3 = putDataS3;
 async function uploadObjectToS3(parameters, log) {
     try {
         log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
-        console.log(`I am parameters: ${JSON.stringify(parameters)}`);
         return await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
     }
     catch (error) {
@@ -56124,8 +56040,8 @@ const node_stream_1 = __nccwpck_require__(84492);
 class StreamCounter extends node_stream_1.Transform {
     totalBytes = 0;
     /**
-   * Get the total of all bytes transfered
-   */
+     * Get the total of all bytes transfered
+     */
     totalBytesTransfered() {
         return this.totalBytes;
     }
@@ -56183,22 +56099,16 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
         artifactName: artifactName,
         artifactItems: [],
         size: -1,
-        failedItems: [],
+        failedItems: []
     };
     const uploadSpec = (0, upload_specification_1.getUploadSpecification)(artifactName, rootDirectory, filesToUpload);
-    console.log(`I am artifactName: ${artifactName}`);
-    console.log(`I am rootDirectory: ${rootDirectory}`);
-    console.log(`I am filesToUpload: ${filesToUpload}`);
-    console.log(`I am bucket: ${bucket}`);
     for (const fileSpec of uploadSpec) {
         try {
             await (0, put_data_s3_1.uploadObjectToS3)({
                 Body: node_fs_1.default.createReadStream(fileSpec.absoluteFilePath),
                 Bucket: bucket,
-                Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}`, // TODO: fix path
+                Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
             }, core);
-            console.log(`I am fileSpec: ${JSON.stringify(fileSpec)}`);
-            console.log(`I am fileSpec.uploadFilePath: ${fileSpec.uploadFilePath}`);
         }
         catch (err) {
             uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
@@ -56294,7 +56204,9 @@ function raiseError(errorMessage) {
 function getInputs() {
     const name = core.getInput(constants_1.Inputs.Name);
     const path = core.getInput(constants_1.Inputs.Path, { required: true });
-    const bucket = core.getInput(constants_1.Inputs.ArtifactBucket) || process.env.ARTIFACTS_S3_BUCKET || raiseError('no artifact-bucket supplied');
+    const bucket = core.getInput(constants_1.Inputs.ArtifactBucket) ||
+        process.env.ARTIFACTS_S3_BUCKET ||
+        raiseError('no artifact-bucket supplied');
     const UploadOrDownload = core.getInput(constants_1.Inputs.UploadOrDownload);
     const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
     const ifNoFilesFound = core.getInput(constants_1.Inputs.IfNoFilesFound);
@@ -56331,6 +56243,7 @@ exports.getInputs = getInputs;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.checkArtifactFilePath = exports.checkArtifactName = void 0;
+/* eslint-disable prettier/prettier */
 const core_1 = __nccwpck_require__(42186);
 /**
  * Invalid characters that cannot be in the artifact name or an uploaded file. Will be rejected
@@ -56626,9 +56539,6 @@ async function runUpload() {
             if (inputs.retentionDays) {
                 options.retentionDays = inputs.retentionDays;
             }
-            if (inputs.UploadOrDownload) {
-                console.log(`I am UploadOrDownload choice: ${inputs.UploadOrDownload}`);
-            }
             core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
             let uploadResponse;
             const useS3 = true;
@@ -56708,24 +56618,24 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
     rootDirectory = (0, path_1.normalize)(rootDirectory);
     rootDirectory = (0, path_1.resolve)(rootDirectory);
     /*
-       Example to demonstrate behavior
-
-       Input:
-         artifactName: my-artifact
-         rootDirectory: '/home/user/files/plz-upload'
-         artifactFiles: [
-           '/home/user/files/plz-upload/file1.txt',
-           '/home/user/files/plz-upload/file2.txt',
-           '/home/user/files/plz-upload/dir/file3.txt'
-         ]
-
-       Output:
-         specifications: [
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
-         ]
-    */
+         Example to demonstrate behavior
+  
+         Input:
+           artifactName: my-artifact
+           rootDirectory: '/home/user/files/plz-upload'
+           artifactFiles: [
+             '/home/user/files/plz-upload/file1.txt',
+             '/home/user/files/plz-upload/file2.txt',
+             '/home/user/files/plz-upload/dir/file3.txt'
+           ]
+  
+         Output:
+           specifications: [
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
+           ]
+      */
     for (let file of artifactFiles) {
         if (!fs.existsSync(file)) {
             throw new Error(`File ${file} does not exist`);
@@ -56741,15 +56651,15 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
             const uploadPath = file.replace(rootDirectory, '');
             (0, path_and_artifact_name_validation_1.checkArtifactFilePath)(uploadPath);
             /*
-              uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
-              be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
-
-              path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
-                join('artifact-name/', 'file-to-upload.txt')
-                join('artifact-name/', '/file-to-upload.txt')
-                join('artifact-name', 'file-to-upload.txt')
-                join('artifact-name', '/file-to-upload.txt')
-            */
+                    uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
+                    be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
+      
+                    path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
+                      join('artifact-name/', 'file-to-upload.txt')
+                      join('artifact-name/', '/file-to-upload.txt')
+                      join('artifact-name', 'file-to-upload.txt')
+                      join('artifact-name', '/file-to-upload.txt')
+                  */
             specifications.push({
                 absoluteFilePath: file,
                 uploadFilePath: (0, path_1.join)(artifactName, uploadPath)
@@ -56868,14 +56778,6 @@ module.exports = require("node:fs");
 
 "use strict";
 module.exports = require("node:fs/promises");
-
-/***/ }),
-
-/***/ 49411:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:path");
 
 /***/ }),
 
@@ -57064,12 +56966,15 @@ const downloader_1 = __nccwpck_require__(16239);
 const input_helper_1 = __nccwpck_require__(46455);
 const upload_artifact_1 = __nccwpck_require__(10334);
 if ((0, input_helper_1.getInputs)().UploadOrDownload == 'upload') {
-    console.log('Calling runUpload()...');
+    console.log('Starting upload...');
     (0, upload_artifact_1.runUpload)();
 }
-if ((0, input_helper_1.getInputs)().UploadOrDownload == 'download') {
-    console.log('Calling runDownload()...');
+else if ((0, input_helper_1.getInputs)().UploadOrDownload == 'download') {
+    console.log('Starting download...');
     (0, downloader_1.runDownload)();
+}
+else {
+    console.log('No input found for UploadOrDownload.');
 }
 
 })();
