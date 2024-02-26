@@ -1,11 +1,9 @@
 import * as core from '@actions/core'
-import { parse } from 'node:path';
-import { json } from 'stream/consumers';
 import {Inputs, NoFileOptions} from './constants'
 import {UploadInputs} from './upload-inputs'
 
 function raiseError(errorMessage: string): never {
-  throw new Error(errorMessage);
+  throw new Error(errorMessage)
 }
 
 /**
@@ -14,9 +12,13 @@ function raiseError(errorMessage: string): never {
 export function getInputs(): UploadInputs {
   const name = core.getInput(Inputs.Name)
   const path = core.getInput(Inputs.Path, {required: true})
-  const bucket = core.getInput(Inputs.ArtifactBucket) || process.env.ARTIFACTS_S3_BUCKET || raiseError('no artifact-bucket supplied');
+  const bucket =
+    core.getInput(Inputs.ArtifactBucket) ||
+    process.env.ARTIFACTS_S3_BUCKET ||
+    raiseError('no artifact-bucket supplied')
   const UploadOrDownload = core.getInput(Inputs.UploadOrDownload)
-  const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
+  const ci_pipeline_iid =
+    process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied')
 
   const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound)
   const noFileBehavior: NoFileOptions = NoFileOptions[ifNoFilesFound]

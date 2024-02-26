@@ -1,12 +1,10 @@
-import fs from 'node:fs';
 import * as core from '@actions/core'
 import {create, UploadOptions} from '@actions/artifact'
 import {findFilesToUpload} from './search'
 import {getInputs} from './input-helper'
 import {NoFileOptions} from './constants'
-import {listS3Objects, uploadObjectToS3} from "./aws";
-import {UploadResponse} from "@actions/artifact/lib/internal/upload-response";
-import {uploadArtifact} from "./aws/uploader";
+import {UploadResponse} from '@actions/artifact/lib/internal/upload-response'
+import {uploadArtifact} from './aws/uploader'
 
 export async function runUpload(): Promise<void> {
   try {
@@ -54,31 +52,27 @@ export async function runUpload(): Promise<void> {
       if (inputs.retentionDays) {
         options.retentionDays = inputs.retentionDays
       }
-      if (inputs.UploadOrDownload){
-        console.log(`I am UploadOrDownload choice: ${inputs.UploadOrDownload}`)
-      }
 
       core.info(
-          `Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`
+        `Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`
       )
 
-      let uploadResponse: UploadResponse;
-      const useS3 = true;
+      let uploadResponse: UploadResponse
+      const useS3 = true
       if (useS3) {
         uploadResponse = await uploadArtifact(
-            inputs.artifactName,
-            searchResult.filesToUpload,
-            searchResult.rootDirectory,
-            options,
-            inputs.artifactBucket,
+          inputs.artifactName,
+          searchResult.filesToUpload,
+          searchResult.rootDirectory,
+          options,
+          inputs.artifactBucket
         )
       } else {
-
         uploadResponse = await artifactClient.uploadArtifact(
-            inputs.artifactName,
-            searchResult.filesToUpload,
-            searchResult.rootDirectory,
-            options
+          inputs.artifactName,
+          searchResult.filesToUpload,
+          searchResult.rootDirectory,
+          options
         )
       }
 
