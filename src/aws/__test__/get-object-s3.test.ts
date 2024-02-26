@@ -16,6 +16,22 @@ jest.mock('../s3-client', () => ({
 describe('getS3Object', () => {
 	afterEach(jest.clearAllMocks);
 
+	// 2009 - rewrite this!!!
+	it.only('Should return all files for known bucket', async()=>{
+		const result = listS3Objects({
+			Bucket: 'caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts',
+			// Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-artifacts',
+			// Bucket: 'caas-cea-983256714508-eu-west-2-de-albe4-api-cef-static',
+			Prefix: '8038789117-artifacts-caas/'
+		})
+
+		expect(result).toMatchInlineSnapshot(`
+			[
+				"KEY",
+			]
+		`)
+	})
+
 	it('Should throw an error if invalid key', async () => {
 		mockSend.mockImplementationOnce(() => {
 			throw new Error('No file found');

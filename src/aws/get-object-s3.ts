@@ -150,7 +150,7 @@ export async function writeS3ObjectToFile(
 
 export async function listS3Objects({
 	Bucket,
-	Key,
+	Prefix: Key,
 }: S3Location): Promise<string[]> {
 	try {
 		const parameters = {
@@ -158,6 +158,7 @@ export async function listS3Objects({
 			Key,
 		};
 		const data = await getS3Client().send(new ListObjectsV2Command(parameters));
+		console.log(data)
 		return data.Contents?.map(element => element.Key ?? '') ?? [];
 	} catch (error_) {
 		const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;

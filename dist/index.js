@@ -55731,7 +55731,6 @@ exports.runDownload = void 0;
 const core = __importStar(__nccwpck_require__(42186));
 const promises_1 = __importDefault(__nccwpck_require__(93977));
 const input_helper_1 = __nccwpck_require__(46455);
-const aws_1 = __nccwpck_require__(30934);
 const get_object_s3_1 = __nccwpck_require__(32051);
 const node_path_1 = __importDefault(__nccwpck_require__(49411));
 // used for getting the name of the item, which is the last part of the file path
@@ -55751,16 +55750,15 @@ async function runDownload() {
         console.log(`I am name: ${name}`);
         console.log(`I am pipeline_id: ${pipeline_id}`);
         console.log(`I am key: ${node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name)}`);
-        const myList2 = await (0, aws_1.listAllS3Objects)({
-            Bucket: bucket,
-            Key: node_path_1.default.join(bucket, 'ci-pipeline-upload-artifacts', name),
-        }, startAfter);
-        // listAllS3Objects brings back ALL objects
-        // but we only want the ones for THIS Github pipeline
-        for (const item of myList2) {
-            if (item.includes(pipeline_id)) {
-                console.log(`I am item: ${item}`);
-                // create and activate the new file before writing to it
+        console.log('Calling myList3:');
+        const myList3 = await (0, get_object_s3_1.listS3Objects)({
+            Bucket: 'caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts',
+            Prefix: name
+        });
+        for (const item of myList3) {
+            // without the if statement, it brings back everything
+            // see example here: https://github.com/NHSDigital/caas/actions/runs/8046725250/job/21974594476
+            if (item.includes(pipeline_id) || item.includes(`/pipeline_files/`)) {
                 const newFilename = getItemName(item);
                 promises_1.default.writeFile(newFilename, '');
                 await (0, get_object_s3_1.writeS3ObjectToFile)({
@@ -55769,21 +55767,47 @@ async function runDownload() {
                 }, newFilename);
                 console.log(`${item} has been downloaded to ${newFilename}`);
             }
-            if (item.includes(`/pipeline_files/`)) {
-                console.log(`I am json file: ${item}`);
-                // create and activate the new file before writing to it
-                const newFilename = node_path_1.default.join(getItemName(item));
-                console.log(`I am getItemNameWithSplit: ${newFilename}`);
-                promises_1.default.writeFile(newFilename, '');
-                await (0, get_object_s3_1.writeS3ObjectToFile)({
-                    Bucket: bucket,
-                    // 2009 - this feels dodgy
-                    // tried adding pipeline_files/ to see if that deals with the problem of not finding files
-                    Key: item
-                }, newFilename);
-                console.log(`JSON file ${item} has been downloaded to ${newFilename}`);
-            }
         }
+        // console.log('Calling myList2:')
+        // const myList2 = await listAllS3Objects(
+        //   {
+        //     Bucket: bucket,
+        //     Key: path.join(bucket,'ci-pipeline-upload-artifacts',name),
+        //   },
+        //   startAfter
+        // )
+        // listAllS3Objects brings back ALL objects
+        // but we only want the ones for THIS Github pipeline
+        // for(const item of myList2){
+        //   if(item.includes(pipeline_id)){
+        //     console.log(`I am item: ${item}`)
+        //     // create and activate the new file before writing to it
+        //     const newFilename = getItemName(item)
+        //     fs.writeFile(newFilename,'')
+        //     await writeS3ObjectToFile(
+        //           {
+        //             Bucket: bucket,
+        //             Key: `${item}`
+        //           },
+        //           newFilename
+        //     )
+        //     console.log(`${item} has been downloaded to ${newFilename}`)
+        //   }
+        //   if(item.includes(`/pipeline_files/`)){
+        //     console.log(`I am json file: ${item}`)
+        //     // create and activate the new file before writing to it
+        //     const newFilename = path.join(getItemName(item))
+        //     fs.writeFile(newFilename,'')
+        //     await writeS3ObjectToFile(
+        //           {
+        //             Bucket: bucket,
+        //             Key: item
+        //           },
+        //           newFilename
+        //     )
+        //     console.log(`JSON file ${item} has been downloaded to ${newFilename}`)
+        // }
+        // }
         console.log(`Items successfully downloaded: ${await promises_1.default.readdir(`./`)}`);
     }
     catch (error) {
@@ -55922,13 +55946,14 @@ async function writeS3ObjectToFile(location, filename) {
     }
 }
 exports.writeS3ObjectToFile = writeS3ObjectToFile;
-async function listS3Objects({ Bucket, Key, }) {
+async function listS3Objects({ Bucket, Prefix: Key, }) {
     try {
         const parameters = {
             Bucket,
             Key,
         };
         const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
+        console.log(data);
         return data.Contents?.map(element => element.Key ?? '') ?? [];
     }
     catch (error_) {
@@ -55977,34 +56002,6 @@ async function listAllS3Objects({ Bucket, Key }, StartAfter) {
     }
 }
 exports.listAllS3Objects = listAllS3Objects;
-
-
-/***/ }),
-
-/***/ 30934:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__nccwpck_require__(32051), exports);
-__exportStar(__nccwpck_require__(2291), exports);
-__exportStar(__nccwpck_require__(7548), exports);
-__exportStar(__nccwpck_require__(28374), exports);
 
 
 /***/ }),
@@ -56140,16 +56137,6 @@ class StreamCounter extends node_stream_1.Transform {
     }
 }
 exports.StreamCounter = StreamCounter;
-
-
-/***/ }),
-
-/***/ 28374:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 
 /***/ }),

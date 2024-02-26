@@ -4,7 +4,8 @@ import {ObjectCannedACL} from "@aws-sdk/client-s3/dist-types/models/models_0";
 
 export type S3Location = {
 	Bucket: string;
-	Key: string;
+	Key?: string;
+	Prefix?: string;
 };
 
 export type Upload = {
