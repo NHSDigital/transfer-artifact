@@ -55749,22 +55749,11 @@ async function runDownload() {
             Prefix: node_path_1.default.join('ci-pipeline-upload-artifacts', name)
         });
         let countOfObjects = 0;
+        const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json');
+        const regexForCDArtifacts = new RegExp('/target/dist/NHSD.(.*).' + pipeline_id + '.zip');
         for (const item of objectList) {
-            if (item.match(/pipeline_files\/(.*)\.json/)) {
-                console.log(`I match the first regex: ${item}`);
-            }
-            if (item.match(/.NHSD.(.*).zip/)) {
-                console.log(`I match the second regex: ${item}`);
-            }
-            if (item.match(/target.dist.NHSD.(.*).zip/)) {
-                console.log(`I match the third regex: ${item}`);
-            }
-            const regexSearch = new RegExp(`/target.dist.NHSD.(.*).${pipeline_id}.zip/`);
-            if (item.match(regexSearch)) {
-                console.log(`I match the fourth regex: ${item}`);
-            }
             // objectList brings back everything, this if statement finds only relevant files
-            if (item.includes(pipeline_id) || item.includes(`/pipeline_files/`)) {
+            if (item.match(regexForCIArtifacts) || item.match(regexForCDArtifacts)) {
                 const newFilename = getItemName(item);
                 promises_1.default.writeFile(newFilename, '');
                 await (0, get_object_s3_1.writeS3ObjectToFile)({
@@ -55774,8 +55763,8 @@ async function runDownload() {
                 console.log(`${item} has been downloaded to ${newFilename}`);
                 countOfObjects++;
             }
-            console.log(`Total objects downloaded: ${countOfObjects}`);
         }
+        console.log(`Total objects downloaded: ${countOfObjects}`);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -55795,7 +55784,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.listAllS3Objects = exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
+exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
 /* eslint-disable unicorn/prefer-type-error */
 const node_buffer_1 = __nccwpck_require__(72254);
 const node_fs_1 = __importDefault(__nccwpck_require__(87561));
@@ -55896,43 +55885,6 @@ async function listS3Objects({ Bucket, Prefix: Key }) {
     }
 }
 exports.listS3Objects = listS3Objects;
-// the inbuilt ListObjectsV2Command only returns the most recent 1000 objects
-// this command includes a loop to return all objects in the S3 bucket
-async function listAllS3Objects({ Bucket, Key }, StartAfter) {
-    try {
-        const parameters = {
-            Bucket,
-            Key,
-            StartAfter
-        };
-        let allMyData = [];
-        let startPosition = '';
-        while (true) {
-            if (startPosition) {
-                parameters.StartAfter = startPosition;
-            }
-            const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
-            const dataAsArray = data.Contents?.map(element => element.Key ?? '') ?? [];
-            if (dataAsArray) {
-                allMyData.push(...dataAsArray);
-            }
-            const lastItem = dataAsArray[dataAsArray.length - 1];
-            startPosition = lastItem;
-            if (dataAsArray.length === 0) {
-                console.log(`No further items found.  Scanned ${allMyData.length} objects in total.`);
-                break;
-            }
-        }
-        return allMyData;
-    }
-    catch (error_) {
-        const error = error_ instanceof Error
-            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
-            : error_;
-        throw error;
-    }
-}
-exports.listAllS3Objects = listAllS3Objects;
 
 
 /***/ }),
