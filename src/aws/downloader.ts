@@ -18,7 +18,7 @@ export async function runDownload(): Promise<void> {
     const pipeline_id = inputs.ci_pipeline_iid
 
     const objectList = await listS3Objects({
-      Bucket: 'caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts',
+      Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
       Prefix: path.join('ci-pipeline-upload-artifacts',name)
     })
 
