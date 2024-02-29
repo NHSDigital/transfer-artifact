@@ -55730,6 +55730,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runDownload = void 0;
 const core = __importStar(__nccwpck_require__(42186));
 const promises_1 = __importDefault(__nccwpck_require__(93977));
+const node_path_1 = __importDefault(__nccwpck_require__(49411));
 const input_helper_1 = __nccwpck_require__(46455);
 const get_object_s3_1 = __nccwpck_require__(32051);
 // used for getting the name of the item, which is the last part of the file path
@@ -55745,10 +55746,23 @@ async function runDownload() {
         const pipeline_id = inputs.ci_pipeline_iid;
         const objectList = await (0, get_object_s3_1.listS3Objects)({
             Bucket: 'caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts',
-            Prefix: name
+            Prefix: node_path_1.default.join('ci-pipeline-upload-artifacts', name)
         });
         let countOfObjects = 0;
         for (const item of objectList) {
+            if (item.match(/pipeline_files\/(.*)\.json/)) {
+                console.log(`I match the first regex: ${item}`);
+            }
+            if (item.match(/.NHSD.(.*).zip/)) {
+                console.log(`I match the second regex: ${item}`);
+            }
+            if (item.match(/target.dist.NHSD.(.*).zip/)) {
+                console.log(`I match the third regex: ${item}`);
+            }
+            const regexSearch = new RegExp(`/target.dist.NHSD.(.*).${pipeline_id}.zip/`);
+            if (item.match(regexSearch)) {
+                console.log(`I match the fourth regex: ${item}`);
+            }
             // objectList brings back everything, this if statement finds only relevant files
             if (item.includes(pipeline_id) || item.includes(`/pipeline_files/`)) {
                 const newFilename = getItemName(item);
@@ -55782,7 +55796,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.listAllS3Objects = exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
-/* eslint-disable unicorn/prefer-type-error prettier/prettier */
+/* eslint-disable unicorn/prefer-type-error */
 const node_buffer_1 = __nccwpck_require__(72254);
 const node_fs_1 = __importDefault(__nccwpck_require__(87561));
 const node_util_1 = __nccwpck_require__(47261);
@@ -56778,6 +56792,14 @@ module.exports = require("node:fs");
 
 "use strict";
 module.exports = require("node:fs/promises");
+
+/***/ }),
+
+/***/ 49411:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:path");
 
 /***/ }),
 
