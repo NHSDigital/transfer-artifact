@@ -55745,7 +55745,7 @@ async function runDownload() {
         const name = inputs.artifactName;
         const pipeline_id = inputs.ci_pipeline_iid;
         const objectList = await (0, get_object_s3_1.listS3Objects)({
-            Bucket: 'caas-pl-490772702699-eu-west-2-pl-mdev-acct-cicd-temp-artifacts',
+            Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
             Prefix: node_path_1.default.join('ci-pipeline-upload-artifacts', name)
         });
         let countOfObjects = 0;
