@@ -41668,7 +41668,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.extractRegionFromEndpoint = exports.buildMqtt5FinalUsername = exports.populate_username_string_with_custom_authorizer = exports.is_string_and_not_empty = exports.add_to_username_parameter = void 0;
+exports.extractRegionFromEndpoint = exports.buildMqtt5FinalUsername = exports.canonicalizeCustomAuthConfig = exports.canonicalizeCustomAuthTokenSignature = exports.populate_username_string_with_custom_authorizer = exports.is_string_and_not_empty = exports.add_to_username_parameter = void 0;
 /**
  *
  * A module containing miscellaneous functionality that is shared across both native and browser for aws_iot
@@ -41677,6 +41677,7 @@ exports.extractRegionFromEndpoint = exports.buildMqtt5FinalUsername = exports.po
  * @module aws_iot
  */
 const platform = __importStar(__nccwpck_require__(97377));
+const utils = __importStar(__nccwpck_require__(13391));
 /**
  * A helper function to add parameters to the username in with_custom_authorizer function
  *
@@ -41736,24 +41737,48 @@ function populate_username_string_with_custom_authorizer(current_username, input
     if (is_string_and_not_empty(input_authorizer) && input_authorizer) {
         username_string = add_to_username_parameter(username_string, input_authorizer, "x-amz-customauthorizer-name=");
     }
-    if (is_string_and_not_empty(input_signature) && input_signature) {
-        username_string = add_to_username_parameter(username_string, input_signature, "x-amz-customauthorizer-signature=");
-        if ((is_string_and_not_empty(input_token_key_name) && input_token_key_name) || (is_string_and_not_empty(input_token_value) && input_token_value)) {
-            console.log("Warning: Signed custom authorizers with signature will not work without a token key name and " +
-                "token value. Your connection may be rejected/stalled on the IoT Core side due to this. Please " +
-                "set the token key name and token value to connect to a signed custom authorizer.");
+    if (is_string_and_not_empty(input_signature) || is_string_and_not_empty(input_token_value) || is_string_and_not_empty(input_token_key_name)) {
+        if (!input_token_value || !input_token_key_name || !input_signature) {
+            throw new Error("Signing-based custom authentication requires all token-related properties to be set");
         }
     }
-    if (is_string_and_not_empty(input_signature) || is_string_and_not_empty(input_token_value) || is_string_and_not_empty(input_token_key_name)) {
-        if (!input_token_value || !input_token_key_name) {
-            throw new Error("Token-based custom authentication requires all token-related properties to be set");
-        }
+    if (is_string_and_not_empty(input_signature) && input_signature) {
+        username_string = add_to_username_parameter(username_string, input_signature, "x-amz-customauthorizer-signature=");
+    }
+    if (is_string_and_not_empty(input_token_value) && is_string_and_not_empty(input_token_key_name)) {
+        // @ts-ignore
         username_string = add_to_username_parameter(username_string, input_token_value, input_token_key_name + "=");
     }
     return username_string;
 }
 exports.populate_username_string_with_custom_authorizer = populate_username_string_with_custom_authorizer;
 ;
+/** @internal */
+function canonicalizeCustomAuthTokenSignature(signature) {
+    if (signature === undefined || signature == null) {
+        return undefined;
+    }
+    let hasPercent = signature.indexOf("%") != -1;
+    if (hasPercent) {
+        return signature;
+    }
+    else {
+        return encodeURIComponent(signature);
+    }
+}
+exports.canonicalizeCustomAuthTokenSignature = canonicalizeCustomAuthTokenSignature;
+/** @internal */
+function canonicalizeCustomAuthConfig(config) {
+    let processedConfig = {};
+    utils.set_defined_property(processedConfig, "authorizerName", config.authorizerName);
+    utils.set_defined_property(processedConfig, "username", config.username);
+    utils.set_defined_property(processedConfig, "password", config.password);
+    utils.set_defined_property(processedConfig, "tokenKeyName", config.tokenKeyName);
+    utils.set_defined_property(processedConfig, "tokenValue", config.tokenValue);
+    utils.set_defined_property(processedConfig, "tokenSignature", canonicalizeCustomAuthTokenSignature(config.tokenSignature));
+    return processedConfig;
+}
+exports.canonicalizeCustomAuthConfig = canonicalizeCustomAuthConfig;
 /** @internal */
 function addParam(paramName, paramValue, paramSet) {
     if (paramValue) {
@@ -42302,7 +42327,7 @@ exports.DEFAULT_RECONNECT_MIN_SEC = 1;
  * SPDX-License-Identifier: Apache-2.0.
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RetryJitterType = exports.ClientSessionBehavior = void 0;
+exports.InboundTopicAliasBehaviorType = exports.OutboundTopicAliasBehaviorType = exports.RetryJitterType = exports.ClientSessionBehavior = void 0;
 /**
  * Controls how the MQTT5 client should behave with respect to MQTT sessions.
  */
@@ -42355,6 +42380,60 @@ var RetryJitterType;
      */
     RetryJitterType[RetryJitterType["Decorrelated"] = 3] = "Decorrelated";
 })(RetryJitterType = exports.RetryJitterType || (exports.RetryJitterType = {}));
+/**
+ * An enumeration that controls how the client applies topic aliasing to outbound publish packets.
+ *
+ * Topic alias behavior is described in https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901113
+ */
+var OutboundTopicAliasBehaviorType;
+(function (OutboundTopicAliasBehaviorType) {
+    /**
+     * Maps to Disabled.  This keeps the client from being broken (by default) if the broker
+     * topic aliasing implementation has a problem.
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["Default"] = 0] = "Default";
+    /**
+     * Outbound aliasing is the user's responsibility.  Client will cache and use
+     * previously-established aliases if they fall within the negotiated limits of the connection.
+     *
+     * The user must still always submit a full topic in their publishes because disconnections disrupt
+     * topic alias mappings unpredictably.  The client will properly use a requested alias when the most-recently-seen
+     * binding for a topic alias value matches the alias and topic in the publish packet.
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["Manual"] = 1] = "Manual";
+    /**
+     * (Recommended) The client will use an LRU cache to drive alias usage.
+     *
+     * Manually setting a topic alias will be ignored (the LRU cache is authoritative)
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["LRU"] = 2] = "LRU";
+    /**
+     * Completely disable outbound topic aliasing.
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["Disabled"] = 3] = "Disabled";
+})(OutboundTopicAliasBehaviorType = exports.OutboundTopicAliasBehaviorType || (exports.OutboundTopicAliasBehaviorType = {}));
+/**
+ * An enumeration that controls whether or not the client allows the broker to send publishes that use topic
+ * aliasing.
+ *
+ * Topic alias behavior is described in https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901113
+ */
+var InboundTopicAliasBehaviorType;
+(function (InboundTopicAliasBehaviorType) {
+    /**
+     * Maps to Disabled.  This keeps the client from being broken (by default) if the broker
+     * topic aliasing implementation has a problem.
+     */
+    InboundTopicAliasBehaviorType[InboundTopicAliasBehaviorType["Default"] = 0] = "Default";
+    /**
+     * Allow the server to send PUBLISH packets to the client that use topic aliasing
+     */
+    InboundTopicAliasBehaviorType[InboundTopicAliasBehaviorType["Enabled"] = 1] = "Enabled";
+    /**
+     * Forbid the server from sending PUBLISH packets to the client that use topic aliasing
+     */
+    InboundTopicAliasBehaviorType[InboundTopicAliasBehaviorType["Disabled"] = 2] = "Disabled";
+})(InboundTopicAliasBehaviorType = exports.InboundTopicAliasBehaviorType || (exports.InboundTopicAliasBehaviorType = {}));
 //# sourceMappingURL=mqtt5.js.map
 
 /***/ }),
@@ -43215,6 +43294,30 @@ exports.using = using;
 
 /***/ }),
 
+/***/ 13391:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.set_defined_property = void 0;
+/** @internal */
+function set_defined_property(object, propertyName, value) {
+    if (value === undefined || value == null) {
+        return false;
+    }
+    object[propertyName] = value;
+    return true;
+}
+exports.set_defined_property = set_defined_property;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
 /***/ 71478:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -43859,13 +43962,13 @@ class AwsIotMqttConnectionConfigBuilder {
      *                 check to see if a username has already been set (via WithUsername function). If no
      *                 username is set then no username will be passed with the MQTT connection.
      * @param authorizer_name The name of the custom authorizer. If an empty string is passed, then
-     *                       'x-amz-customauthorizer-name' will not be added with the MQTT connection.
+     *                       'x-amz-customauthorizer-name' will not be added with the MQTT connection.  It is strongly
+     *                       recommended to URL-encode this value; the SDK will not do so for you.
      * @param authorizer_signature The signature of the custom authorizer. If an empty string is passed, then
      *                            'x-amz-customauthorizer-signature' will not be added with the MQTT connection.
      *                            The signature must be based on the private key associated with the custom authorizer.
      *                            The signature must be base64 encoded.
-     *                            Required if the custom authorizer has signing enabled.  It is strongly suggested to URL-encode
-     *                            this value; the SDK will not do so for you.
+     *                            Required if the custom authorizer has signing enabled.
      * @param password The password to use with the custom authorizer. If null is passed, then no password will
      *                 be set.
      * @param token_key_name Key used to extract the custom authorizer token from MQTT username query-string properties.
@@ -43877,7 +43980,8 @@ class AwsIotMqttConnectionConfigBuilder {
      */
     with_custom_authorizer(username, authorizer_name, authorizer_signature, password, token_key_name, token_value) {
         this.is_using_custom_authorizer = true;
-        let username_string = iot_shared.populate_username_string_with_custom_authorizer("", username, authorizer_name, authorizer_signature, this.params.username, token_key_name, token_value);
+        let uri_encoded_signature = iot_shared.canonicalizeCustomAuthTokenSignature(authorizer_signature);
+        let username_string = iot_shared.populate_username_string_with_custom_authorizer("", username, authorizer_name, uri_encoded_signature, this.params.username, token_key_name, token_value);
         this.params.username = username_string;
         this.params.password = password;
         if (!this.params.use_websocket) {
@@ -44031,14 +44135,8 @@ const error_1 = __nccwpck_require__(77385);
 const iot_shared = __importStar(__nccwpck_require__(50463));
 const mqtt_shared = __importStar(__nccwpck_require__(12425));
 /**
- * Builder pattern class to create an {@link Mqtt5ClientConfig} which can then be used to create
- * an {@link Mqtt5Client}, configured for use with AWS IoT.
- *
- * DEVELOPER PREVIEW DISCLAIMER
- *
- * MQTT5 support is currently in **developer preview**.  We encourage feedback at all times, but feedback during the
- * preview window is especially valuable in shaping the final product.  During the preview period we may make
- * backwards-incompatible changes to the public API, but in general, this is something we will try our best to avoid.
+ * Builder pattern class to create an {@link mqtt5.Mqtt5ClientConfig} which can then be used to create
+ * an {@link mqtt5.Mqtt5Client}, configured for use with AWS IoT.
  *
  * [MQTT5 Client User Guide](https://www.github.com/awslabs/aws-crt-nodejs/blob/main/MQTT5-UserGuide.md)
  *
@@ -44146,7 +44244,7 @@ class AwsIotMqtt5ClientConfigBuilder {
      */
     static newDirectMqttBuilderWithCustomAuth(hostName, customAuthConfig) {
         let builder = new AwsIotMqtt5ClientConfigBuilder(hostName, AwsIotMqtt5ClientConfigBuilder.DEFAULT_WEBSOCKET_MQTT_PORT, new io.TlsContextOptions());
-        builder.customAuthConfig = customAuthConfig;
+        builder.customAuthConfig = iot_shared.canonicalizeCustomAuthConfig(customAuthConfig);
         builder.tlsContextOptions.alpn_list = ["mqtt"];
         return builder;
     }
@@ -44384,6 +44482,15 @@ class AwsIotMqtt5ClientConfigBuilder {
         return this;
     }
     /**
+     * Overrides how the MQTT5 client should behave with respect to topic aliasing
+     *
+     * @param topicAliasingOptions how the MQTT5 client should behave with respect to topic aliasing
+     */
+    withTopicAliasingOptions(topicAliasingOptions) {
+        this.config.topicAliasingOptions = topicAliasingOptions;
+        return this;
+    }
+    /**
      * Constructs an MQTT5 Client configuration object for creating mqtt5 clients.
      */
     build() {
@@ -44497,18 +44604,38 @@ if ((0, fs_1.existsSync)(dist)) {
     source_root = dist;
 }
 const bin_path = path.resolve(source_root, 'bin');
-const search_paths = [
-    path.join(bin_path, platformDir, binary_name),
+let search_paths = [
+    path.join(bin_path, platformDir, binary_name) + '.node',
 ];
+/*
+ * Environment variables can inject (at lower-priority) paths into the search process as well.  Support both relative
+ * and absolute path overrides.
+ */
+let relative_path = process.env.AWS_CRT_NODEJS_BINARY_RELATIVE_PATH;
+if (relative_path) {
+    let final_path = path.resolve(__dirname, ...relative_path.split(path.sep));
+    search_paths.push(final_path);
+}
+if (process.env.AWS_CRT_NODEJS_BINARY_ABSOLUTE_PATH) {
+    search_paths.push(process.env.AWS_CRT_NODEJS_BINARY_ABSOLUTE_PATH);
+}
 let binding;
 for (const path of search_paths) {
-    if ((0, fs_1.existsSync)(path + '.node')) {
+    if ((0, fs_1.existsSync)(path)) {
         binding = require(path);
         break;
     }
 }
 if (binding == undefined) {
     throw new Error("AWS CRT binary not present in any of the following locations:\n\t" + search_paths.join('\n\t'));
+}
+const binding_1 = __importDefault(__nccwpck_require__(94719));
+/** Electron will shutdown the node process on exit, which causes the threadsafe function to segfault. To prevent
+  * the segfault we disable the threadsafe function on node process exit. */
+if (process.versions.hasOwnProperty('electron')) {
+    process.on('exit', function () {
+        binding_1.default.disable_threadsafe_function();
+    });
 }
 exports["default"] = binding;
 //# sourceMappingURL=binding.js.map
@@ -45941,6 +46068,20 @@ exports.HttpProxyOptions = HttpProxyOptions;
  * @category HTTP
  */
 class HttpClientConnection extends HttpConnection {
+    _on_setup(native_handle, error_code) {
+        if (error_code) {
+            this.emit('error', new error_1.CrtError(error_code));
+            return;
+        }
+        this.emit('connect');
+    }
+    _on_shutdown(native_handle, error_code) {
+        if (error_code) {
+            this.emit('error', new error_1.CrtError(error_code));
+            return;
+        }
+        this.emit('close');
+    }
     /** Asynchronously establish a new HttpClientConnection.
      * @param bootstrap Client bootstrap to use when initiating socket connection.  Leave undefined to use the
      *          default system-wide bootstrap (recommended).
@@ -45964,20 +46105,6 @@ class HttpClientConnection extends HttpConnection {
         this.bootstrap = bootstrap;
         this.socket_options = socket_options;
         this.tls_opts = tls_opts;
-    }
-    _on_setup(native_handle, error_code) {
-        if (error_code) {
-            this.emit('error', new error_1.CrtError(error_code));
-            return;
-        }
-        this.emit('connect');
-    }
-    _on_shutdown(native_handle, error_code) {
-        if (error_code) {
-            this.emit('error', new error_1.CrtError(error_code));
-            return;
-        }
-        this.emit('close');
     }
     /**
      * Create {@link HttpClientStream} to carry out the request/response exchange.
@@ -46757,7 +46884,7 @@ Object.defineProperty(exports, "MqttWill", ({ enumerable: true, get: function ()
  */
 class MqttClient extends native_resource_1.NativeResource {
     /**
-     * @param bootstrap The {@link ClientBootstrap} to use for socket connections.  Leave undefined to use the
+     * @param bootstrap The {@link io.ClientBootstrap} to use for socket connections.  Leave undefined to use the
      *          default system-wide bootstrap (recommended).
      */
     constructor(bootstrap = undefined) {
@@ -46820,7 +46947,7 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
         if (config.socket_options == undefined || config.socket_options == null) {
             throw new error_1.CrtError("MqttClientConnection constructor: socket_options in configuration not defined");
         }
-        this._super(binding_1.default.mqtt_client_connection_new(client.native_handle(), (error_code) => { this._on_connection_interrupted(error_code); }, (return_code, session_present) => { this._on_connection_resumed(return_code, session_present); }, config.tls_ctx ? config.tls_ctx.native_handle() : null, will, config.username, config.password, config.use_websocket, config.proxy_options ? config.proxy_options.create_native_handle() : undefined, config.websocket_handshake_transform, min_sec, max_sec));
+        this._super(binding_1.default.mqtt_client_connection_new(client.native_handle(), (error_code) => { this._on_connection_interrupted(error_code); }, (return_code, session_present) => { this._on_connection_resumed(return_code, session_present); }, (return_code, session_present) => { this._on_connection_success(return_code, session_present); }, (error_code) => { this._on_connection_failure(error_code); }, config.tls_ctx ? config.tls_ctx.native_handle() : null, will, config.username, config.password, config.use_websocket, config.proxy_options ? config.proxy_options.create_native_handle() : undefined, config.websocket_handshake_transform, min_sec, max_sec));
         this.tls_ctx = config.tls_ctx;
         binding_1.default.mqtt_client_connection_on_message(this.native_handle(), this._on_any_publish.bind(this));
         binding_1.default.mqtt_client_connection_on_closed(this.native_handle(), this._on_connection_closed.bind(this));
@@ -47012,8 +47139,17 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
      *
      * @group Node-only
      */
-    getQueueStatistics() {
+    getOperationalStatistics() {
         return binding_1.default.mqtt_client_connection_get_queue_statistics(this.native_handle());
+    }
+    /**
+     * Queries a small set of numerical statistics about the current state of the connection's operation queue
+     * @deprecated use getOperationalStatistics instead
+     *
+     * @group Node-only
+     */
+    getQueueStatistics() {
+        return this.getOperationalStatistics();
     }
     // Wrap a promise rejection with a function that will also emit the error as an event
     _reject(reject) {
@@ -47024,13 +47160,19 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
             });
         };
     }
+    _on_connection_failure(error_code) {
+        let failureCallbackData = { error: new error_1.CrtError(error_code) };
+        this.emit('connection_failure', failureCallbackData);
+    }
+    _on_connection_success(return_code, session_present) {
+        let successCallbackData = { session_present: session_present, reason_code: return_code };
+        this.emit('connection_success', successCallbackData);
+    }
     _on_connection_interrupted(error_code) {
         this.emit('interrupt', new error_1.CrtError(error_code));
     }
     _on_connection_resumed(return_code, session_present) {
         this.emit('resume', return_code, session_present);
-        let successCallbackData = { session_present: session_present, reason_code: return_code };
-        this.emit('connection_success', successCallbackData);
     }
     _on_any_publish(topic, payload, dup, qos, retain) {
         this.emit('message', topic, payload, dup, qos, retain);
@@ -47048,18 +47190,12 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
         if (error_code == 0 && return_code == 0) {
             resolve(session_present);
             this.emit('connect', session_present);
-            let successCallbackData = { session_present: session_present, reason_code: return_code };
-            this.emit('connection_success', successCallbackData);
         }
         else if (error_code != 0) {
             reject("Failed to connect: " + io.error_code_to_string(error_code));
-            let failureCallbackData = { error: new error_1.CrtError(error_code) };
-            this.emit('connection_failure', failureCallbackData);
         }
         else {
             reject("Server rejected connection.");
-            let failureCallbackData = { error: new error_1.CrtError(5134) }; // 5134 = AWS_ERROR_MQTT_UNEXPECTED_HANGUP
-            this.emit('connection_failure', failureCallbackData);
         }
     }
     _on_puback_callback(resolve, reject, packet_id, error_code) {
@@ -47209,12 +47345,6 @@ exports.Mqtt5Client = exports.ClientExtendedValidationAndFlowControl = exports.C
 /**
  * Node.js specific MQTT5 client implementation
  *
- * DEVELOPER PREVIEW DISCLAIMER
- *
- * MQTT5 support is currently in **developer preview**.  We encourage feedback at all times, but feedback during the
- * preview window is especially valuable in shaping the final product.  During the preview period we may make
- * backwards-incompatible changes to the public API, but in general, this is something we will try our best to avoid.
- *
  * [MQTT5 Client User Guide](https://www.github.com/awslabs/aws-crt-nodejs/blob/main/MQTT5-UserGuide.md)
  *
  * @packageDocumentation
@@ -47289,12 +47419,6 @@ var ClientExtendedValidationAndFlowControl;
 })(ClientExtendedValidationAndFlowControl = exports.ClientExtendedValidationAndFlowControl || (exports.ClientExtendedValidationAndFlowControl = {}));
 /**
  * Node.js specific MQTT5 client implementation
- *
- * DEVELOPER PREVIEW DISCLAIMER
- *
- * MQTT5 support is currently in **developer preview**.  We encourage feedback at all times, but feedback during the
- * preview window is especially valuable in shaping the final product.  During the preview period we may make
- * backwards-incompatible changes to the public API, but in general, this is something we will try our best to avoid.
  *
  * Not all parts of the MQTT5 spec are supported. We currently do not support:
  *
@@ -47435,8 +47559,17 @@ class Mqtt5Client extends (0, native_resource_1.NativeResourceMixin)(event_1.Buf
      *
      * @group Node-only
      */
-    getQueueStatistics() {
+    getOperationalStatistics() {
         return binding_1.default.mqtt5_client_get_queue_statistics(this.native_handle());
+    }
+    /**
+     * Queries a small set of numerical statistics about the current state of the client's operation queue
+     * @deprecated use getOperationalStatistics instead
+     *
+     * @group Node-only
+     */
+    getQueueStatistics() {
+        return this.getOperationalStatistics();
     }
     on(event, listener) {
         super.on(event, listener);
@@ -56887,7 +57020,7 @@ module.exports = JSON.parse('{"partitions":[{"id":"aws","outputs":{"dnsSuffix":"
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"aws-crt","version":"1.18.1","description":"NodeJS/browser bindings to the aws-c-* libraries","homepage":"https://github.com/awslabs/aws-crt-nodejs","repository":{"type":"git","url":"git+https://github.com/awslabs/aws-crt-nodejs.git"},"contributors":["AWS Common Runtime Team <aws-sdk-common-runtime@amazon.com>"],"license":"Apache-2.0","main":"./dist/index.js","browser":"./dist.browser/browser.js","types":"./dist/index.d.ts","scripts":{"tsc":"node ./scripts/tsc.js","test":"npm run test:native","test:node":"npm run test:native","test:native":"npx jest --runInBand --verbose --config test/native/jest.config.js --forceExit","test:browser":"npx jest --runInBand --verbose --config test/browser/jest.config.js --forceExit","test:browser:ci":"npm run install:puppeteer && npm run test:browser","install:puppeteer":"npm install --save-dev jest-puppeteer puppeteer @types/puppeteer","prepare":"node ./scripts/tsc.js && node ./scripts/install.js","install":"node ./scripts/install.js"},"devDependencies":{"@types/crypto-js":"^3.1.43","@types/jest":"^27.0.1","@types/node":"^10.17.54","@types/prettier":"2.6.0","@types/puppeteer":"^5.4.7","@types/uuid":"^3.4.8","@types/ws":"^7.4.7","aws-sdk":"^2.848.0","https-proxy-agent":"^5.0.1","jest":"^27.2.1","jest-puppeteer":"^5.0.4","jest-runtime":"^27.2.1","puppeteer":"^3.3.0","ts-jest":"^27.0.5","typedoc":"^0.22.18","typedoc-plugin-merge-modules":"^3.1.0","typescript":"^4.7.4","uuid":"^8.3.2","yargs":"^17.2.1","cmake-js":"^6.3.2","tar":"^6.1.11"},"dependencies":{"@aws-sdk/util-utf8-browser":"^3.109.0","@httptoolkit/websocket-stream":"^6.0.0","axios":"^0.24.0","buffer":"^6.0.3","crypto-js":"^4.0.0","mqtt":"^4.3.7","process":"^0.11.10"}}');
+module.exports = JSON.parse('{"name":"aws-crt","version":"1.21.1","description":"NodeJS/browser bindings to the aws-c-* libraries","homepage":"https://github.com/awslabs/aws-crt-nodejs","repository":{"type":"git","url":"git+https://github.com/awslabs/aws-crt-nodejs.git"},"contributors":["AWS Common Runtime Team <aws-sdk-common-runtime@amazon.com>"],"license":"Apache-2.0","main":"./dist/index.js","browser":"./dist.browser/browser.js","types":"./dist/index.d.ts","scripts":{"tsc":"node ./scripts/tsc.js","test":"npm run test:native","test:node":"npm run test:native","test:native":"npx jest --runInBand --verbose --config test/native/jest.config.js --forceExit","test:browser":"npx jest --runInBand --verbose --config test/browser/jest.config.js --forceExit","test:browser:ci":"npm run install:puppeteer && npm run test:browser","install:puppeteer":"npm install --save-dev jest-puppeteer puppeteer @types/puppeteer","prepare":"node ./scripts/tsc.js && node ./scripts/install.js","install":"node ./scripts/install.js"},"devDependencies":{"@types/crypto-js":"^3.1.43","@types/jest":"^27.0.1","@types/node":"^10.17.54","@types/prettier":"2.6.0","@types/puppeteer":"^5.4.7","@types/uuid":"^3.4.13","@types/ws":"^7.4.7","aws-sdk":"^2.1537.0","cmake-js":"^7.3.0","https-proxy-agent":"^5.0.1","jest":"^27.2.1","jest-puppeteer":"^5.0.4","jest-runtime":"^27.2.1","puppeteer":"^3.3.0","tar":"^6.2.0","ts-jest":"^27.0.5","typedoc":"^0.24.8","typedoc-plugin-merge-modules":"^5.1.0","typescript":"^4.9.5","uuid":"^8.3.2","yargs":"^17.2.1"},"dependencies":{"@aws-sdk/util-utf8-browser":"^3.109.0","@httptoolkit/websocket-stream":"^6.0.1","axios":"^1.6.0","buffer":"^6.0.3","crypto-js":"^4.2.0","mqtt":"^4.3.8","process":"^0.11.10"}}');
 
 /***/ })
 
