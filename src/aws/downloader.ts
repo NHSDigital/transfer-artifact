@@ -24,10 +24,9 @@ export async function runDownload(): Promise<void> {
 
     let countOfObjects = 0
 
-    const regexForCIArtifacts = new RegExp(
-      '/pipeline_files/(.*).json')
+    const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json')
     const regexForCDArtifacts = new RegExp(
-      '/target/dist/NHSD.(.*).'+pipeline_id+'.zip')
+      '/target/dist/NHSD.(.*).' + pipeline_id + '.zip')
 
     for (const item of objectList) {
       // objectList brings back everything, this if statement finds only relevant files
