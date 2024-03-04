@@ -78,16 +78,9 @@ export async function runUpload(): Promise<void> {
           options
         )
       }
-      console.log(`I am uploadResponse: ${JSON.stringify(uploadResponse)}`)
-      if (uploadResponse.failedItems.length > 0) {
-        core.setFailed(
-          `An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`
-        )
-      } else {
         core.info(
           `Artifact ${uploadResponse.artifactName} has been successfully uploaded!`
         )
-      }
     }
   } catch (error) {
     core.setFailed((error as Error).message)
