@@ -5,9 +5,10 @@
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
+var __webpack_unused_export__;
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.create = void 0;
+__webpack_unused_export__ = ({ value: true });
+exports.U = void 0;
 const artifact_client_1 = __nccwpck_require__(48802);
 /**
  * Constructs an ArtifactClient
@@ -15,7 +16,7 @@ const artifact_client_1 = __nccwpck_require__(48802);
 function create() {
     return artifact_client_1.DefaultArtifactClient.create();
 }
-exports.create = create;
+exports.U = create;
 //# sourceMappingURL=artifact-client.js.map
 
 /***/ }),
@@ -41635,6 +41636,61 @@ exports.checkExceptions = checkExceptions;
 
 /***/ }),
 
+/***/ 61231:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const indentString = __nccwpck_require__(98043);
+const cleanStack = __nccwpck_require__(27972);
+
+const cleanInternalStack = stack => stack.replace(/\s+at .*aggregate-error\/index.js:\d+:\d+\)?/g, '');
+
+class AggregateError extends Error {
+	constructor(errors) {
+		if (!Array.isArray(errors)) {
+			throw new TypeError(`Expected input to be an Array, got ${typeof errors}`);
+		}
+
+		errors = [...errors].map(error => {
+			if (error instanceof Error) {
+				return error;
+			}
+
+			if (error !== null && typeof error === 'object') {
+				// Handle plain error objects with message property and/or possibly other metadata
+				return Object.assign(new Error(error.message), error);
+			}
+
+			return new Error(error);
+		});
+
+		let message = errors
+			.map(error => {
+				// The `stack` property is not standardized, so we can't assume it exists
+				return typeof error.stack === 'string' ? cleanInternalStack(cleanStack(error.stack)) : String(error);
+			})
+			.join('\n');
+		message = '\n' + indentString(message, 4);
+		super(message);
+
+		this.name = 'AggregateError';
+
+		Object.defineProperty(this, '_errors', {value: errors});
+	}
+
+	* [Symbol.iterator]() {
+		for (const error of this._errors) {
+			yield error;
+		}
+	}
+}
+
+module.exports = AggregateError;
+
+
+/***/ }),
+
 /***/ 50463:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -48051,6 +48107,54 @@ function expand(str, isTop) {
 
 /***/ }),
 
+/***/ 27972:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const os = __nccwpck_require__(22037);
+
+const extractPathRegex = /\s+at.*(?:\(|\s)(.*)\)?/;
+const pathRegex = /^(?:(?:(?:node|(?:internal\/[\w/]*|.*node_modules\/(?:babel-polyfill|pirates)\/.*)?\w+)\.js:\d+:\d+)|native)/;
+const homeDir = typeof os.homedir === 'undefined' ? '' : os.homedir();
+
+module.exports = (stack, options) => {
+	options = Object.assign({pretty: false}, options);
+
+	return stack.replace(/\\/g, '/')
+		.split('\n')
+		.filter(line => {
+			const pathMatches = line.match(extractPathRegex);
+			if (pathMatches === null || !pathMatches[1]) {
+				return true;
+			}
+
+			const match = pathMatches[1];
+
+			// Electron
+			if (
+				match.includes('.app/Contents/Resources/electron.asar') ||
+				match.includes('.app/Contents/Resources/default_app.asar')
+			) {
+				return false;
+			}
+
+			return !pathRegex.test(match);
+		})
+		.filter(line => line.trim() !== '')
+		.map(line => {
+			if (options.pretty) {
+				return line.replace(extractPathRegex, (m, p1) => m.replace(p1, p1.replace(homeDir, '~')));
+			}
+
+			return line;
+		})
+		.join('\n');
+};
+
+
+/***/ }),
+
 /***/ 86891:
 /***/ ((module) => {
 
@@ -50414,6 +50518,49 @@ exports.realpath = function realpath(p, cache, cb) {
 
 /***/ }),
 
+/***/ 98043:
+/***/ ((module) => {
+
+"use strict";
+
+
+module.exports = (string, count = 1, options) => {
+	options = {
+		indent: ' ',
+		includeEmptyLines: false,
+		...options
+	};
+
+	if (typeof string !== 'string') {
+		throw new TypeError(
+			`Expected \`input\` to be a \`string\`, got \`${typeof string}\``
+		);
+	}
+
+	if (typeof count !== 'number') {
+		throw new TypeError(
+			`Expected \`count\` to be a \`number\`, got \`${typeof count}\``
+		);
+	}
+
+	if (typeof options.indent !== 'string') {
+		throw new TypeError(
+			`Expected \`options.indent\` to be a \`string\`, got \`${typeof options.indent}\``
+		);
+	}
+
+	if (count === 0) {
+		return string;
+	}
+
+	const regex = options.includeEmptyLines ? /^/gm : /^(?!\s*$)/gm;
+
+	return string.replace(regex, options.indent.repeat(count));
+};
+
+
+/***/ }),
+
 /***/ 52492:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -51524,6 +51671,95 @@ function onceStrict (fn) {
   f.called = false
   return f
 }
+
+
+/***/ }),
+
+/***/ 91855:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const AggregateError = __nccwpck_require__(61231);
+
+module.exports = async (
+	iterable,
+	mapper,
+	{
+		concurrency = Infinity,
+		stopOnError = true
+	} = {}
+) => {
+	return new Promise((resolve, reject) => {
+		if (typeof mapper !== 'function') {
+			throw new TypeError('Mapper function is required');
+		}
+
+		if (!((Number.isSafeInteger(concurrency) || concurrency === Infinity) && concurrency >= 1)) {
+			throw new TypeError(`Expected \`concurrency\` to be an integer from 1 and up or \`Infinity\`, got \`${concurrency}\` (${typeof concurrency})`);
+		}
+
+		const result = [];
+		const errors = [];
+		const iterator = iterable[Symbol.iterator]();
+		let isRejected = false;
+		let isIterableDone = false;
+		let resolvingCount = 0;
+		let currentIndex = 0;
+
+		const next = () => {
+			if (isRejected) {
+				return;
+			}
+
+			const nextItem = iterator.next();
+			const index = currentIndex;
+			currentIndex++;
+
+			if (nextItem.done) {
+				isIterableDone = true;
+
+				if (resolvingCount === 0) {
+					if (!stopOnError && errors.length !== 0) {
+						reject(new AggregateError(errors));
+					} else {
+						resolve(result);
+					}
+				}
+
+				return;
+			}
+
+			resolvingCount++;
+
+			(async () => {
+				try {
+					const element = await nextItem.value;
+					result[index] = await mapper(element, index);
+					resolvingCount--;
+					next();
+				} catch (error) {
+					if (stopOnError) {
+						isRejected = true;
+						reject(error);
+					} else {
+						errors.push(error);
+						resolvingCount--;
+						next();
+					}
+				}
+			})();
+		};
+
+		for (let i = 0; i < concurrency; i++) {
+			next();
+
+			if (isIterableDone) {
+				break;
+			}
+		}
+	});
+};
 
 
 /***/ }),
@@ -55828,954 +56064,6 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 16239:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runDownload = void 0;
-const core = __importStar(__nccwpck_require__(42186));
-const promises_1 = __importDefault(__nccwpck_require__(93977));
-const node_path_1 = __importDefault(__nccwpck_require__(49411));
-const input_helper_1 = __nccwpck_require__(46455);
-const get_object_s3_1 = __nccwpck_require__(32051);
-// used for getting the name of the item, which is the last part of the file path
-function getItemName(str) {
-    const splitString = str.split('/');
-    return splitString[splitString.length - 1];
-}
-async function runDownload() {
-    try {
-        const inputs = (0, input_helper_1.getInputs)();
-        const bucket = inputs.artifactBucket;
-        const name = inputs.artifactName;
-        const pipeline_id = inputs.ci_pipeline_iid;
-        const objectList = await (0, get_object_s3_1.listS3Objects)({
-            Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
-            Prefix: node_path_1.default.join('ci-pipeline-upload-artifacts', name)
-        });
-        let countOfObjects = 0;
-        const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json');
-        const regexForCDArtifacts = new RegExp('/target/dist/NHSD.(.*).' + pipeline_id + '.zip');
-        for (const item of objectList) {
-            // objectList brings back everything, this if statement finds only relevant files
-            if (item.match(regexForCIArtifacts) || item.match(regexForCDArtifacts)) {
-                const newFilename = getItemName(item);
-                promises_1.default.writeFile(newFilename, '');
-                await (0, get_object_s3_1.writeS3ObjectToFile)({
-                    Bucket: bucket,
-                    Key: `${item}`
-                }, newFilename);
-                console.log(`${item} has been downloaded to ${newFilename}`);
-                countOfObjects++;
-            }
-        }
-        console.log(`Total objects downloaded: ${countOfObjects}`);
-    }
-    catch (error) {
-        core.setFailed(error.message);
-    }
-}
-exports.runDownload = runDownload;
-
-
-/***/ }),
-
-/***/ 32051:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.listS3Objects = exports.writeS3ObjectToFile = exports.getS3Object = exports.getS3ObjectStream = exports.streamToString = void 0;
-/* eslint-disable unicorn/prefer-type-error */
-const node_buffer_1 = __nccwpck_require__(72254);
-const node_fs_1 = __importDefault(__nccwpck_require__(87561));
-const node_util_1 = __nccwpck_require__(47261);
-const node_stream_1 = __nccwpck_require__(84492);
-const client_s3_1 = __nccwpck_require__(19250);
-const s3_client_1 = __nccwpck_require__(2915);
-const stream_counter_1 = __nccwpck_require__(76024);
-const pipelineP = (0, node_util_1.promisify)(node_stream_1.pipeline);
-function isReadable(body) {
-    return body !== undefined && body && body.read !== undefined;
-}
-async function streamToString(Body) {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        Body.on('data', (chunk) => chunks.push(node_buffer_1.Buffer.from(chunk)));
-        Body.on('error', error => {
-            reject(error);
-        });
-        Body.on('end', () => {
-            resolve(node_buffer_1.Buffer.concat(chunks).toString('utf8'));
-        });
-    });
-}
-exports.streamToString = streamToString;
-/**
- * Stream to file, and return number of bytes saved to the file
- */
-async function writeToFile(inputStream, filePath) {
-    const counter = new stream_counter_1.StreamCounter();
-    await pipelineP(inputStream, counter, node_fs_1.default.createWriteStream(filePath));
-    return counter.totalBytesTransfered();
-}
-async function getS3ObjectStream({ Bucket, Key }) {
-    const parameters = {
-        Bucket,
-        Key
-    };
-    try {
-        const { Body } = await (0, s3_client_1.getS3Client)().send(new client_s3_1.GetObjectCommand(parameters));
-        // https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
-        if (isReadable(Body)) {
-            return Body;
-        }
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            throw new Error(`Could not retrieve from bucket 's3://${Bucket}/${Key}' from S3: ${error.message}`);
-        }
-        else {
-            throw error;
-        }
-    }
-    throw new Error(`Could not read file from bucket. 's3://${Bucket}/${Key}'`);
-}
-exports.getS3ObjectStream = getS3ObjectStream;
-async function getS3Object(location, defaultValue) {
-    try {
-        return await streamToString(await getS3ObjectStream(location));
-    }
-    catch (error) {
-        if (defaultValue) {
-            return defaultValue;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}' from S3: ${message}`);
-    }
-}
-exports.getS3Object = getS3Object;
-async function writeS3ObjectToFile(location, filename) {
-    try {
-        return await writeToFile(await getS3ObjectStream(location), filename);
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${error.message}`);
-        }
-        else {
-            throw error;
-        }
-    }
-}
-exports.writeS3ObjectToFile = writeS3ObjectToFile;
-async function listS3Objects({ Bucket, Prefix: Key }) {
-    try {
-        const parameters = {
-            Bucket,
-            Key
-        };
-        const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.ListObjectsV2Command(parameters));
-        return data.Contents?.map(element => element.Key ?? '') ?? [];
-    }
-    catch (error_) {
-        const error = error_ instanceof Error
-            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
-            : error_;
-        throw error;
-    }
-}
-exports.listS3Objects = listS3Objects;
-
-
-/***/ }),
-
-/***/ 2291:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.env = exports.region = void 0;
-const node_process_1 = __importDefault(__nccwpck_require__(97742));
-const region = () => node_process_1.default.env.AWS_REGION ?? 'eu-west-2';
-exports.region = region;
-const env = () => node_process_1.default.env.ENVIRONMENT ?? 'unknown';
-exports.env = env;
-
-
-/***/ }),
-
-/***/ 7548:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.uploadObjectToS3 = exports.putDataS3 = void 0;
-const client_s3_1 = __nccwpck_require__(19250);
-const s3_client_1 = __nccwpck_require__(2915);
-async function putDataS3(fileData, { Bucket, Key }) {
-    try {
-        const parameters = {
-            Bucket,
-            Key,
-            Body: JSON.stringify(fileData, null, 2)
-        };
-        const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
-        console.log(`Data uploaded to ${Bucket}/${Key}`);
-        return data;
-    }
-    catch (error) {
-        throw new Error(`Upload to ${Bucket}/${Key} failed, error: ${String(error)}`);
-    }
-}
-exports.putDataS3 = putDataS3;
-/**
- * Upload a stream, string or blob to as an S3 object.
- *
- *
- * @param params
- * @param log
- *
- * @example
- *    await uploadObjectToS3({
- *       Bucket: s3AssetsBucket,
- *       Key: remotePath,
- *       Body: data,
- *       ACL: 'bucket-owner-full-control',
- *     });
- */
-async function uploadObjectToS3(parameters, log) {
-    try {
-        log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
-        return await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            const newMessage = `Upload to ${parameters.Bucket}/${parameters.Key} failed, error: ${error.message}`;
-            log.error(newMessage);
-            throw error;
-        }
-        else {
-            throw error;
-        }
-    }
-}
-exports.uploadObjectToS3 = uploadObjectToS3;
-
-
-/***/ }),
-
-/***/ 2915:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getS3Client = void 0;
-const client_s3_1 = __nccwpck_require__(19250);
-const locations_1 = __nccwpck_require__(2291);
-let s3Client;
-function getS3Client() {
-    if (!s3Client) {
-        s3Client = new client_s3_1.S3Client({ region: (0, locations_1.region)() });
-    }
-    return s3Client;
-}
-exports.getS3Client = getS3Client;
-
-
-/***/ }),
-
-/***/ 76024:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.StreamCounter = void 0;
-const node_stream_1 = __nccwpck_require__(84492);
-/**
- * Duplex (Transform) stream that counts the number of bytes that pass through it.
- *
- * The data itself is pushed through as-is.
- */
-class StreamCounter extends node_stream_1.Transform {
-    totalBytes = 0;
-    /**
-     * Get the total of all bytes transfered
-     */
-    totalBytesTransfered() {
-        return this.totalBytes;
-    }
-    _transform(chunk, encoding, cb) {
-        if (typeof chunk?.length === 'number') {
-            this.totalBytes += chunk.length;
-        }
-        cb(null, chunk);
-    }
-}
-exports.StreamCounter = StreamCounter;
-
-
-/***/ }),
-
-/***/ 87256:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.uploadArtifact = void 0;
-const put_data_s3_1 = __nccwpck_require__(7548);
-const node_fs_1 = __importDefault(__nccwpck_require__(87561));
-const core = __importStar(__nccwpck_require__(42186));
-const upload_specification_1 = __nccwpck_require__(86096);
-async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket) {
-    const uploadResponse = {
-        artifactName: artifactName,
-        artifactItems: [],
-        size: -1,
-        failedItems: []
-    };
-    const uploadSpec = (0, upload_specification_1.getUploadSpecification)(artifactName, rootDirectory, filesToUpload);
-    for (const fileSpec of uploadSpec) {
-        try {
-            await (0, put_data_s3_1.uploadObjectToS3)({
-                Body: node_fs_1.default.createReadStream(fileSpec.absoluteFilePath),
-                Bucket: bucket,
-                Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
-            }, core);
-        }
-        catch (err) {
-            uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
-        }
-    }
-    return uploadResponse;
-}
-exports.uploadArtifact = uploadArtifact;
-
-
-/***/ }),
-
-/***/ 69042:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.NoFileOptions = exports.UploadOrDownloadOptions = exports.Inputs = void 0;
-/* eslint-disable no-unused-vars */
-var Inputs;
-(function (Inputs) {
-    Inputs["Name"] = "name";
-    Inputs["Path"] = "path";
-    Inputs["IfNoFilesFound"] = "if-no-files-found";
-    Inputs["RetentionDays"] = "retention-days";
-    Inputs["ArtifactBucket"] = "artifact-bucket";
-    Inputs["UploadOrDownload"] = "upload-or-download";
-    Inputs["ci_pipeline_iid"] = "ci_pipeline_iid";
-})(Inputs || (exports.Inputs = Inputs = {}));
-var UploadOrDownloadOptions;
-(function (UploadOrDownloadOptions) {
-    UploadOrDownloadOptions["upload"] = "upload";
-    UploadOrDownloadOptions["download"] = "download";
-})(UploadOrDownloadOptions || (exports.UploadOrDownloadOptions = UploadOrDownloadOptions = {}));
-var NoFileOptions;
-(function (NoFileOptions) {
-    /**
-     * Default. Output a warning but do not fail the action
-     */
-    NoFileOptions["warn"] = "warn";
-    /**
-     * Fail the action with an error message
-     */
-    NoFileOptions["error"] = "error";
-    /**
-     * Do not output any warnings or errors, the action does not fail
-     */
-    NoFileOptions["ignore"] = "ignore";
-})(NoFileOptions || (exports.NoFileOptions = NoFileOptions = {}));
-
-
-/***/ }),
-
-/***/ 46455:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getInputs = void 0;
-const core = __importStar(__nccwpck_require__(42186));
-const constants_1 = __nccwpck_require__(69042);
-function raiseError(errorMessage) {
-    throw new Error(errorMessage);
-}
-/**
- * Helper to get all the inputs for the action
- */
-function getInputs() {
-    const name = core.getInput(constants_1.Inputs.Name);
-    const path = core.getInput(constants_1.Inputs.Path, { required: true });
-    const bucket = core.getInput(constants_1.Inputs.ArtifactBucket) ||
-        process.env.ARTIFACTS_S3_BUCKET ||
-        raiseError('no artifact-bucket supplied');
-    const UploadOrDownload = core.getInput(constants_1.Inputs.UploadOrDownload);
-    const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
-    const ifNoFilesFound = core.getInput(constants_1.Inputs.IfNoFilesFound);
-    const noFileBehavior = constants_1.NoFileOptions[ifNoFilesFound];
-    if (!noFileBehavior) {
-        core.setFailed(`Unrecognized ${constants_1.Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: ${Object.keys(constants_1.NoFileOptions)}`);
-    }
-    const inputs = {
-        artifactName: name,
-        artifactBucket: bucket,
-        searchPath: path,
-        ifNoFilesFound: noFileBehavior,
-        UploadOrDownload: UploadOrDownload,
-        ci_pipeline_iid: ci_pipeline_iid
-    };
-    const retentionDaysStr = core.getInput(constants_1.Inputs.RetentionDays);
-    if (retentionDaysStr) {
-        inputs.retentionDays = parseInt(retentionDaysStr);
-        if (isNaN(inputs.retentionDays)) {
-            core.setFailed('Invalid retention-days');
-        }
-    }
-    return inputs;
-}
-exports.getInputs = getInputs;
-
-
-/***/ }),
-
-/***/ 64969:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkArtifactFilePath = exports.checkArtifactName = void 0;
-/* eslint-disable prettier/prettier */
-const core_1 = __nccwpck_require__(42186);
-/**
- * Invalid characters that cannot be in the artifact name or an uploaded file. Will be rejected
- * from the server if attempted to be sent over. These characters are not allowed due to limitations with certain
- * file systems such as NTFS. To maintain platform-agnostic behavior, all characters that are not supported by an
- * individual filesystem/platform will not be supported on all fileSystems/platforms
- *
- * FilePaths can include characters such as \ and / which are not permitted in the artifact name alone
- */
-const invalidArtifactFilePathCharacters = new Map([
-    ['"', ' Double quote "'],
-    [':', ' Colon :'],
-    ['<', ' Less than <'],
-    ['>', ' Greater than >'],
-    ['|', ' Vertical bar |'],
-    ['*', ' Asterisk *'],
-    ['?', ' Question mark ?'],
-    ['\r', ' Carriage return \\r'],
-    ['\n', ' Line feed \\n']
-]);
-const invalidArtifactNameCharacters = new Map([
-    ...invalidArtifactFilePathCharacters,
-    ['\\', ' Backslash \\'],
-    ['/', ' Forward slash /']
-]);
-/**
- * Scans the name of the artifact to make sure there are no illegal characters
- */
-function checkArtifactName(name) {
-    if (!name) {
-        throw new Error(`Artifact name: ${name}, is incorrectly provided`);
-    }
-    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactNameCharacters) {
-        if (name.includes(invalidCharacterKey)) {
-            throw new Error(`Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
-          
-Invalid characters include: ${Array.from(invalidArtifactNameCharacters.values()).toString()}
-          
-These characters are not allowed in the artifact name due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.`);
-        }
-    }
-    (0, core_1.info)(`Artifact name is valid!`);
-}
-exports.checkArtifactName = checkArtifactName;
-/**
- * Scans the name of the filePath used to make sure there are no illegal characters
- */
-function checkArtifactFilePath(path) {
-    if (!path) {
-        throw new Error(`Artifact path: ${path}, is incorrectly provided`);
-    }
-    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactFilePathCharacters) {
-        if (path.includes(invalidCharacterKey)) {
-            throw new Error(`Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
-          
-Invalid characters include: ${Array.from(invalidArtifactFilePathCharacters.values()).toString()}
-          
-The following characters are not allowed in files that are uploaded due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.
-          `);
-        }
-    }
-}
-exports.checkArtifactFilePath = checkArtifactFilePath;
-
-
-/***/ }),
-
-/***/ 13930:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.findFilesToUpload = void 0;
-const glob = __importStar(__nccwpck_require__(28090));
-const path = __importStar(__nccwpck_require__(71017));
-const core_1 = __nccwpck_require__(42186);
-const fs_1 = __nccwpck_require__(57147);
-const path_1 = __nccwpck_require__(71017);
-const util_1 = __nccwpck_require__(73837);
-const stats = (0, util_1.promisify)(fs_1.stat);
-function getDefaultGlobOptions() {
-    return {
-        followSymbolicLinks: true,
-        implicitDescendants: true,
-        omitBrokenSymbolicLinks: true
-    };
-}
-/**
- * If multiple paths are specific, the least common ancestor (LCA) of the search paths is used as
- * the delimiter to control the directory structure for the artifact. This function returns the LCA
- * when given an array of search paths
- *
- * Example 1: The patterns `/foo/` and `/bar/` returns `/`
- *
- * Example 2: The patterns `~/foo/bar/*` and `~/foo/voo/two/*` and `~/foo/mo/` returns `~/foo`
- */
-function getMultiPathLCA(searchPaths) {
-    if (searchPaths.length < 2) {
-        throw new Error('At least two search paths must be provided');
-    }
-    const commonPaths = new Array();
-    const splitPaths = new Array();
-    let smallestPathLength = Number.MAX_SAFE_INTEGER;
-    // split each of the search paths using the platform specific separator
-    for (const searchPath of searchPaths) {
-        (0, core_1.debug)(`Using search path ${searchPath}`);
-        const splitSearchPath = path.normalize(searchPath).split(path.sep);
-        // keep track of the smallest path length so that we don't accidentally later go out of bounds
-        smallestPathLength = Math.min(smallestPathLength, splitSearchPath.length);
-        splitPaths.push(splitSearchPath);
-    }
-    // on Unix-like file systems, the file separator exists at the beginning of the file path, make sure to preserve it
-    if (searchPaths[0].startsWith(path.sep)) {
-        commonPaths.push(path.sep);
-    }
-    let splitIndex = 0;
-    // function to check if the paths are the same at a specific index
-    function isPathTheSame() {
-        const compare = splitPaths[0][splitIndex];
-        for (let i = 1; i < splitPaths.length; i++) {
-            if (compare !== splitPaths[i][splitIndex]) {
-                // a non-common index has been reached
-                return false;
-            }
-        }
-        return true;
-    }
-    // loop over all the search paths until there is a non-common ancestor or we go out of bounds
-    while (splitIndex < smallestPathLength) {
-        if (!isPathTheSame()) {
-            break;
-        }
-        // if all are the same, add to the end result & increment the index
-        commonPaths.push(splitPaths[0][splitIndex]);
-        splitIndex++;
-    }
-    return path.join(...commonPaths);
-}
-async function findFilesToUpload(searchPath, globOptions) {
-    const searchResults = [];
-    const globber = await glob.create(searchPath, globOptions || getDefaultGlobOptions());
-    const rawSearchResults = await globber.glob();
-    /*
-      Files are saved with case insensitivity. Uploading both a.txt and A.txt will files to be overwritten
-      Detect any files that could be overwritten for user awareness
-    */
-    const set = new Set();
-    /*
-      Directories will be rejected if attempted to be uploaded. This includes just empty
-      directories so filter any directories out from the raw search results
-    */
-    for (const searchResult of rawSearchResults) {
-        const fileStats = await stats(searchResult);
-        // isDirectory() returns false for symlinks if using fs.lstat(), make sure to use fs.stat() instead
-        if (!fileStats.isDirectory()) {
-            (0, core_1.debug)(`File:${searchResult} was found using the provided searchPath`);
-            searchResults.push(searchResult);
-            // detect any files that would be overwritten because of case insensitivity
-            if (set.has(searchResult.toLowerCase())) {
-                (0, core_1.info)(`Uploads are case insensitive: ${searchResult} was detected that it will be overwritten by another file with the same path`);
-            }
-            else {
-                set.add(searchResult.toLowerCase());
-            }
-        }
-        else {
-            (0, core_1.debug)(`Removing ${searchResult} from rawSearchResults because it is a directory`);
-        }
-    }
-    // Calculate the root directory for the artifact using the search paths that were utilized
-    const searchPaths = globber.getSearchPaths();
-    if (searchPaths.length > 1) {
-        (0, core_1.info)(`Multiple search paths detected. Calculating the least common ancestor of all paths`);
-        const lcaSearchPath = getMultiPathLCA(searchPaths);
-        (0, core_1.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
-        return {
-            filesToUpload: searchResults,
-            rootDirectory: lcaSearchPath
-        };
-    }
-    /*
-      Special case for a single file artifact that is uploaded without a directory or wildcard pattern. The directory structure is
-      not preserved and the root directory will be the single files parent directory
-    */
-    if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
-        return {
-            filesToUpload: searchResults,
-            rootDirectory: (0, path_1.dirname)(searchResults[0])
-        };
-    }
-    return {
-        filesToUpload: searchResults,
-        rootDirectory: searchPaths[0]
-    };
-}
-exports.findFilesToUpload = findFilesToUpload;
-
-
-/***/ }),
-
-/***/ 10334:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runUpload = void 0;
-const core = __importStar(__nccwpck_require__(42186));
-const artifact_1 = __nccwpck_require__(52605);
-const search_1 = __nccwpck_require__(13930);
-const input_helper_1 = __nccwpck_require__(46455);
-const constants_1 = __nccwpck_require__(69042);
-const uploader_1 = __nccwpck_require__(87256);
-async function runUpload() {
-    try {
-        const inputs = (0, input_helper_1.getInputs)();
-        const searchResult = await (0, search_1.findFilesToUpload)(inputs.searchPath);
-        if (searchResult.filesToUpload.length === 0) {
-            // No files were found, different use cases warrant different types of behavior if nothing is found
-            switch (inputs.ifNoFilesFound) {
-                case constants_1.NoFileOptions.warn: {
-                    core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                    break;
-                }
-                case constants_1.NoFileOptions.error: {
-                    core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                    break;
-                }
-                case constants_1.NoFileOptions.ignore: {
-                    core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                    break;
-                }
-            }
-        }
-        else {
-            const s = searchResult.filesToUpload.length === 1 ? '' : 's';
-            core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
-            core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
-            if (searchResult.filesToUpload.length > 10000) {
-                core.warning(`There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`);
-            }
-            const artifactClient = (0, artifact_1.create)();
-            const options = {
-                continueOnError: false
-            };
-            if (inputs.retentionDays) {
-                options.retentionDays = inputs.retentionDays;
-            }
-            core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
-            let uploadResponse;
-            const useS3 = true;
-            if (useS3) {
-                uploadResponse = await (0, uploader_1.uploadArtifact)(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket);
-            }
-            else {
-                uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
-            }
-            if (uploadResponse.failedItems.length > 0) {
-                core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
-            }
-            else {
-                core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
-            }
-        }
-    }
-    catch (error) {
-        core.setFailed(error.message);
-    }
-}
-exports.runUpload = runUpload;
-
-
-/***/ }),
-
-/***/ 86096:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getUploadSpecification = void 0;
-const fs = __importStar(__nccwpck_require__(57147));
-const core_1 = __nccwpck_require__(42186);
-const path_1 = __nccwpck_require__(71017);
-const path_and_artifact_name_validation_1 = __nccwpck_require__(64969);
-/**
- * Creates a specification that describes how each file that is part of the artifact will be uploaded
- * @param artifactName the name of the artifact being uploaded. Used during upload to denote where the artifact is stored on the server
- * @param rootDirectory an absolute file path that denotes the path that should be removed from the beginning of each artifact file
- * @param artifactFiles a list of absolute file paths that denote what should be uploaded as part of the artifact
- */
-function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
-    // artifact name was checked earlier on, no need to check again
-    const specifications = [];
-    if (!fs.existsSync(rootDirectory)) {
-        throw new Error(`Provided rootDirectory ${rootDirectory} does not exist`);
-    }
-    if (!fs.statSync(rootDirectory).isDirectory()) {
-        throw new Error(`Provided rootDirectory ${rootDirectory} is not a valid directory`);
-    }
-    // Normalize and resolve, this allows for either absolute or relative paths to be used
-    rootDirectory = (0, path_1.normalize)(rootDirectory);
-    rootDirectory = (0, path_1.resolve)(rootDirectory);
-    /*
-         Example to demonstrate behavior
-  
-         Input:
-           artifactName: my-artifact
-           rootDirectory: '/home/user/files/plz-upload'
-           artifactFiles: [
-             '/home/user/files/plz-upload/file1.txt',
-             '/home/user/files/plz-upload/file2.txt',
-             '/home/user/files/plz-upload/dir/file3.txt'
-           ]
-  
-         Output:
-           specifications: [
-             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
-             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
-             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
-           ]
-      */
-    for (let file of artifactFiles) {
-        if (!fs.existsSync(file)) {
-            throw new Error(`File ${file} does not exist`);
-        }
-        if (!fs.statSync(file).isDirectory()) {
-            // Normalize and resolve, this allows for either absolute or relative paths to be used
-            file = (0, path_1.normalize)(file);
-            file = (0, path_1.resolve)(file);
-            if (!file.startsWith(rootDirectory)) {
-                throw new Error(`The rootDirectory: ${rootDirectory} is not a parent directory of the file: ${file}`);
-            }
-            // Check for forbidden characters in file paths that will be rejected during upload
-            const uploadPath = file.replace(rootDirectory, '');
-            (0, path_and_artifact_name_validation_1.checkArtifactFilePath)(uploadPath);
-            /*
-                    uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
-                    be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
-      
-                    path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
-                      join('artifact-name/', 'file-to-upload.txt')
-                      join('artifact-name/', '/file-to-upload.txt')
-                      join('artifact-name', 'file-to-upload.txt')
-                      join('artifact-name', '/file-to-upload.txt')
-                  */
-            specifications.push({
-                absoluteFilePath: file,
-                uploadFilePath: (0, path_1.join)(artifactName, uploadPath)
-            });
-        }
-        else {
-            // Directories are rejected by the server during upload
-            (0, core_1.debug)(`Removing ${file} from rawSearchResults because it is a directory`);
-        }
-    }
-    return specifications;
-}
-exports.getUploadSpecification = getUploadSpecification;
-
-
-/***/ }),
-
 /***/ 39491:
 /***/ ((module) => {
 
@@ -56853,62 +56141,6 @@ module.exports = require("https");
 
 "use strict";
 module.exports = require("net");
-
-/***/ }),
-
-/***/ 72254:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:buffer");
-
-/***/ }),
-
-/***/ 87561:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:fs");
-
-/***/ }),
-
-/***/ 93977:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:fs/promises");
-
-/***/ }),
-
-/***/ 49411:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:path");
-
-/***/ }),
-
-/***/ 97742:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:process");
-
-/***/ }),
-
-/***/ 84492:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:stream");
-
-/***/ }),
-
-/***/ 47261:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:util");
 
 /***/ }),
 
@@ -57057,6 +56289,46 @@ module.exports = JSON.parse('{"name":"aws-crt","version":"1.21.1","description":
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
@@ -57066,19 +56338,792 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
 "use strict";
-var exports = __webpack_exports__;
+// ESM COMPAT FLAG
+__nccwpck_require__.r(__webpack_exports__);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const downloader_1 = __nccwpck_require__(16239);
-const input_helper_1 = __nccwpck_require__(46455);
-const upload_artifact_1 = __nccwpck_require__(10334);
-if ((0, input_helper_1.getInputs)().UploadOrDownload == 'upload') {
-    console.log('Starting upload...');
-    (0, upload_artifact_1.runUpload)();
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(42186);
+;// CONCATENATED MODULE: external "node:fs/promises"
+const promises_namespaceObject = require("node:fs/promises");
+var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_namespaceObject);
+;// CONCATENATED MODULE: ./src/constants.ts
+/* eslint-disable no-unused-vars */
+var Inputs;
+(function (Inputs) {
+    Inputs["Name"] = "name";
+    Inputs["Path"] = "path";
+    Inputs["IfNoFilesFound"] = "if-no-files-found";
+    Inputs["RetentionDays"] = "retention-days";
+    Inputs["ArtifactBucket"] = "artifact-bucket";
+    Inputs["UploadOrDownload"] = "upload-or-download";
+    Inputs["ci_pipeline_iid"] = "ci_pipeline_iid";
+})(Inputs || (Inputs = {}));
+var UploadOrDownloadOptions;
+(function (UploadOrDownloadOptions) {
+    UploadOrDownloadOptions["upload"] = "upload";
+    UploadOrDownloadOptions["download"] = "download";
+})(UploadOrDownloadOptions || (UploadOrDownloadOptions = {}));
+var NoFileOptions;
+(function (NoFileOptions) {
+    /**
+     * Default. Output a warning but do not fail the action
+     */
+    NoFileOptions["warn"] = "warn";
+    /**
+     * Fail the action with an error message
+     */
+    NoFileOptions["error"] = "error";
+    /**
+     * Do not output any warnings or errors, the action does not fail
+     */
+    NoFileOptions["ignore"] = "ignore";
+})(NoFileOptions || (NoFileOptions = {}));
+
+;// CONCATENATED MODULE: ./src/input-helper.ts
+
+
+function raiseError(errorMessage) {
+    throw new Error(errorMessage);
 }
-else if ((0, input_helper_1.getInputs)().UploadOrDownload == 'download') {
+/**
+ * Helper to get all the inputs for the action
+ */
+function getInputs() {
+    const name = core.getInput(Inputs.Name);
+    const path = core.getInput(Inputs.Path, { required: true });
+    const bucket = core.getInput(Inputs.ArtifactBucket) ||
+        process.env.ARTIFACTS_S3_BUCKET ||
+        raiseError('no artifact-bucket supplied');
+    const UploadOrDownload = core.getInput(Inputs.UploadOrDownload);
+    const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
+    const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
+    const noFileBehavior = NoFileOptions[ifNoFilesFound];
+    if (!noFileBehavior) {
+        core.setFailed(`Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: ${Object.keys(NoFileOptions)}`);
+    }
+    const inputs = {
+        artifactName: name,
+        artifactBucket: bucket,
+        searchPath: path,
+        ifNoFilesFound: noFileBehavior,
+        UploadOrDownload: UploadOrDownload,
+        ci_pipeline_iid: ci_pipeline_iid
+    };
+    const retentionDaysStr = core.getInput(Inputs.RetentionDays);
+    if (retentionDaysStr) {
+        inputs.retentionDays = parseInt(retentionDaysStr);
+        if (isNaN(inputs.retentionDays)) {
+            core.setFailed('Invalid retention-days');
+        }
+    }
+    return inputs;
+}
+
+;// CONCATENATED MODULE: external "node:buffer"
+const external_node_buffer_namespaceObject = require("node:buffer");
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
+;// CONCATENATED MODULE: external "node:util"
+const external_node_util_namespaceObject = require("node:util");
+;// CONCATENATED MODULE: external "node:stream"
+const external_node_stream_namespaceObject = require("node:stream");
+// EXTERNAL MODULE: ./node_modules/@aws-sdk/client-s3/dist-cjs/index.js
+var dist_cjs = __nccwpck_require__(19250);
+;// CONCATENATED MODULE: external "node:process"
+const external_node_process_namespaceObject = require("node:process");
+var external_node_process_default = /*#__PURE__*/__nccwpck_require__.n(external_node_process_namespaceObject);
+;// CONCATENATED MODULE: ./src/aws/locations.ts
+
+const region = () => (external_node_process_default()).env.AWS_REGION ?? 'eu-west-2';
+const env = () => process.env.ENVIRONMENT ?? 'unknown';
+
+;// CONCATENATED MODULE: ./src/aws/s3-client.ts
+
+
+let s3Client;
+function s3_client_getS3Client() {
+    if (!s3Client) {
+        s3Client = new dist_cjs.S3Client({ region: region() });
+    }
+    return s3Client;
+}
+
+;// CONCATENATED MODULE: ./src/aws/stream-counter.ts
+
+/**
+ * Duplex (Transform) stream that counts the number of bytes that pass through it.
+ *
+ * The data itself is pushed through as-is.
+ */
+class StreamCounter extends external_node_stream_namespaceObject.Transform {
+    totalBytes = 0;
+    /**
+     * Get the total of all bytes transfered
+     */
+    totalBytesTransfered() {
+        return this.totalBytes;
+    }
+    _transform(chunk, encoding, cb) {
+        if (typeof chunk?.length === 'number') {
+            this.totalBytes += chunk.length;
+        }
+        cb(null, chunk);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
+/* eslint-disable unicorn/prefer-type-error */
+
+
+
+
+
+
+
+const pipelineP = (0,external_node_util_namespaceObject.promisify)(external_node_stream_namespaceObject.pipeline);
+function isReadable(body) {
+    return body !== undefined && body && body.read !== undefined;
+}
+async function streamToString(Body) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        Body.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        Body.on('error', error => {
+            reject(error);
+        });
+        Body.on('end', () => {
+            resolve(Buffer.concat(chunks).toString('utf8'));
+        });
+    });
+}
+/**
+ * Stream to file, and return number of bytes saved to the file
+ */
+async function writeToFile(inputStream, filePath) {
+    const counter = new StreamCounter();
+    await pipelineP(inputStream, counter, external_node_fs_default().createWriteStream(filePath));
+    return counter.totalBytesTransfered();
+}
+async function getS3ObjectStream({ Bucket, Key }) {
+    const parameters = {
+        Bucket,
+        Key
+    };
+    try {
+        const { Body } = await s3_client_getS3Client().send(new dist_cjs.GetObjectCommand(parameters));
+        // https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+        if (isReadable(Body)) {
+            return Body;
+        }
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Could not retrieve from bucket 's3://${Bucket}/${Key}' from S3: ${error.message}`);
+        }
+        else {
+            throw error;
+        }
+    }
+    throw new Error(`Could not read file from bucket. 's3://${Bucket}/${Key}'`);
+}
+async function getS3Object(location, defaultValue) {
+    try {
+        return await streamToString(await getS3ObjectStream(location));
+    }
+    catch (error) {
+        if (defaultValue) {
+            return defaultValue;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}' from S3: ${message}`);
+    }
+}
+async function writeS3ObjectToFile(location, filename) {
+    try {
+        return await writeToFile(await getS3ObjectStream(location), filename);
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${error.message}`);
+        }
+        else {
+            throw error;
+        }
+    }
+}
+async function listS3Objects({ Bucket, Prefix: Key }) {
+    try {
+        const parameters = {
+            Bucket,
+            Key
+        };
+        const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
+        return data.Contents?.map(element => element.Key ?? '') ?? [];
+    }
+    catch (error_) {
+        const error = error_ instanceof Error
+            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
+            : error_;
+        throw error;
+    }
+}
+
+// EXTERNAL MODULE: ./node_modules/p-map/index.js
+var p_map = __nccwpck_require__(91855);
+var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
+;// CONCATENATED MODULE: ./src/aws/downloader.ts
+
+
+
+
+
+// used for getting the name of the item, which is the last part of the file path
+function getItemName(str) {
+    const splitString = str.split('/');
+    return splitString[splitString.length - 1];
+}
+// export async function getObjectList() {
+// Promise<any> is bad form!!  Try something else
+async function runDownload() {
+    try {
+        const inputs = getInputs();
+        const bucket = inputs.artifactBucket;
+        const name = inputs.artifactName;
+        const pipeline_id = inputs.ci_pipeline_iid;
+        const objectList = await listS3Objects({
+            Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
+            Prefix: name
+        });
+        let countOfObjects = 0;
+        let newObjectList = [];
+        // these are the naming conventions for the uploaded files
+        const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json');
+        const regexForCDArtifacts = new RegExp('/target/dist/NHSD.(.*).' + pipeline_id + '.zip');
+        // objectList brings back everything in the S3 bucket
+        // use an if statement with the regex to find only files relevant to this pipeline
+        for (const item of objectList) {
+            if (item.match(regexForCIArtifacts) || item.match(regexForCDArtifacts)) {
+                newObjectList.push(item);
+                countOfObjects++;
+                const newFilename = getItemName(item);
+                promises_default().writeFile(newFilename, '');
+            }
+        }
+        // 2009 - rename from 'item' - confusing
+        const mapper = async (item) => {
+            const getFiles = await writeS3ObjectToFile({
+                Bucket: bucket,
+                Key: `${item}`
+            }, getItemName(item));
+            console.log(`Item downloaded: ${item}`);
+            return getFiles;
+        };
+        // 2009 - look at concurrency
+        const result = await p_map_default()(newObjectList, mapper, { concurrency: 2 });
+        console.log(`Total objects downloaded: ${countOfObjects}`);
+        return result;
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+// export async function runDownload(): Promise<void> {
+//   try {
+//     const inputs = getInputs()
+//     const bucket = inputs.artifactBucket
+//     const name = inputs.artifactName
+//     const pipeline_id = inputs.ci_pipeline_iid
+//     const objectList = await listS3Objects({
+//       Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
+//       Prefix: path.join('ci-pipeline-upload-artifacts', name)
+//     })
+//     let countOfObjects = 0
+//     const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json')
+//     const regexForCDArtifacts = new RegExp(
+//       '/target/dist/NHSD.(.*).' + pipeline_id + '.zip')
+//     for (const item of objectList) {
+//       // objectList brings back everything, this if statement finds only relevant files
+//       if (item.match(regexForCIArtifacts) || item.match(regexForCDArtifacts)) {
+//         const newFilename = getItemName(item)
+//         fs.writeFile(newFilename, '')
+//         await writeS3ObjectToFile(
+//           {
+//             Bucket: bucket,
+//             Key: `${item}`
+//           },
+//           newFilename
+//         )
+//         console.log(`${item} has been downloaded to ${newFilename}`)
+//         countOfObjects++
+//       }
+//     }
+//     console.log(`Total objects downloaded: ${countOfObjects}`)
+//   } catch (error) {
+//     core.setFailed((error as Error).message)
+//   }
+// }
+
+// EXTERNAL MODULE: ./node_modules/@actions/artifact/lib/artifact-client.js
+var artifact_client = __nccwpck_require__(52605);
+// EXTERNAL MODULE: ./node_modules/@actions/glob/lib/glob.js
+var glob = __nccwpck_require__(28090);
+// EXTERNAL MODULE: external "path"
+var external_path_ = __nccwpck_require__(71017);
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(57147);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(73837);
+;// CONCATENATED MODULE: ./src/search.ts
+
+
+
+
+
+
+const stats = (0,external_util_.promisify)(external_fs_.stat);
+function getDefaultGlobOptions() {
+    return {
+        followSymbolicLinks: true,
+        implicitDescendants: true,
+        omitBrokenSymbolicLinks: true
+    };
+}
+/**
+ * If multiple paths are specific, the least common ancestor (LCA) of the search paths is used as
+ * the delimiter to control the directory structure for the artifact. This function returns the LCA
+ * when given an array of search paths
+ *
+ * Example 1: The patterns `/foo/` and `/bar/` returns `/`
+ *
+ * Example 2: The patterns `~/foo/bar/*` and `~/foo/voo/two/*` and `~/foo/mo/` returns `~/foo`
+ */
+function getMultiPathLCA(searchPaths) {
+    if (searchPaths.length < 2) {
+        throw new Error('At least two search paths must be provided');
+    }
+    const commonPaths = new Array();
+    const splitPaths = new Array();
+    let smallestPathLength = Number.MAX_SAFE_INTEGER;
+    // split each of the search paths using the platform specific separator
+    for (const searchPath of searchPaths) {
+        (0,core.debug)(`Using search path ${searchPath}`);
+        const splitSearchPath = external_path_.normalize(searchPath).split(external_path_.sep);
+        // keep track of the smallest path length so that we don't accidentally later go out of bounds
+        smallestPathLength = Math.min(smallestPathLength, splitSearchPath.length);
+        splitPaths.push(splitSearchPath);
+    }
+    // on Unix-like file systems, the file separator exists at the beginning of the file path, make sure to preserve it
+    if (searchPaths[0].startsWith(external_path_.sep)) {
+        commonPaths.push(external_path_.sep);
+    }
+    let splitIndex = 0;
+    // function to check if the paths are the same at a specific index
+    function isPathTheSame() {
+        const compare = splitPaths[0][splitIndex];
+        for (let i = 1; i < splitPaths.length; i++) {
+            if (compare !== splitPaths[i][splitIndex]) {
+                // a non-common index has been reached
+                return false;
+            }
+        }
+        return true;
+    }
+    // loop over all the search paths until there is a non-common ancestor or we go out of bounds
+    while (splitIndex < smallestPathLength) {
+        if (!isPathTheSame()) {
+            break;
+        }
+        // if all are the same, add to the end result & increment the index
+        commonPaths.push(splitPaths[0][splitIndex]);
+        splitIndex++;
+    }
+    return external_path_.join(...commonPaths);
+}
+async function findFilesToUpload(searchPath, globOptions) {
+    const searchResults = [];
+    const globber = await glob.create(searchPath, globOptions || getDefaultGlobOptions());
+    const rawSearchResults = await globber.glob();
+    /*
+      Files are saved with case insensitivity. Uploading both a.txt and A.txt will files to be overwritten
+      Detect any files that could be overwritten for user awareness
+    */
+    const set = new Set();
+    /*
+      Directories will be rejected if attempted to be uploaded. This includes just empty
+      directories so filter any directories out from the raw search results
+    */
+    for (const searchResult of rawSearchResults) {
+        const fileStats = await stats(searchResult);
+        // isDirectory() returns false for symlinks if using fs.lstat(), make sure to use fs.stat() instead
+        if (!fileStats.isDirectory()) {
+            (0,core.debug)(`File:${searchResult} was found using the provided searchPath`);
+            searchResults.push(searchResult);
+            // detect any files that would be overwritten because of case insensitivity
+            if (set.has(searchResult.toLowerCase())) {
+                (0,core.info)(`Uploads are case insensitive: ${searchResult} was detected that it will be overwritten by another file with the same path`);
+            }
+            else {
+                set.add(searchResult.toLowerCase());
+            }
+        }
+        else {
+            (0,core.debug)(`Removing ${searchResult} from rawSearchResults because it is a directory`);
+        }
+    }
+    // Calculate the root directory for the artifact using the search paths that were utilized
+    const searchPaths = globber.getSearchPaths();
+    if (searchPaths.length > 1) {
+        (0,core.info)(`Multiple search paths detected. Calculating the least common ancestor of all paths`);
+        const lcaSearchPath = getMultiPathLCA(searchPaths);
+        (0,core.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
+        return {
+            filesToUpload: searchResults,
+            rootDirectory: lcaSearchPath
+        };
+    }
+    /*
+      Special case for a single file artifact that is uploaded without a directory or wildcard pattern. The directory structure is
+      not preserved and the root directory will be the single files parent directory
+    */
+    if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
+        return {
+            filesToUpload: searchResults,
+            rootDirectory: (0,external_path_.dirname)(searchResults[0])
+        };
+    }
+    return {
+        filesToUpload: searchResults,
+        rootDirectory: searchPaths[0]
+    };
+}
+
+;// CONCATENATED MODULE: ./src/aws/put-data-s3.ts
+
+
+async function putDataS3(fileData, { Bucket, Key }) {
+    try {
+        const parameters = {
+            Bucket,
+            Key,
+            Body: JSON.stringify(fileData, null, 2)
+        };
+        const data = await getS3Client().send(new PutObjectCommand(parameters));
+        console.log(`Data uploaded to ${Bucket}/${Key}`);
+        return data;
+    }
+    catch (error) {
+        throw new Error(`Upload to ${Bucket}/${Key} failed, error: ${String(error)}`);
+    }
+}
+/**
+ * Upload a stream, string or blob to as an S3 object.
+ *
+ *
+ * @param params
+ * @param log
+ *
+ * @example
+ *    await uploadObjectToS3({
+ *       Bucket: s3AssetsBucket,
+ *       Key: remotePath,
+ *       Body: data,
+ *       ACL: 'bucket-owner-full-control',
+ *     });
+ */
+async function uploadObjectToS3(parameters, log) {
+    try {
+        log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
+        return await s3_client_getS3Client().send(new dist_cjs.PutObjectCommand(parameters));
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            const newMessage = `Upload to ${parameters.Bucket}/${parameters.Key} failed, error: ${error.message}`;
+            log.error(newMessage);
+            throw error;
+        }
+        else {
+            throw error;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/path-and-artifact-name-validation.ts
+/* eslint-disable prettier/prettier */
+
+/**
+ * Invalid characters that cannot be in the artifact name or an uploaded file. Will be rejected
+ * from the server if attempted to be sent over. These characters are not allowed due to limitations with certain
+ * file systems such as NTFS. To maintain platform-agnostic behavior, all characters that are not supported by an
+ * individual filesystem/platform will not be supported on all fileSystems/platforms
+ *
+ * FilePaths can include characters such as \ and / which are not permitted in the artifact name alone
+ */
+const invalidArtifactFilePathCharacters = new Map([
+    ['"', ' Double quote "'],
+    [':', ' Colon :'],
+    ['<', ' Less than <'],
+    ['>', ' Greater than >'],
+    ['|', ' Vertical bar |'],
+    ['*', ' Asterisk *'],
+    ['?', ' Question mark ?'],
+    ['\r', ' Carriage return \\r'],
+    ['\n', ' Line feed \\n']
+]);
+const invalidArtifactNameCharacters = new Map([
+    ...invalidArtifactFilePathCharacters,
+    ['\\', ' Backslash \\'],
+    ['/', ' Forward slash /']
+]);
+/**
+ * Scans the name of the artifact to make sure there are no illegal characters
+ */
+function checkArtifactName(name) {
+    if (!name) {
+        throw new Error(`Artifact name: ${name}, is incorrectly provided`);
+    }
+    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactNameCharacters) {
+        if (name.includes(invalidCharacterKey)) {
+            throw new Error(`Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
+          
+Invalid characters include: ${Array.from(invalidArtifactNameCharacters.values()).toString()}
+          
+These characters are not allowed in the artifact name due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.`);
+        }
+    }
+    info(`Artifact name is valid!`);
+}
+/**
+ * Scans the name of the filePath used to make sure there are no illegal characters
+ */
+function checkArtifactFilePath(path) {
+    if (!path) {
+        throw new Error(`Artifact path: ${path}, is incorrectly provided`);
+    }
+    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactFilePathCharacters) {
+        if (path.includes(invalidCharacterKey)) {
+            throw new Error(`Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
+          
+Invalid characters include: ${Array.from(invalidArtifactFilePathCharacters.values()).toString()}
+          
+The following characters are not allowed in files that are uploaded due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.
+          `);
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/upload-specification.ts
+
+
+
+
+/**
+ * Creates a specification that describes how each file that is part of the artifact will be uploaded
+ * @param artifactName the name of the artifact being uploaded. Used during upload to denote where the artifact is stored on the server
+ * @param rootDirectory an absolute file path that denotes the path that should be removed from the beginning of each artifact file
+ * @param artifactFiles a list of absolute file paths that denote what should be uploaded as part of the artifact
+ */
+function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
+    // artifact name was checked earlier on, no need to check again
+    const specifications = [];
+    if (!external_fs_.existsSync(rootDirectory)) {
+        throw new Error(`Provided rootDirectory ${rootDirectory} does not exist`);
+    }
+    if (!external_fs_.statSync(rootDirectory).isDirectory()) {
+        throw new Error(`Provided rootDirectory ${rootDirectory} is not a valid directory`);
+    }
+    // Normalize and resolve, this allows for either absolute or relative paths to be used
+    rootDirectory = (0,external_path_.normalize)(rootDirectory);
+    rootDirectory = (0,external_path_.resolve)(rootDirectory);
+    /*
+         Example to demonstrate behavior
+  
+         Input:
+           artifactName: my-artifact
+           rootDirectory: '/home/user/files/plz-upload'
+           artifactFiles: [
+             '/home/user/files/plz-upload/file1.txt',
+             '/home/user/files/plz-upload/file2.txt',
+             '/home/user/files/plz-upload/dir/file3.txt'
+           ]
+  
+         Output:
+           specifications: [
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
+           ]
+      */
+    for (let file of artifactFiles) {
+        if (!external_fs_.existsSync(file)) {
+            throw new Error(`File ${file} does not exist`);
+        }
+        if (!external_fs_.statSync(file).isDirectory()) {
+            // Normalize and resolve, this allows for either absolute or relative paths to be used
+            file = (0,external_path_.normalize)(file);
+            file = (0,external_path_.resolve)(file);
+            if (!file.startsWith(rootDirectory)) {
+                throw new Error(`The rootDirectory: ${rootDirectory} is not a parent directory of the file: ${file}`);
+            }
+            // Check for forbidden characters in file paths that will be rejected during upload
+            const uploadPath = file.replace(rootDirectory, '');
+            checkArtifactFilePath(uploadPath);
+            /*
+                    uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
+                    be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
+      
+                    path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
+                      join('artifact-name/', 'file-to-upload.txt')
+                      join('artifact-name/', '/file-to-upload.txt')
+                      join('artifact-name', 'file-to-upload.txt')
+                      join('artifact-name', '/file-to-upload.txt')
+                  */
+            specifications.push({
+                absoluteFilePath: file,
+                uploadFilePath: (0,external_path_.join)(artifactName, uploadPath)
+            });
+        }
+        else {
+            // Directories are rejected by the server during upload
+            (0,core.debug)(`Removing ${file} from rawSearchResults because it is a directory`);
+        }
+    }
+    return specifications;
+}
+
+;// CONCATENATED MODULE: ./src/aws/uploader.ts
+
+
+
+
+
+async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket
+// ): Promise<UploadResponse> {
+) {
+    const uploadResponse = {
+        artifactName: artifactName,
+        artifactItems: [],
+        size: -1,
+        failedItems: []
+    };
+    const uploadSpec = getUploadSpecification(artifactName, rootDirectory, filesToUpload);
+    let newFileList = [];
+    // 2009 - use pmap here
+    for (const fileSpec of uploadSpec) {
+        newFileList.push(fileSpec);
+        // try {
+        //   await uploadObjectToS3(
+        //     {
+        //       Body: fs.createReadStream(fileSpec.absoluteFilePath),
+        //       Bucket: bucket,
+        //       Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
+        //     },
+        //     core
+        //   )
+        // } catch (err) {
+        //   uploadResponse.failedItems.push(fileSpec.absoluteFilePath)
+        // }
+    }
+    const mapper = async (thisFileSpec) => {
+        try {
+            await uploadObjectToS3({
+                Body: external_node_fs_default().createReadStream(thisFileSpec.absoluteFilePath),
+                Bucket: bucket,
+                Key: `ci-pipeline-upload-artifacts/${thisFileSpec.uploadFilePath}` // TODO: fix path
+            }, core);
+        }
+        catch {
+            uploadResponse.failedItems.push(thisFileSpec.absoluteFilePath);
+        }
+    };
+    // 2009 - look at concurrency
+    const result = await p_map_default()(newFileList, mapper, { concurrency: 2 });
+    console.log(`I am newFileList: ${JSON.stringify(newFileList)}`);
+    console.log(`I am result: ${JSON.stringify(result)}`);
+    console.log(`I am result.keys: ${JSON.stringify(result.keys)}`);
+    return result;
+    // return uploadResponse
+}
+
+;// CONCATENATED MODULE: ./src/upload-artifact.ts
+
+
+
+
+
+
+async function runUpload() {
+    try {
+        const inputs = getInputs();
+        const searchResult = await findFilesToUpload(inputs.searchPath);
+        console.log(`I am searchResult: ${JSON.stringify(searchResult)}`);
+        console.log(`I am searchResult.filesToUpload: ${JSON.stringify(searchResult.filesToUpload)}`);
+        console.log(`I am searchResult.filesToUpload.length: ${searchResult.filesToUpload.length}`);
+        if (searchResult.filesToUpload.length === 0) {
+            // No files were found, different use cases warrant different types of behavior if nothing is found
+            switch (inputs.ifNoFilesFound) {
+                case NoFileOptions.warn: {
+                    core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case NoFileOptions.error: {
+                    core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case NoFileOptions.ignore: {
+                    core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+            }
+        }
+        else {
+            const s = searchResult.filesToUpload.length === 1 ? '' : 's';
+            core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
+            core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
+            if (searchResult.filesToUpload.length > 10000) {
+                core.warning(`There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`);
+            }
+            const artifactClient = (0,artifact_client/* create */.U)();
+            const options = {
+                continueOnError: false
+            };
+            if (inputs.retentionDays) {
+                options.retentionDays = inputs.retentionDays;
+            }
+            core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
+            let uploadResponse;
+            const useS3 = true;
+            if (useS3) {
+                uploadResponse = await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket);
+            }
+            else {
+                uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
+            }
+            console.log(`I am uploadResponse: ${JSON.stringify(uploadResponse)}`);
+            if (uploadResponse.failedItems.length > 0) {
+                core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
+            }
+            else {
+                core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
+            }
+        }
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/upload-or-download.ts
+
+
+
+if (getInputs().UploadOrDownload == 'upload') {
+    console.log('Starting upload...');
+    runUpload();
+}
+else if (getInputs().UploadOrDownload == 'download') {
     console.log('Starting download...');
-    (0, downloader_1.runDownload)();
+    runDownload();
 }
 else {
     console.log('No input found for UploadOrDownload.');
