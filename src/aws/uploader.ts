@@ -3,7 +3,10 @@ import {UploadResponse} from '@actions/artifact/lib/internal/upload-response'
 import {uploadObjectToS3} from './put-data-s3'
 import fs from 'node:fs'
 import * as core from '@actions/core'
-import {getUploadSpecification, UploadSpecification} from '../upload-specification'
+import {
+  getUploadSpecification,
+  UploadSpecification
+} from '../upload-specification'
 import pMap from 'p-map'
 
 export async function uploadArtifact(
@@ -12,9 +15,9 @@ export async function uploadArtifact(
   rootDirectory: string,
   options: UploadOptions,
   bucket: string
-// 2009 - Promise<any> is bad form!
-// returns a void
-  ): Promise<any> {
+  // 2009 - Promise<any> is bad form!
+  // returns a void
+): Promise<any> {
   const uploadResponse: UploadResponse = {
     artifactName: artifactName,
     artifactItems: [],
@@ -28,16 +31,16 @@ export async function uploadArtifact(
     filesToUpload
   )
 
-  let newFileList:UploadSpecification[] = []
+  let newFileList: UploadSpecification[] = []
 
   for (const fileSpec of uploadSpec) {
     newFileList.push(fileSpec)
   }
 
-  const mapper = async thisFileSpec =>{
+  const mapper = async thisFileSpec => {
     try {
       await uploadObjectToS3(
-                {
+        {
           Body: fs.createReadStream(thisFileSpec.absoluteFilePath),
           Bucket: bucket,
           Key: `ci-pipeline-upload-artifacts/${thisFileSpec.uploadFilePath}` // TODO: fix path
@@ -46,12 +49,12 @@ export async function uploadArtifact(
       )
     } catch {
       core.setFailed(
-        `An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`
+        `An error was encountered when uploading ${thisFileSpec.artifactName}`
       )
     }
   }
 
   // use p-map to make the uploads run concurrently
-  const result = await pMap(newFileList,mapper)
+  const result = await pMap(newFileList, mapper)
   return result
 }

@@ -56583,10 +56583,11 @@ function getItemName(str) {
     const splitString = str.split('/');
     return splitString[splitString.length - 1];
 }
-// export async function getObjectList() {
 // Promise<any> is bad form!!  Try something else
+// function returns a null array
 async function runDownload() {
     try {
+        const startTime = Date.now();
         const inputs = getInputs();
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
@@ -56595,74 +56596,49 @@ async function runDownload() {
             Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
             Prefix: name
         });
-        let countOfObjects = 0;
         let newObjectList = [];
         // these are the naming conventions for the uploaded files
-        const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json');
-        const regexForCDArtifacts = new RegExp('/target/dist/NHSD.(.*).' + pipeline_id + '.zip');
+        const regexForCDArtifacts = new RegExp('/pipeline_files/(.*).json');
+        const regexForCIArtifacts = new RegExp(name + '(.*)/target/dist/NHSD.(.*).' + pipeline_id + '.zip');
         // objectList brings back everything in the S3 bucket
         // use an if statement with the regex to find only files relevant to this pipeline
         for (const item of objectList) {
-            if (item.match(regexForCIArtifacts) || item.match(regexForCDArtifacts)) {
+            if (regexForCIArtifacts.test(item) || regexForCDArtifacts.test(item)) {
                 newObjectList.push(item);
-                countOfObjects++;
                 const newFilename = getItemName(item);
                 promises_default().writeFile(newFilename, '');
             }
         }
-        // 2009 - rename from 'item' - confusing
-        const mapper = async (item) => {
+        // this is the action to write the S3 object to file
+        const mapper = async (artifactPath) => {
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
-                Key: `${item}`
-            }, getItemName(item));
-            console.log(`Item downloaded: ${item}`);
+                Key: artifactPath
+            }, getItemName(artifactPath));
+            console.log(`Item downloaded: ${artifactPath}`);
             return getFiles;
         };
         // use p-map to make the downloads run concurrently
+        // do the mapper function to everything in the array
         const result = await p_map_default()(newObjectList, mapper);
-        console.log(`Total objects downloaded: ${countOfObjects}`);
+        console.log(`Total objects downloaded: ${newObjectList.length}`);
+        // log information about the downloads
+        const finishTime = Date.now();
+        let fileCount = 0;
+        let byteCount = 0;
+        for (const fileSize of result) {
+            byteCount += fileSize;
+            fileCount += 1;
+        }
+        const duration = finishTime - startTime;
+        const rate = byteCount / duration;
+        console.log(`Downloaded ${byteCount} bytes, in ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds That is ${rate.toFixed(0)} KB/s`);
         return result;
     }
     catch (error) {
         core.setFailed(error.message);
     }
 }
-// export async function runDownload(): Promise<void> {
-//   try {
-//     const inputs = getInputs()
-//     const bucket = inputs.artifactBucket
-//     const name = inputs.artifactName
-//     const pipeline_id = inputs.ci_pipeline_iid
-//     const objectList = await listS3Objects({
-//       Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
-//       Prefix: path.join('ci-pipeline-upload-artifacts', name)
-//     })
-//     let countOfObjects = 0
-//     const regexForCIArtifacts = new RegExp('/pipeline_files/(.*).json')
-//     const regexForCDArtifacts = new RegExp(
-//       '/target/dist/NHSD.(.*).' + pipeline_id + '.zip')
-//     for (const item of objectList) {
-//       // objectList brings back everything, this if statement finds only relevant files
-//       if (item.match(regexForCIArtifacts) || item.match(regexForCDArtifacts)) {
-//         const newFilename = getItemName(item)
-//         fs.writeFile(newFilename, '')
-//         await writeS3ObjectToFile(
-//           {
-//             Bucket: bucket,
-//             Key: `${item}`
-//           },
-//           newFilename
-//         )
-//         console.log(`${item} has been downloaded to ${newFilename}`)
-//         countOfObjects++
-//       }
-//     }
-//     console.log(`Total objects downloaded: ${countOfObjects}`)
-//   } catch (error) {
-//     core.setFailed((error as Error).message)
-//   }
-// }
 
 // EXTERNAL MODULE: ./node_modules/@actions/artifact/lib/artifact-client.js
 var artifact_client = __nccwpck_require__(52605);
@@ -56849,7 +56825,6 @@ async function uploadObjectToS3(parameters, log) {
 }
 
 ;// CONCATENATED MODULE: ./src/path-and-artifact-name-validation.ts
-/* eslint-disable prettier/prettier */
 
 /**
  * Invalid characters that cannot be in the artifact name or an uploaded file. Will be rejected
@@ -57021,7 +56996,7 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
             }, core);
         }
         catch {
-            core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
+            core.setFailed(`An error was encountered when uploading ${thisFileSpec.artifactName}`);
         }
     };
     // use p-map to make the uploads run concurrently
@@ -57040,9 +57015,6 @@ async function runUpload() {
     try {
         const inputs = getInputs();
         const searchResult = await findFilesToUpload(inputs.searchPath);
-        console.log(`I am searchResult: ${JSON.stringify(searchResult)}`);
-        console.log(`I am searchResult.filesToUpload: ${JSON.stringify(searchResult.filesToUpload)}`);
-        console.log(`I am searchResult.filesToUpload.length: ${searchResult.filesToUpload.length}`);
         if (searchResult.filesToUpload.length === 0) {
             // No files were found, different use cases warrant different types of behavior if nothing is found
             switch (inputs.ifNoFilesFound) {

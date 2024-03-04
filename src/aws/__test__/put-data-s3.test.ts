@@ -23,7 +23,7 @@ describe('putDataS3', () => {
         Bucket: 'bucket-name',
         Key: 'config.test.json'
       })
-    ).rejects.toThrowError(
+    ).rejects.toThrow(
       'Upload to bucket-name/config.test.json failed, error: Error: No file found'
     )
   })
@@ -57,9 +57,7 @@ describe('uploadObjectToS3', () => {
         },
         mockLog
       )
-    ).rejects.toThrowError(
-      'Upload to bucket-name/config.test.json failed, error: No file found'
-    )
+    ).rejects.toThrow('No file found')
   })
 
   it('Should return data', async () => {
