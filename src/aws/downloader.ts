@@ -55,8 +55,8 @@ function getItemName(str) {
           console.log(`Item downloaded: ${item}`)
           return getFiles;
         }
-        // 2009 - look at concurrency
-        const result = await pMap(newObjectList, mapper, {concurrency: 2});
+        // use p-map to make the downloads run concurrently
+        const result = await pMap(newObjectList, mapper);
         console.log(`Total objects downloaded: ${countOfObjects}`)
         return result
       } catch (error) {

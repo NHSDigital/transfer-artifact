@@ -56619,8 +56619,8 @@ async function runDownload() {
             console.log(`Item downloaded: ${item}`);
             return getFiles;
         };
-        // 2009 - look at concurrency
-        const result = await p_map_default()(newObjectList, mapper, { concurrency: 2 });
+        // use p-map to make the downloads run concurrently
+        const result = await p_map_default()(newObjectList, mapper);
         console.log(`Total objects downloaded: ${countOfObjects}`);
         return result;
     }
@@ -56998,7 +56998,8 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
 
 
 async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket
-// ): Promise<UploadResponse> {
+// 2009 - Promise<any> is bad form!
+// returns a void
 ) {
     const uploadResponse = {
         artifactName: artifactName,
@@ -57008,21 +57009,8 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
     };
     const uploadSpec = getUploadSpecification(artifactName, rootDirectory, filesToUpload);
     let newFileList = [];
-    // 2009 - use pmap here
     for (const fileSpec of uploadSpec) {
         newFileList.push(fileSpec);
-        // try {
-        //   await uploadObjectToS3(
-        //     {
-        //       Body: fs.createReadStream(fileSpec.absoluteFilePath),
-        //       Bucket: bucket,
-        //       Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
-        //     },
-        //     core
-        //   )
-        // } catch (err) {
-        //   uploadResponse.failedItems.push(fileSpec.absoluteFilePath)
-        // }
     }
     const mapper = async (thisFileSpec) => {
         try {
@@ -57033,16 +57021,12 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
             }, core);
         }
         catch {
-            uploadResponse.failedItems.push(thisFileSpec.absoluteFilePath);
+            core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
         }
     };
-    // 2009 - look at concurrency
-    const result = await p_map_default()(newFileList, mapper, { concurrency: 2 });
-    console.log(`I am newFileList: ${JSON.stringify(newFileList)}`);
-    console.log(`I am result: ${JSON.stringify(result)}`);
-    console.log(`I am result.keys: ${JSON.stringify(result.keys)}`);
+    // use p-map to make the uploads run concurrently
+    const result = await p_map_default()(newFileList, mapper);
     return result;
-    // return uploadResponse
 }
 
 ;// CONCATENATED MODULE: ./src/upload-artifact.ts
@@ -57099,13 +57083,7 @@ async function runUpload() {
             else {
                 uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
             }
-            console.log(`I am uploadResponse: ${JSON.stringify(uploadResponse)}`);
-            if (uploadResponse.failedItems.length > 0) {
-                core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
-            }
-            else {
-                core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
-            }
+            core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
         }
     }
     catch (error) {

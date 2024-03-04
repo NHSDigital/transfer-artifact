@@ -12,7 +12,8 @@ export async function uploadArtifact(
   rootDirectory: string,
   options: UploadOptions,
   bucket: string
-// ): Promise<UploadResponse> {
+// 2009 - Promise<any> is bad form!
+// returns a void
   ): Promise<any> {
   const uploadResponse: UploadResponse = {
     artifactName: artifactName,
@@ -29,21 +30,8 @@ export async function uploadArtifact(
 
   let newFileList:UploadSpecification[] = []
 
-  // 2009 - use pmap here
   for (const fileSpec of uploadSpec) {
     newFileList.push(fileSpec)
-    // try {
-    //   await uploadObjectToS3(
-    //     {
-    //       Body: fs.createReadStream(fileSpec.absoluteFilePath),
-    //       Bucket: bucket,
-    //       Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
-    //     },
-    //     core
-    //   )
-    // } catch (err) {
-    //   uploadResponse.failedItems.push(fileSpec.absoluteFilePath)
-    // }
   }
 
   const mapper = async thisFileSpec =>{
@@ -57,15 +45,13 @@ export async function uploadArtifact(
         core
       )
     } catch {
-      uploadResponse.failedItems.push(thisFileSpec.absoluteFilePath)
+      core.setFailed(
+        `An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`
+      )
     }
   }
 
-  // 2009 - look at concurrency
-  const result = await pMap(newFileList,mapper,{concurrency:2})
-  console.log(`I am newFileList: ${JSON.stringify(newFileList)}`)
-  console.log(`I am result: ${JSON.stringify(result)}`)
-  console.log(`I am result.keys: ${JSON.stringify(result.keys)}`)
+  // use p-map to make the uploads run concurrently
+  const result = await pMap(newFileList,mapper)
   return result
-  // return uploadResponse
 }
