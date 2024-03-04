@@ -10,9 +10,7 @@ export async function runUpload(): Promise<void> {
   try {
     const inputs = getInputs()
     const searchResult = await findFilesToUpload(inputs.searchPath)
-    console.log(`I am searchResult: ${JSON.stringify(searchResult)}`)
-    console.log(`I am searchResult.filesToUpload: ${JSON.stringify(searchResult.filesToUpload)}`)
-    console.log(`I am searchResult.filesToUpload.length: ${searchResult.filesToUpload.length}`)
+
     if (searchResult.filesToUpload.length === 0) {
       // No files were found, different use cases warrant different types of behavior if nothing is found
       switch (inputs.ifNoFilesFound) {
@@ -78,9 +76,9 @@ export async function runUpload(): Promise<void> {
           options
         )
       }
-        core.info(
-          `Artifact ${uploadResponse.artifactName} has been successfully uploaded!`
-        )
+      core.info(
+        `Artifact ${uploadResponse.artifactName} has been successfully uploaded!`
+      )
     }
   } catch (error) {
     core.setFailed((error as Error).message)

@@ -3,10 +3,6 @@ import path from 'node:path'
 import os from 'node:os'
 import {Readable} from 'node:stream'
 import {getS3Object, listS3Objects, writeS3ObjectToFile} from '../get-object-s3'
-import pMap from 'p-map';
-import { runDownload } from '../downloader'
-
-jest.mock('p-map');
 
 const mockSend = jest.fn()
 jest.mock('../s3-client', () => ({
@@ -43,7 +39,7 @@ describe('getS3Object', () => {
         Bucket: 'bucket-name',
         Key: 'config.test.json'
       })
-    ).rejects.toThrowError(
+    ).rejects.toThrow(
       "Could not retrieve from bucket 's3://bucket-name/config.test.json' from S3: Could not retrieve from bucket 's3://bucket-name/config.test.json' from S3: No file found"
     )
   })
@@ -95,7 +91,7 @@ describe('listS3Objects', () => {
         Bucket: 'bucket-name',
         Key: 'config.test.json'
       })
-    ).rejects.toThrowError('Could not list files in S3: Error No file found')
+    ).rejects.toThrow('Could not list files in S3: Error No file found')
   })
 
   it('Should return key', async () => {
@@ -115,45 +111,6 @@ describe('listS3Objects', () => {
 })
 
 describe('writeS3ObjectToFile', () => {
-
-  
-  // it.only('Should work OK with p-map',async() => {
-
-  //   mockSend.mockImplementationOnce(() => ({
-  //     Contents: myInfo
-  //   }))
-
-  //   const path = 'path/to/file'
-
-  //   const myInfo = [
-  //     {
-  //       Body: 'moreData',
-  //       Bucket: 'bucket-name-1',
-  //       Key: 'config-1.test.json',
-  //       path: 'path/to/file1',
-  //       name: 'pipeline_files/1.json'
-  //     },
-  //     {
-  //       Body: 'moreData',
-  //       Bucket: 'bucket-name-2',
-  //       Key: 'config-2.test.json',
-  //       path: 'path/to/file2',
-  //       name: 'pipeline_files/2.json'
-  //     },
-  //     {
-  //       Body: 'moreData',
-  //       Bucket: 'bucket-name-3',
-  //       Key: 'config-3.test.json',
-  //       path: 'path/to/file3',
-  //       name: 'pipeline_files/3.json'
-  //     },
-  //   ];
-  //   console.log(`I am myInfo: ${JSON.stringify(myInfo)}`)
-
-  //   const result = await runDownload()
-
-  //   console.log(`I am result: ${JSON.stringify(result)}`)
-  // })
   it('should write data to a file', async () => {
     const temporaryDir = await fs.mkdtemp(
       path.join(os.tmpdir(), 'writeS3ObjectToFile-test')
