@@ -1,82 +1,77 @@
-import * as core from '@actions/core'
-import fs from 'node:fs/promises'
-import {getInputs} from '../input-helper'
-import {listS3Objects, writeS3ObjectToFile} from './get-object-s3'
-import pMap from 'p-map'
+import * as core from '@actions/core';
+import fs from 'node:fs/promises';
+import { getInputs } from '../input-helper';
+import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
+import pMap from 'p-map';
 
 // used for getting the name of the item, which is the last part of the file path
-function getItemName(str) {
-  const splitString = str.split('/')
-  return splitString[splitString.length - 1]
+function getItemName(str: string) {
+  const splitString = str.split('/');
+  return splitString[splitString.length - 1];
 }
 
-// Promise<any> is bad form!!  Try something else
-// function returns a null array
+function logDownloadInformation(begin: number, downloads: number[]) {
+  const finish = Date.now();
+  let fileCount = 0;
+  let byteCount = 0;
+  for (const fileSize of downloads) {
+    byteCount += fileSize;
+    fileCount += 1;
+  }
+  const duration = finish - begin;
+  const rate = byteCount / duration;
+  console.log(
+    `Downloaded ${byteCount} bytes, in ${fileCount} files. It took ${(
+      duration / 1000
+    ).toFixed(3)} seconds at a rate of ${rate.toFixed(0)} KB/s`
+  );
+}
+
 export async function runDownload(): Promise<any> {
   try {
-    const startTime = Date.now()
-    const inputs = getInputs()
-    const bucket = inputs.artifactBucket
-    const name = inputs.artifactName
-    const pipeline_id = inputs.ci_pipeline_iid
+    const startTime = Date.now();
+    const inputs = getInputs();
+    const bucket = inputs.artifactBucket;
+    const name = inputs.artifactName;
 
     const objectList = await listS3Objects({
-      Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
-      Prefix: name
-    })
+      Bucket: bucket,
+      Prefix: name,
+    });
 
-    let newObjectList: string[] = []
+    let newObjectList: string[] = [];
 
-    // these are the naming conventions for the uploaded files
-    const regexForCDArtifacts = new RegExp('/pipeline_files/(.*).json')
-    const regexForCIArtifacts = new RegExp(
-      name + '(.*)/target/dist/NHSD.(.*).' + pipeline_id + '.zip'
-    )
+    // listS3Objects brings back everything in the S3 bucket
+    // use an if statement to find only files relevant to this pipeline
 
-    // objectList brings back everything in the S3 bucket
-    // use an if statement with the regex to find only files relevant to this pipeline
     for (const item of objectList) {
-      if (regexForCIArtifacts.test(item) || regexForCDArtifacts.test(item)) {
-        newObjectList.push(item)
-        const newFilename = getItemName(item)
-        fs.writeFile(newFilename, '')
+      if (item.includes(name)) {
+        newObjectList.push(item);
+        const newFilename = getItemName(item);
+        fs.writeFile(newFilename, '');
       }
     }
 
-    // this is the action to write the S3 object to file
-    const mapper = async (artifactPath:string) => {
+    const mapper = async (artifactPath: string) => {
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
-          Key: artifactPath
+          Key: artifactPath,
         },
         getItemName(artifactPath)
-      )
-      console.log(`Item downloaded: ${artifactPath}`)
-      return getFiles
-    }
+      );
+      console.log(`Item downloaded: ${artifactPath}`);
+      return getFiles;
+    };
 
-    // use p-map to make the downloads run concurrently
-    // do the mapper function to everything in the array
-    const result = await pMap(newObjectList, mapper)
-    console.log(`Total objects downloaded: ${newObjectList.length}`)
+    const result = await pMap(newObjectList, mapper);
 
-    // log information about the downloads
-    const finishTime = Date.now()
-    let fileCount = 0
-    let byteCount = 0
-    for (const fileSize of result){
-      byteCount += fileSize
-      fileCount += 1
-    }
-    const duration = finishTime - startTime
-    const rate = byteCount/duration
-    console.log(
-      `Downloaded ${byteCount} bytes, in ${fileCount} files. It took ${( duration / 1000 ).toFixed(3)} seconds That is ${rate.toFixed(0)} KB/s`
-    )
+    logDownloadInformation(startTime, result);
 
-    return result
+    console.log(`Total objects downloaded: ${newObjectList.length}`);
+
+    return result;
   } catch (error) {
-    core.setFailed((error as Error).message)
+    core.setFailed((error as Error).message);
   }
 }

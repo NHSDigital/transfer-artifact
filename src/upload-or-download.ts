@@ -1,13 +1,17 @@
-import {runDownload} from './aws/downloader'
-import {getInputs} from './input-helper'
-import {runUpload} from './upload-artifact'
+import { runDownload } from './aws/downloader';
+import { getInputs } from './input-helper';
+import { runUpload } from './upload-artifact';
 
-if (getInputs().UploadOrDownload == 'upload') {
-  console.log('Starting upload...')
-  runUpload()
-} else if (getInputs().UploadOrDownload == 'download') {
-  console.log('Starting download...')
-  runDownload()
+const direction = getInputs().direction;
+
+if (direction == 'upload') {
+  console.log('Starting upload...');
+  runUpload();
+} else if (direction == 'download') {
+  console.log('Starting download...');
+  runDownload();
 } else {
-  console.log('No input found for UploadOrDownload.')
+  console.log(
+    'No input found for direction.  Please specify "upload" or "download".'
+  );
 }

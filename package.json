@@ -1,7 +1,7 @@
 {
-  "name": "@caas/upload-artifact",
+  "name": "@caas/transfer-artifact",
   "version": "4.0.0",
-  "description": "Upload a build artifact that can be used by subsequent workflow steps",
+  "description": "Upload or download a build artifact that can be used by subsequent workflow steps",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -37,8 +37,7 @@
     "@aws-sdk/client-s3": "3.431.0",
     "@aws-sdk/signature-v4-crt": "3.431.0",
     "@aws-sdk/types": "3.428.0",
-    "p-map": "^4.0.0",
-    "pmap": "^2.0.0"
+    "p-map": "^4.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.7",
