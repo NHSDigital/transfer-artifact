@@ -56976,31 +56976,37 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
 // 2009 - Promise<any> is bad form!
 // returns a void
 ) {
-    const uploadResponse = {
-        artifactName: artifactName,
-        artifactItems: [],
-        size: -1,
-        failedItems: []
-    };
+    const startTime = Date.now();
+    // const uploadResponse: UploadResponse = {
+    //   artifactName: artifactName,
+    //   artifactItems: [],
+    //   size: -1,
+    //   failedItems: []
+    // }
     const uploadSpec = getUploadSpecification(artifactName, rootDirectory, filesToUpload);
-    let newFileList = [];
-    for (const fileSpec of uploadSpec) {
-        newFileList.push(fileSpec);
-    }
-    const mapper = async (thisFileSpec) => {
+    const mapper = async (fileSpec) => {
         try {
             await uploadObjectToS3({
-                Body: external_node_fs_default().createReadStream(thisFileSpec.absoluteFilePath),
+                Body: external_node_fs_default().createReadStream(fileSpec.absoluteFilePath),
                 Bucket: bucket,
-                Key: `ci-pipeline-upload-artifacts/${thisFileSpec.uploadFilePath}` // TODO: fix path
+                Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
             }, core);
         }
         catch {
-            core.setFailed(`An error was encountered when uploading ${thisFileSpec.artifactName}`);
+            core.setFailed(`An error was encountered when uploading ${artifactName}`);
         }
     };
     // use p-map to make the uploads run concurrently
-    const result = await p_map_default()(newFileList, mapper);
+    const result = await p_map_default()(uploadSpec, mapper);
+    // log information about the downloads
+    const finishTime = Date.now();
+    let fileCount = 0;
+    for (const item of result) {
+        // byteCount += fileSize
+        fileCount += 1;
+    }
+    const duration = finishTime - startTime;
+    console.log(`Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`);
     return result;
 }
 
@@ -57055,7 +57061,6 @@ async function runUpload() {
             else {
                 uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
             }
-            core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
         }
     }
     catch (error) {

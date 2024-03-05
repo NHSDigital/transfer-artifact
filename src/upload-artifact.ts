@@ -76,9 +76,6 @@ export async function runUpload(): Promise<void> {
           options
         )
       }
-      core.info(
-        `Artifact ${uploadResponse.artifactName} has been successfully uploaded!`
-      )
     }
   } catch (error) {
     core.setFailed((error as Error).message)

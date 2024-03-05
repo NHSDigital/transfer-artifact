@@ -18,43 +18,51 @@ export async function uploadArtifact(
   // 2009 - Promise<any> is bad form!
   // returns a void
 ): Promise<any> {
-  const uploadResponse: UploadResponse = {
-    artifactName: artifactName,
-    artifactItems: [],
-    size: -1,
-    failedItems: []
-  }
+  const startTime = Date.now()
+  // const uploadResponse: UploadResponse = {
+  //   artifactName: artifactName,
+  //   artifactItems: [],
+  //   size: -1,
+  //   failedItems: []
+  // }
 
-  const uploadSpec = getUploadSpecification(
+  const uploadSpec:UploadSpecification[] = getUploadSpecification(
     artifactName,
     rootDirectory,
     filesToUpload
   )
 
-  let newFileList: UploadSpecification[] = []
-
-  for (const fileSpec of uploadSpec) {
-    newFileList.push(fileSpec)
-  }
-
-  const mapper = async thisFileSpec => {
+  const mapper = async (fileSpec:UploadSpecification) => {
     try {
       await uploadObjectToS3(
         {
-          Body: fs.createReadStream(thisFileSpec.absoluteFilePath),
+          Body: fs.createReadStream(fileSpec.absoluteFilePath),
           Bucket: bucket,
-          Key: `ci-pipeline-upload-artifacts/${thisFileSpec.uploadFilePath}` // TODO: fix path
+          Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
         },
         core
       )
     } catch {
       core.setFailed(
-        `An error was encountered when uploading ${thisFileSpec.artifactName}`
+        `An error was encountered when uploading ${artifactName}`
       )
     }
   }
 
   // use p-map to make the uploads run concurrently
-  const result = await pMap(newFileList, mapper)
+  const result = await pMap(uploadSpec, mapper)
+
+  // log information about the downloads
+  const finishTime = Date.now()
+  let fileCount = 0
+  for (const item of result){
+    // byteCount += fileSize
+    fileCount += 1
+  }
+  const duration = finishTime - startTime
+  console.log(
+    `Uploaded ${fileCount} files. It took ${( duration / 1000 ).toFixed(3)} seconds.`
+  )
+
   return result
 }
