@@ -2,9 +2,8 @@ import * as core from '@actions/core'
 import {create, UploadOptions} from '@actions/artifact'
 import {findFilesToUpload} from './search'
 import {getInputs} from './input-helper'
-import {NoFileOptions} from './constants'
-import {UploadResponse} from '@actions/artifact/lib/internal/upload-response'
 import {uploadArtifact} from './aws/uploader'
+import { Inputs } from './constants'
 
 export async function runUpload(): Promise<void> {
   try {
@@ -14,19 +13,19 @@ export async function runUpload(): Promise<void> {
     if (searchResult.filesToUpload.length === 0) {
       // No files were found, different use cases warrant different types of behavior if nothing is found
       switch (inputs.ifNoFilesFound) {
-        case NoFileOptions.warn: {
+        case 'warn': {
           core.warning(
             `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
           )
           break
         }
-        case NoFileOptions.error: {
+        case 'error': {
           core.setFailed(
             `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
           )
           break
         }
-        case NoFileOptions.ignore: {
+        case 'ignore': {
           core.info(
             `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
           )
@@ -55,21 +54,21 @@ export async function runUpload(): Promise<void> {
       }
 
       core.info(
-        `Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`
+        `Trying to upload files into ${inputs.artifactName}...`
       )
 
-      let uploadResponse: UploadResponse
       const useS3 = true
       if (useS3) {
-        uploadResponse = await uploadArtifact(
+        await uploadArtifact(
           inputs.artifactName,
           searchResult.filesToUpload,
           searchResult.rootDirectory,
           options,
-          inputs.artifactBucket
+          inputs.artifactBucket,
+          inputs.folderName
         )
       } else {
-        uploadResponse = await artifactClient.uploadArtifact(
+        await artifactClient.uploadArtifact(
           inputs.artifactName,
           searchResult.filesToUpload,
           searchResult.rootDirectory,

@@ -1,32 +1,28 @@
 /* eslint-disable no-unused-vars */
-export enum Inputs {
-  Name = 'name',
-  Path = 'path',
-  IfNoFilesFound = 'if-no-files-found',
-  RetentionDays = 'retention-days',
-  ArtifactBucket = 'artifact-bucket',
-  UploadOrDownload = 'upload-or-download',
-  ci_pipeline_iid = 'ci_pipeline_iid'
-}
+export const Inputs = {
+  Name: 'name',
+  Path: 'path',
+  IfNoFilesFound: 'if-no-files-found',
+  RetentionDays: 'retention-days',
+  ArtifactBucket: 'artifact-bucket',
+  Direction: 'direction',
+  FolderName: 'folder-name',
+};
 
-export enum UploadOrDownloadOptions {
-  upload = 'upload',
-  download = 'download'
-}
+export type DirectionOptions = 'upload' | 'download';
 
-export enum NoFileOptions {
+export type NoFileOptions =
   /**
    * Default. Output a warning but do not fail the action
    */
-  warn = 'warn',
+  | 'warn'
 
   /**
    * Fail the action with an error message
    */
-  error = 'error',
+  | 'error'
 
   /**
    * Do not output any warnings or errors, the action does not fail
    */
-  ignore = 'ignore'
-}
+  | 'ignore';

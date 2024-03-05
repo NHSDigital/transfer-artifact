@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {Inputs, NoFileOptions} from './constants'
+import {Inputs} from './constants'
 import {UploadInputs} from './upload-inputs'
 
 function raiseError(errorMessage: string): never {
@@ -16,20 +16,16 @@ export function getInputs(): UploadInputs {
     core.getInput(Inputs.ArtifactBucket) ||
     process.env.ARTIFACTS_S3_BUCKET ||
     raiseError('no artifact-bucket supplied')
-  const UploadOrDownload = core.getInput(Inputs.UploadOrDownload)
-  const ci_pipeline_iid =
-    process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied')
+  const direction = core.getInput(Inputs.Direction)
 
   const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound)
-  const noFileBehavior: NoFileOptions = NoFileOptions[ifNoFilesFound]
+  const noFileBehavior = ifNoFilesFound
+
+  const folderName = core.getInput(Inputs.FolderName)
 
   if (!noFileBehavior) {
     core.setFailed(
-      `Unrecognized ${
-        Inputs.IfNoFilesFound
-      } input. Provided: ${ifNoFilesFound}. Available options: ${Object.keys(
-        NoFileOptions
-      )}`
+      `Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`
     )
   }
 
@@ -38,8 +34,8 @@ export function getInputs(): UploadInputs {
     artifactBucket: bucket,
     searchPath: path,
     ifNoFilesFound: noFileBehavior,
-    UploadOrDownload: UploadOrDownload,
-    ci_pipeline_iid: ci_pipeline_iid
+    direction: direction,
+    folderName: folderName
   } as UploadInputs
 
   const retentionDaysStr = core.getInput(Inputs.RetentionDays)

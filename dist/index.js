@@ -56348,36 +56348,15 @@ const promises_namespaceObject = require("node:fs/promises");
 var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_namespaceObject);
 ;// CONCATENATED MODULE: ./src/constants.ts
 /* eslint-disable no-unused-vars */
-var Inputs;
-(function (Inputs) {
-    Inputs["Name"] = "name";
-    Inputs["Path"] = "path";
-    Inputs["IfNoFilesFound"] = "if-no-files-found";
-    Inputs["RetentionDays"] = "retention-days";
-    Inputs["ArtifactBucket"] = "artifact-bucket";
-    Inputs["UploadOrDownload"] = "upload-or-download";
-    Inputs["ci_pipeline_iid"] = "ci_pipeline_iid";
-})(Inputs || (Inputs = {}));
-var UploadOrDownloadOptions;
-(function (UploadOrDownloadOptions) {
-    UploadOrDownloadOptions["upload"] = "upload";
-    UploadOrDownloadOptions["download"] = "download";
-})(UploadOrDownloadOptions || (UploadOrDownloadOptions = {}));
-var NoFileOptions;
-(function (NoFileOptions) {
-    /**
-     * Default. Output a warning but do not fail the action
-     */
-    NoFileOptions["warn"] = "warn";
-    /**
-     * Fail the action with an error message
-     */
-    NoFileOptions["error"] = "error";
-    /**
-     * Do not output any warnings or errors, the action does not fail
-     */
-    NoFileOptions["ignore"] = "ignore";
-})(NoFileOptions || (NoFileOptions = {}));
+const Inputs = {
+    Name: 'name',
+    Path: 'path',
+    IfNoFilesFound: 'if-no-files-found',
+    RetentionDays: 'retention-days',
+    ArtifactBucket: 'artifact-bucket',
+    Direction: 'direction',
+    FolderName: 'folder-name',
+};
 
 ;// CONCATENATED MODULE: ./src/input-helper.ts
 
@@ -56394,20 +56373,20 @@ function getInputs() {
     const bucket = core.getInput(Inputs.ArtifactBucket) ||
         process.env.ARTIFACTS_S3_BUCKET ||
         raiseError('no artifact-bucket supplied');
-    const UploadOrDownload = core.getInput(Inputs.UploadOrDownload);
-    const ci_pipeline_iid = process.env.CI_PIPELINE_IID || raiseError('no ci_pipeline_iid supplied');
+    const direction = core.getInput(Inputs.Direction);
     const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
-    const noFileBehavior = NoFileOptions[ifNoFilesFound];
+    const noFileBehavior = ifNoFilesFound;
+    const folderName = core.getInput(Inputs.FolderName);
     if (!noFileBehavior) {
-        core.setFailed(`Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: ${Object.keys(NoFileOptions)}`);
+        core.setFailed(`Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`);
     }
     const inputs = {
         artifactName: name,
         artifactBucket: bucket,
         searchPath: path,
         ifNoFilesFound: noFileBehavior,
-        UploadOrDownload: UploadOrDownload,
-        ci_pipeline_iid: ci_pipeline_iid
+        direction: direction,
+        folderName: folderName
     };
     const retentionDaysStr = core.getInput(Inputs.RetentionDays);
     if (retentionDaysStr) {
@@ -56473,7 +56452,6 @@ class StreamCounter extends external_node_stream_namespaceObject.Transform {
 }
 
 ;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
-/* eslint-disable unicorn/prefer-type-error */
 
 
 
@@ -56485,11 +56463,11 @@ const pipelineP = (0,external_node_util_namespaceObject.promisify)(external_node
 function isReadable(body) {
     return body !== undefined && body && body.read !== undefined;
 }
-async function streamToString(Body) {
+function streamToString(Body) {
     return new Promise((resolve, reject) => {
         const chunks = [];
         Body.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        Body.on('error', error => {
+        Body.on('error', (error) => {
             reject(error);
         });
         Body.on('end', () => {
@@ -56505,10 +56483,10 @@ async function writeToFile(inputStream, filePath) {
     await pipelineP(inputStream, counter, external_node_fs_default().createWriteStream(filePath));
     return counter.totalBytesTransfered();
 }
-async function getS3ObjectStream({ Bucket, Key }) {
+async function getS3ObjectStream({ Bucket, Key, }) {
     const parameters = {
         Bucket,
-        Key
+        Key,
     };
     try {
         const { Body } = await s3_client_getS3Client().send(new dist_cjs.GetObjectCommand(parameters));
@@ -56552,14 +56530,14 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Prefix: Key }) {
+async function listS3Objects({ Bucket, Prefix: Key, }) {
     try {
         const parameters = {
             Bucket,
-            Key
+            Key,
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
-        return data.Contents?.map(element => element.Key ?? '') ?? [];
+        return data.Contents?.map((element) => element.Key ?? '') ?? [];
     }
     catch (error_) {
         const error = error_ instanceof Error
@@ -56583,56 +56561,49 @@ function getItemName(str) {
     const splitString = str.split('/');
     return splitString[splitString.length - 1];
 }
-// Promise<any> is bad form!!  Try something else
-// function returns a null array
+function logDownloadInformation(begin, downloads) {
+    const finish = Date.now();
+    let fileCount = 0;
+    let byteCount = 0;
+    for (const fileSize of downloads) {
+        byteCount += fileSize;
+        fileCount += 1;
+    }
+    const duration = finish - begin;
+    const rate = byteCount / duration;
+    console.log(`Downloaded ${byteCount} bytes, in ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds at a rate of ${rate.toFixed(0)} KB/s`);
+}
 async function runDownload() {
     try {
         const startTime = Date.now();
         const inputs = getInputs();
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
-        const pipeline_id = inputs.ci_pipeline_iid;
         const objectList = await listS3Objects({
-            Bucket: 'caas-pl-680509669821-eu-west-2-pl-mgmt-acct-cicd-temp-artifacts',
-            Prefix: name
+            Bucket: bucket,
+            Prefix: name,
         });
         let newObjectList = [];
-        // these are the naming conventions for the uploaded files
-        const regexForCDArtifacts = new RegExp('/pipeline_files/(.*).json');
-        const regexForCIArtifacts = new RegExp(name + '(.*)/target/dist/NHSD.(.*).' + pipeline_id + '.zip');
-        // objectList brings back everything in the S3 bucket
-        // use an if statement with the regex to find only files relevant to this pipeline
+        // listS3Objects brings back everything in the S3 bucket
+        // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
-            if (regexForCIArtifacts.test(item) || regexForCDArtifacts.test(item)) {
+            if (item.includes(name)) {
                 newObjectList.push(item);
                 const newFilename = getItemName(item);
                 promises_default().writeFile(newFilename, '');
             }
         }
-        // this is the action to write the S3 object to file
         const mapper = async (artifactPath) => {
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
-                Key: artifactPath
+                Key: artifactPath,
             }, getItemName(artifactPath));
             console.log(`Item downloaded: ${artifactPath}`);
             return getFiles;
         };
-        // use p-map to make the downloads run concurrently
-        // do the mapper function to everything in the array
         const result = await p_map_default()(newObjectList, mapper);
+        logDownloadInformation(startTime, result);
         console.log(`Total objects downloaded: ${newObjectList.length}`);
-        // log information about the downloads
-        const finishTime = Date.now();
-        let fileCount = 0;
-        let byteCount = 0;
-        for (const fileSize of result) {
-            byteCount += fileSize;
-            fileCount += 1;
-        }
-        const duration = finishTime - startTime;
-        const rate = byteCount / duration;
-        console.log(`Downloaded ${byteCount} bytes, in ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds That is ${rate.toFixed(0)} KB/s`);
         return result;
     }
     catch (error) {
@@ -56972,46 +56943,38 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
 
 
 
-async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket
-// 2009 - Promise<any> is bad form!
-// returns a void
+function logUploadInformation(begin, uploads) {
+    const finish = Date.now();
+    let fileCount = 0;
+    for (const item of uploads) {
+        fileCount += 1;
+    }
+    const duration = finish - begin;
+    console.log(`Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`);
+}
+async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket, folderName
+// the p-map does all the work and then returns a null array
 ) {
     const startTime = Date.now();
-    // const uploadResponse: UploadResponse = {
-    //   artifactName: artifactName,
-    //   artifactItems: [],
-    //   size: -1,
-    //   failedItems: []
-    // }
     const uploadSpec = getUploadSpecification(artifactName, rootDirectory, filesToUpload);
     const mapper = async (fileSpec) => {
         try {
             await uploadObjectToS3({
                 Body: external_node_fs_default().createReadStream(fileSpec.absoluteFilePath),
                 Bucket: bucket,
-                Key: `ci-pipeline-upload-artifacts/${fileSpec.uploadFilePath}` // TODO: fix path
+                Key: `${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
             }, core);
         }
         catch {
             core.setFailed(`An error was encountered when uploading ${artifactName}`);
         }
     };
-    // use p-map to make the uploads run concurrently
     const result = await p_map_default()(uploadSpec, mapper);
-    // log information about the downloads
-    const finishTime = Date.now();
-    let fileCount = 0;
-    for (const item of result) {
-        // byteCount += fileSize
-        fileCount += 1;
-    }
-    const duration = finishTime - startTime;
-    console.log(`Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`);
+    logUploadInformation(startTime, result);
     return result;
 }
 
 ;// CONCATENATED MODULE: ./src/upload-artifact.ts
-
 
 
 
@@ -57024,15 +56987,15 @@ async function runUpload() {
         if (searchResult.filesToUpload.length === 0) {
             // No files were found, different use cases warrant different types of behavior if nothing is found
             switch (inputs.ifNoFilesFound) {
-                case NoFileOptions.warn: {
+                case 'warn': {
                     core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
                     break;
                 }
-                case NoFileOptions.error: {
+                case 'error': {
                     core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
                     break;
                 }
-                case NoFileOptions.ignore: {
+                case 'ignore': {
                     core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
                     break;
                 }
@@ -57052,14 +57015,13 @@ async function runUpload() {
             if (inputs.retentionDays) {
                 options.retentionDays = inputs.retentionDays;
             }
-            core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
-            let uploadResponse;
+            core.info(`Trying to upload files into ${inputs.artifactName}...`);
             const useS3 = true;
             if (useS3) {
-                uploadResponse = await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket);
+                await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket, inputs.folderName);
             }
             else {
-                uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
+                await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
             }
         }
     }
@@ -57072,16 +57034,17 @@ async function runUpload() {
 
 
 
-if (getInputs().UploadOrDownload == 'upload') {
+const direction = getInputs().direction;
+if (direction == 'upload') {
     console.log('Starting upload...');
     runUpload();
 }
-else if (getInputs().UploadOrDownload == 'download') {
+else if (direction == 'download') {
     console.log('Starting download...');
     runDownload();
 }
 else {
-    console.log('No input found for UploadOrDownload.');
+    console.log('No input found for direction.  Please specify "upload" or "download".');
 }
 
 })();
