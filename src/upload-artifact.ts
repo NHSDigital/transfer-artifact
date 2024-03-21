@@ -3,7 +3,6 @@ import {create, UploadOptions} from '@actions/artifact'
 import {findFilesToUpload} from './search'
 import {getInputs} from './input-helper'
 import {uploadArtifact} from './aws/uploader'
-import { Inputs } from './constants'
 
 export async function runUpload(): Promise<void> {
   try {
@@ -65,7 +64,8 @@ export async function runUpload(): Promise<void> {
           searchResult.rootDirectory,
           options,
           inputs.artifactBucket,
-          inputs.folderName
+          inputs.folderName,
+          inputs.concurrency
         )
       } else {
         await artifactClient.uploadArtifact(

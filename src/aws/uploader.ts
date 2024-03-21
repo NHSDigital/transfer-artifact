@@ -30,7 +30,8 @@ export async function uploadArtifact(
   rootDirectory: string,
   options: UploadOptions,
   bucket: string,
-  folderName: string
+  folderName: string,
+  concurrency: number
   // the p-map does all the work and then returns a null array
 ): Promise<any> {
   const startTime = Date.now();
@@ -56,7 +57,7 @@ export async function uploadArtifact(
     }
   };
 
-  const result = await pMap(uploadSpec, mapper);
+  const result = await pMap(uploadSpec, mapper, {concurrency: concurrency});
 
   logUploadInformation(startTime, result);
 

@@ -56356,6 +56356,7 @@ const Inputs = {
     ArtifactBucket: 'artifact-bucket',
     Direction: 'direction',
     FolderName: 'folder-name',
+    Concurrency: 'concurrency'
 };
 
 ;// CONCATENATED MODULE: ./src/input-helper.ts
@@ -56377,6 +56378,7 @@ function getInputs() {
     const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
     const noFileBehavior = ifNoFilesFound;
     const folderName = core.getInput(Inputs.FolderName);
+    const concurrency = core.getInput(Inputs.Concurrency);
     if (!noFileBehavior) {
         core.setFailed(`Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`);
     }
@@ -56579,6 +56581,7 @@ async function runDownload() {
         const inputs = getInputs();
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
+        const concurrency = inputs.concurrency;
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: name,
@@ -56601,7 +56604,7 @@ async function runDownload() {
             console.log(`Item downloaded: ${artifactPath}`);
             return getFiles;
         };
-        const result = await p_map_default()(newObjectList, mapper);
+        const result = await p_map_default()(newObjectList, mapper, { concurrency: concurrency });
         logDownloadInformation(startTime, result);
         console.log(`Total objects downloaded: ${newObjectList.length}`);
         return result;
@@ -56952,7 +56955,7 @@ function logUploadInformation(begin, uploads) {
     const duration = finish - begin;
     console.log(`Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`);
 }
-async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket, folderName
+async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket, folderName, concurrency
 // the p-map does all the work and then returns a null array
 ) {
     const startTime = Date.now();
@@ -56969,7 +56972,7 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
             core.setFailed(`An error was encountered when uploading ${artifactName}`);
         }
     };
-    const result = await p_map_default()(uploadSpec, mapper);
+    const result = await p_map_default()(uploadSpec, mapper, { concurrency: concurrency });
     logUploadInformation(startTime, result);
     return result;
 }
@@ -57018,7 +57021,7 @@ async function runUpload() {
             core.info(`Trying to upload files into ${inputs.artifactName}...`);
             const useS3 = true;
             if (useS3) {
-                await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket, inputs.folderName);
+                await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket, inputs.folderName, inputs.concurrency);
             }
             else {
                 await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
