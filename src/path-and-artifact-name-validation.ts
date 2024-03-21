@@ -9,74 +9,74 @@ import {info} from '@actions/core'
  * FilePaths can include characters such as \ and / which are not permitted in the artifact name alone
  */
 const invalidArtifactFilePathCharacters = new Map<string, string>([
-  ['"', ' Double quote "'],
-  [':', ' Colon :'],
-  ['<', ' Less than <'],
-  ['>', ' Greater than >'],
-  ['|', ' Vertical bar |'],
-  ['*', ' Asterisk *'],
-  ['?', ' Question mark ?'],
-  ['\r', ' Carriage return \\r'],
-  ['\n', ' Line feed \\n']
+    ['"', ' Double quote "'],
+    [':', ' Colon :'],
+    ['<', ' Less than <'],
+    ['>', ' Greater than >'],
+    ['|', ' Vertical bar |'],
+    ['*', ' Asterisk *'],
+    ['?', ' Question mark ?'],
+    ['\r', ' Carriage return \\r'],
+    ['\n', ' Line feed \\n']
 ])
 
 const invalidArtifactNameCharacters = new Map<string, string>([
-  ...invalidArtifactFilePathCharacters,
-  ['\\', ' Backslash \\'],
-  ['/', ' Forward slash /']
+    ...invalidArtifactFilePathCharacters,
+    ['\\', ' Backslash \\'],
+    ['/', ' Forward slash /']
 ])
 
 /**
  * Scans the name of the artifact to make sure there are no illegal characters
  */
 export function checkArtifactName(name: string): void {
-  if (!name) {
-    throw new Error(`Artifact name: ${name}, is incorrectly provided`)
-  }
+    if (!name) {
+        throw new Error(`Artifact name: ${name}, is incorrectly provided`)
+    }
 
-  for (const [
-    invalidCharacterKey,
-    errorMessageForCharacter
-  ] of invalidArtifactNameCharacters) {
-    if (name.includes(invalidCharacterKey)) {
-      throw new Error(
-        `Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
+    for (const [
+        invalidCharacterKey,
+        errorMessageForCharacter
+    ] of invalidArtifactNameCharacters) {
+        if (name.includes(invalidCharacterKey)) {
+            throw new Error(
+                `Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
           
 Invalid characters include: ${Array.from(
-          invalidArtifactNameCharacters.values()
-        ).toString()}
+                    invalidArtifactNameCharacters.values()
+                ).toString()}
           
 These characters are not allowed in the artifact name due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.`
-      )
+            )
+        }
     }
-  }
 
-  info(`Artifact name is valid!`)
+    info(`Artifact name is valid!`)
 }
 
 /**
  * Scans the name of the filePath used to make sure there are no illegal characters
  */
 export function checkArtifactFilePath(path: string): void {
-  if (!path) {
-    throw new Error(`Artifact path: ${path}, is incorrectly provided`)
-  }
+    if (!path) {
+        throw new Error(`Artifact path: ${path}, is incorrectly provided`)
+    }
 
-  for (const [
-    invalidCharacterKey,
-    errorMessageForCharacter
-  ] of invalidArtifactFilePathCharacters) {
-    if (path.includes(invalidCharacterKey)) {
-      throw new Error(
-        `Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
+    for (const [
+        invalidCharacterKey,
+        errorMessageForCharacter
+    ] of invalidArtifactFilePathCharacters) {
+        if (path.includes(invalidCharacterKey)) {
+            throw new Error(
+                `Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
           
 Invalid characters include: ${Array.from(
-          invalidArtifactFilePathCharacters.values()
-        ).toString()}
+                    invalidArtifactFilePathCharacters.values()
+                ).toString()}
           
 The following characters are not allowed in files that are uploaded due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.
           `
-      )
+            )
+        }
     }
-  }
 }

@@ -56440,8 +56440,8 @@ function s3_client_getS3Client() {
 class StreamCounter extends external_node_stream_namespaceObject.Transform {
     totalBytes = 0;
     /**
-     * Get the total of all bytes transfered
-     */
+   * Get the total of all bytes transfered
+   */
     totalBytesTransfered() {
         return this.totalBytes;
     }
@@ -56454,6 +56454,7 @@ class StreamCounter extends external_node_stream_namespaceObject.Transform {
 }
 
 ;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
+/* eslint-disable unicorn/prefer-type-error */
 
 
 
@@ -56465,11 +56466,11 @@ const pipelineP = (0,external_node_util_namespaceObject.promisify)(external_node
 function isReadable(body) {
     return body !== undefined && body && body.read !== undefined;
 }
-function streamToString(Body) {
+async function streamToString(Body) {
     return new Promise((resolve, reject) => {
         const chunks = [];
         Body.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        Body.on('error', (error) => {
+        Body.on('error', error => {
             reject(error);
         });
         Body.on('end', () => {
@@ -56532,19 +56533,17 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Prefix: Key, }) {
+async function listS3Objects({ Bucket, Key, }) {
     try {
         const parameters = {
             Bucket,
             Key,
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
-        return data.Contents?.map((element) => element.Key ?? '') ?? [];
+        return data.Contents?.map(element => element.Key ?? '') ?? [];
     }
     catch (error_) {
-        const error = error_ instanceof Error
-            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
-            : error_;
+        const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
         throw error;
     }
 }
@@ -56756,7 +56755,7 @@ async function putDataS3(fileData, { Bucket, Key }) {
         const parameters = {
             Bucket,
             Key,
-            Body: JSON.stringify(fileData, null, 2)
+            Body: JSON.stringify(fileData, null, 2),
         };
         const data = await getS3Client().send(new PutObjectCommand(parameters));
         console.log(`Data uploaded to ${Bucket}/${Key}`);
@@ -56885,24 +56884,24 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
     rootDirectory = (0,external_path_.normalize)(rootDirectory);
     rootDirectory = (0,external_path_.resolve)(rootDirectory);
     /*
-         Example to demonstrate behavior
-  
-         Input:
-           artifactName: my-artifact
-           rootDirectory: '/home/user/files/plz-upload'
-           artifactFiles: [
-             '/home/user/files/plz-upload/file1.txt',
-             '/home/user/files/plz-upload/file2.txt',
-             '/home/user/files/plz-upload/dir/file3.txt'
-           ]
-  
-         Output:
-           specifications: [
-             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
-             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
-             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
-           ]
-      */
+       Example to demonstrate behavior
+
+       Input:
+         artifactName: my-artifact
+         rootDirectory: '/home/user/files/plz-upload'
+         artifactFiles: [
+           '/home/user/files/plz-upload/file1.txt',
+           '/home/user/files/plz-upload/file2.txt',
+           '/home/user/files/plz-upload/dir/file3.txt'
+         ]
+
+       Output:
+         specifications: [
+           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
+           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
+           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
+         ]
+    */
     for (let file of artifactFiles) {
         if (!external_fs_.existsSync(file)) {
             throw new Error(`File ${file} does not exist`);
@@ -56918,15 +56917,15 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
             const uploadPath = file.replace(rootDirectory, '');
             checkArtifactFilePath(uploadPath);
             /*
-                    uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
-                    be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
-      
-                    path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
-                      join('artifact-name/', 'file-to-upload.txt')
-                      join('artifact-name/', '/file-to-upload.txt')
-                      join('artifact-name', 'file-to-upload.txt')
-                      join('artifact-name', '/file-to-upload.txt')
-                  */
+              uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
+              be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
+
+              path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
+                join('artifact-name/', 'file-to-upload.txt')
+                join('artifact-name/', '/file-to-upload.txt')
+                join('artifact-name', 'file-to-upload.txt')
+                join('artifact-name', '/file-to-upload.txt')
+            */
             specifications.push({
                 absoluteFilePath: file,
                 uploadFilePath: (0,external_path_.join)(artifactName, uploadPath)
@@ -57018,7 +57017,7 @@ async function runUpload() {
             if (inputs.retentionDays) {
                 options.retentionDays = inputs.retentionDays;
             }
-            core.info(`Trying to upload files into ${inputs.artifactName}...`);
+            core.info(`Trying to upload files into ${inputs.folderName}/${inputs.artifactName}...`);
             const useS3 = true;
             if (useS3) {
                 await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket, inputs.folderName, inputs.concurrency);

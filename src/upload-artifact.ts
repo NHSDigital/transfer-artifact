@@ -53,7 +53,7 @@ export async function runUpload(): Promise<void> {
       }
 
       core.info(
-        `Trying to upload files into ${inputs.artifactName}...`
+        `Trying to upload files into ${inputs.folderName}/${inputs.artifactName}...`
       )
 
       const useS3 = true
