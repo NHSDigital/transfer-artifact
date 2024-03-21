@@ -34,5 +34,10 @@ export interface UploadInputs {
   /**
    * A name for the object
    */
-  folderName: string;
+  folderName: string
+
+  /**
+   * The rate of concurrency for p-map
+   */
+  concurrency: number
 }

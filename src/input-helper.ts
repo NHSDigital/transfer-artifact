@@ -23,6 +23,8 @@ export function getInputs(): UploadInputs {
 
   const folderName = core.getInput(Inputs.FolderName)
 
+  const concurrency = core.getInput(Inputs.Concurrency)
+
   if (!noFileBehavior) {
     core.setFailed(
       `Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`

@@ -33,6 +33,7 @@ export async function runDownload(): Promise<any> {
     const inputs = getInputs();
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
+    const concurrency = inputs.concurrency;
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -64,7 +65,7 @@ export async function runDownload(): Promise<any> {
       return getFiles;
     };
 
-    const result = await pMap(newObjectList, mapper);
+    const result = await pMap(newObjectList, mapper, {concurrency: concurrency});
 
     logDownloadInformation(startTime, result);
 

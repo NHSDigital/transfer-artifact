@@ -32,6 +32,10 @@ inputs:
     description: >
       A name for the folder
     default: 'upload-artifacts'
+  concurrency:
+    description: >
+      The rate of concurrency
+    default: 8
 runs:
   using: node20
   main: 'dist/index.js'

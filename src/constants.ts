@@ -7,6 +7,7 @@ export const Inputs = {
   ArtifactBucket: 'artifact-bucket',
   Direction: 'direction',
   FolderName: 'folder-name',
+  Concurrency: 'concurrency'
 };
 
 export type DirectionOptions = 'upload' | 'download';
