@@ -56370,6 +56370,7 @@ function raiseError(errorMessage) {
  */
 function getInputs() {
     const name = core.getInput(Inputs.Name);
+    console.log(`I am name: ${name}`);
     const path = core.getInput(Inputs.Path, { required: true });
     const bucket = core.getInput(Inputs.ArtifactBucket) ||
         process.env.ARTIFACTS_S3_BUCKET ||
