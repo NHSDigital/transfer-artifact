@@ -6,7 +6,7 @@ inputs:
     description: 'Artifact name'
     # default: 'artifact'
     # default: ${{ github.run_number }}-${folder-name}
-    default: ${{ github.run_number }}-${{folder-name}}
+    default: ${{ github.run_number }}-${{ folder-name }}
   path:
     description: 'A file, directory or wildcard pattern that describes what to upload'
     required: true
