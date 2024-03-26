@@ -9,7 +9,8 @@ inputs:
     # default: ${{ github.run_number }}-${{ folder-name }}
     # default: ${{ github.run_number }}-${{ inputs.folder-name }}
     # default: ${{ github.run_number }}-${{ github.inputs.folder-name }} ## this one is blank
-    default: ${{ github.run_number }}-${inputs.folder-name}
+    # default: ${{ github.run_number }}-${inputs.folder-name}
+    default: ${{ inputs.folder-name }}
   path:
     description: 'A file, directory or wildcard pattern that describes what to upload'
     required: true
