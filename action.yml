@@ -35,6 +35,7 @@ inputs:
     default: 8
   name:
     description: 'Artifact name'
+    default: ${{ github.run_number }}
     # default: 'artifact'
     # default: ${{ github.run_number }}-${folder-name}
     # default: ${{ github.run_number }}-${{ folder-name }}
@@ -43,7 +44,8 @@ inputs:
     # default: ${{ github.run_number }}-${inputs.folder-name} ## unrecognised input-value 'inputs'
     # default: ${{ inputs.folder-name }} ## unrecognised input-value 'inputs'
     # default: ${{ folder-name }} ## unrecognised input-value 'folder-name'
-    default: folder-name
+    # default: folder-name ## gives name as just 'folder-name'
+    # default: ${{ github.input.folder-name}}
 runs:
   using: node20
   main: 'dist/index.js'
