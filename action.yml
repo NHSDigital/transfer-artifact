@@ -42,7 +42,8 @@ inputs:
     # default: ${{ github.run_number }}-${{ github.inputs.folder-name }} ## this one is blank
     # default: ${{ github.run_number }}-${inputs.folder-name} ## unrecognised input-value 'inputs'
     # default: ${{ inputs.folder-name }} ## unrecognised input-value 'inputs'
-    default: ${{ folder-name }}
+    # default: ${{ folder-name }} ## unrecognised input-value 'folder-name'
+    default: folder-name
 runs:
   using: node20
   main: 'dist/index.js'
