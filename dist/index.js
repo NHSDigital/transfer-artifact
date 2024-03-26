@@ -56370,7 +56370,8 @@ function raiseError(errorMessage) {
  */
 function getInputs() {
     // const name = core.getInput(Inputs.Name)
-    const name = (core.getInput(Inputs.FolderName), "-", core.getInput(Inputs.FolderName)).concat();
+    console.log(`I am core.getInput(Inputs.Name): ${core.getInput(Inputs.Name)}`);
+    const name = (core.getInput(Inputs.Name), "-", core.getInput(Inputs.FolderName)).concat();
     console.log(`I am name: ${name}`);
     const path = core.getInput(Inputs.Path, { required: true });
     const bucket = core.getInput(Inputs.ArtifactBucket) ||
