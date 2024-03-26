@@ -2,15 +2,6 @@ name: 'Upload or Download a Build Artifact'
 description: 'Upload or download a build artifact that can be used by subsequent workflow steps, or download an artifact from a previous step.'
 author: 'GitHub'
 inputs:
-  name:
-    description: 'Artifact name'
-    # default: 'artifact'
-    # default: ${{ github.run_number }}-${folder-name}
-    # default: ${{ github.run_number }}-${{ folder-name }}
-    # default: ${{ github.run_number }}-${{ inputs.folder-name }}
-    # default: ${{ github.run_number }}-${{ github.inputs.folder-name }} ## this one is blank
-    # default: ${{ github.run_number }}-${inputs.folder-name}
-    default: ${{ inputs.folder-name }}
   path:
     description: 'A file, directory or wildcard pattern that describes what to upload'
     required: true
@@ -42,6 +33,15 @@ inputs:
     description: >
       The rate of concurrency
     default: 8
+  name:
+    description: 'Artifact name'
+    # default: 'artifact'
+    # default: ${{ github.run_number }}-${folder-name}
+    # default: ${{ github.run_number }}-${{ folder-name }}
+    # default: ${{ github.run_number }}-${{ inputs.folder-name }} 
+    # default: ${{ github.run_number }}-${{ github.inputs.folder-name }} ## this one is blank
+    # default: ${{ github.run_number }}-${inputs.folder-name} ## unrecognised input-value 'inputs'
+    default: ${{ inputs.folder-name }}
 runs:
   using: node20
   main: 'dist/index.js'
