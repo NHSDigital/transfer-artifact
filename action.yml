@@ -33,7 +33,7 @@ inputs:
     description: >
       The rate of concurrency
     default: 8
-  name:
+  run-number:
     description: 'Artifact name'
     default: ${{ github.run_number }}
     # default: 'artifact'

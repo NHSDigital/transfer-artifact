@@ -10,9 +10,7 @@ function raiseError(errorMessage: string): never {
  * Helper to get all the inputs for the action
  */
 export function getInputs(): UploadInputs {
-  // const name = core.getInput(Inputs.Name)
-  console.log(`I am core.getInput(Inputs.Name): ${core.getInput(Inputs.Name)}`)
-  const name = (core.getInput(Inputs.Name)).concat("-",core.getInput(Inputs.FolderName))
+  const name = (core.getInput(Inputs.RunNumber)).concat("-",core.getInput(Inputs.FolderName))
   console.log(`I am name: ${name}`)
   const path = core.getInput(Inputs.Path, {required: true})
   const bucket =
