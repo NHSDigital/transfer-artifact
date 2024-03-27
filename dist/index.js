@@ -56369,8 +56369,8 @@ function raiseError(errorMessage) {
  * Helper to get all the inputs for the action
  */
 function getInputs() {
+    // generate a name for the artifact sub-folder which includes the github run number
     const name = (core.getInput(Inputs.RunNumber)).concat("-", core.getInput(Inputs.FolderName));
-    console.log(`I am name: ${name}`);
     const path = core.getInput(Inputs.Path, { required: true });
     const bucket = core.getInput(Inputs.ArtifactBucket) ||
         process.env.ARTIFACTS_S3_BUCKET ||
