@@ -6,7 +6,7 @@ export const Inputs = {
   RetentionDays: 'retention-days',
   ArtifactBucket: 'artifact-bucket',
   Direction: 'direction',
-  FolderName: 'folder-name',
+  FolderName: 'name',
   Concurrency: 'concurrency'
 };
 
