@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 export const Inputs = {
-  Name: 'name',
+  RunNumber: 'run-number',
   Path: 'path',
   IfNoFilesFound: 'if-no-files-found',
   RetentionDays: 'retention-days',

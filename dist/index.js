@@ -56349,7 +56349,7 @@ var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_namespaceObje
 ;// CONCATENATED MODULE: ./src/constants.ts
 /* eslint-disable no-unused-vars */
 const Inputs = {
-    Name: 'name',
+    RunNumber: 'run-number',
     Path: 'path',
     IfNoFilesFound: 'if-no-files-found',
     RetentionDays: 'retention-days',
@@ -56369,9 +56369,7 @@ function raiseError(errorMessage) {
  * Helper to get all the inputs for the action
  */
 function getInputs() {
-    // const name = core.getInput(Inputs.Name)
-    console.log(`I am core.getInput(Inputs.Name): ${core.getInput(Inputs.Name)}`);
-    const name = (core.getInput(Inputs.Name)).concat("-", core.getInput(Inputs.FolderName));
+    const name = (core.getInput(Inputs.RunNumber)).concat("-", core.getInput(Inputs.FolderName));
     console.log(`I am name: ${name}`);
     const path = core.getInput(Inputs.Path, { required: true });
     const bucket = core.getInput(Inputs.ArtifactBucket) ||
