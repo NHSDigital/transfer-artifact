@@ -23,8 +23,7 @@ steps:
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact
+    name: my-folder
     direction: 'upload'
     path: path/to/artifact/world.txt
 ```
@@ -36,8 +35,7 @@ steps:
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact
+    name: my-folder
     direction: 'upload'
     path: path/to/artifact/ # or path/to/artifact
 ```
@@ -49,8 +47,7 @@ steps:
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact
+    name: my-folder
     direction: 'upload'
     path: path/**/[abc]rtifac?/*
 ```
@@ -62,8 +59,7 @@ steps:
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact
+    name: my-folder
     direction: 'upload'
     path: |
       path/output/bin/
@@ -102,8 +98,7 @@ If a path (or paths), result in no files being found for the artifact, the actio
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact
+    name: my-folder
     direction: 'upload'
     path: path/to/artifact/
     if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
@@ -119,8 +114,7 @@ To upload artifacts only when the previous step of a job failed, use [`if: failu
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   if: failure()
   with:
-    folder-name: my-folder
-    name: my-artifact
+    name: my-folder
     direction: 'upload'
     path: path/to/artifact/
 ```
@@ -134,7 +128,7 @@ You can upload an artifact without specifying a name
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
+    name: my-folder
     direction: 'upload'
     path: path/to/artifact/world.txt
 ```
@@ -151,7 +145,7 @@ With the following example, the available artifact (named `artifact` by default 
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
+    name: my-folder
     path: world.txt
     direction: 'upload'
 
@@ -160,7 +154,7 @@ With the following example, the available artifact (named `artifact` by default 
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
+    name: my-folder
     path: extra-file.txt
     direction: 'upload'
 
@@ -169,7 +163,7 @@ With the following example, the available artifact (named `artifact` by default 
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
+    name: my-folder
     path: world.txt
     direction: 'upload'
 ```
@@ -188,8 +182,7 @@ Each artifact behaves as a file share. Uploading to the same artifact multiple t
           env:
             bucket: abcd-123456789-eu-west-2-my-S3-bucket
           with:
-              folder-name: my-folder
-              name: my-artifact
+              name: my-folder
               direction: 'upload'
               path: ${{ github.workspace }}
 ```
@@ -203,8 +196,7 @@ In the above example, four jobs will upload four different files to the same art
           env:
             bucket: abcd-123456789-eu-west-2-my-S3-bucket
           with:
-              folder-name: my-folder
-              name: my-artifact-${{ github.run_number }}
+              name: my-folder
               direction: 'upload'
               path: ${{ github.workspace }}
 ```
@@ -221,7 +213,7 @@ You can use `~` in the path input as a substitute for `$HOME`. Basic tilde expan
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
-      folder-name: my-folder
+      name: my-folder
       name: Artifacts-V3
       path: ~/new/**/*
       direction: 'upload'
@@ -230,8 +222,6 @@ You can use `~` in the path input as a substitute for `$HOME`. Basic tilde expan
 Environment variables along with context expressions can also be used for input. For documentation see [context and expression syntax](https://help.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions):
 
 ```yaml
-    env:
-      name: my-artifact
     steps:
     - run: |
         mkdir -p ${{ github.workspace }}/artifact
@@ -240,8 +230,7 @@ Environment variables along with context expressions can also be used for input.
       env:
         bucket: abcd-123456789-eu-west-2-my-S3-bucket
       with:
-        folder-name: my-folder
-        name: ${{ env.name }}-name
+        name: my-folder
         path: ${{ github.workspace }}/artifact/**/*#
         direction: 'upload'
 ```
@@ -258,7 +247,7 @@ For environment variables created in other steps, make sure to use the `env` exp
       env:
         bucket: abcd-123456789-eu-west-2-my-S3-bucket
       with:
-        folder-name: my-folder
+        name: my-folder
         name: artifact
         path: ${{ env.artifactPath }} # this will resolve to testing/file.txt at runtime
         direction: 'upload'
@@ -277,8 +266,7 @@ Artifacts are retained for 90 days by default. You can specify a shorter retenti
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
-      folder-name: my-folder
-      name: my-artifact
+      name: my-folder
       path: my_file.txt
       retention-days: 5
       direction: 'upload'
@@ -288,7 +276,7 @@ The retention period must be between 1 and 90 inclusive. For more information se
 
 ## Where does the upload go?
 
-Artifacts are uploaded to the specified S3 bucket, into a folder called `folder-name`
+Artifacts are uploaded to the specified S3 bucket, into a folder called `folder-name`.  The artifacts for each pipeline are put in a subfolder named `${{ github.run_number }}-folder-name`
 
 ### Downloading all files
 
@@ -300,8 +288,7 @@ steps:
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact/path/to/artifact
+    name: my-folder/path/to/artifact
     direction: 'download'
 ```
 This will download every object in the S3 bucket which matches the `my-folder/my-artifact/path/to/artifact` name prefix. 
@@ -316,8 +303,7 @@ steps:
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
-    folder-name: my-folder
-    name: my-artifact/path/to/artifact/word.txt
+    name: my-folder/path/to/artifact/word.txt
     direction: 'download'
 ```
 This will download only the file `my-artifact/path/to/artifact/word.txt`
