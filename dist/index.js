@@ -56965,7 +56965,7 @@ async function uploadArtifact(artifactName, filesToUpload, rootDirectory, option
             await uploadObjectToS3({
                 Body: external_node_fs_default().createReadStream(fileSpec.absoluteFilePath),
                 Bucket: bucket,
-                Key: `${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
+                Key: `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
             }, core);
         }
         catch {

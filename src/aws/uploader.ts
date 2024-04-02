@@ -44,7 +44,7 @@ export async function uploadArtifact(
         {
           Body: fs.createReadStream(fileSpec.absoluteFilePath),
           Bucket: bucket,
-          Key: `${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
+          Key: `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
         },
         core
       );
