@@ -32,7 +32,7 @@ export interface UploadInputs {
   direction: DirectionOptions
 
   /**
-   * A name for the object
+   * Name of the folder to upload or download into
    */
   folderName: string
 
