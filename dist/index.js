@@ -56584,30 +56584,17 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
-        const folderName = inputs.folderName;
-        console.log(`I am inputs: ${JSON.stringify(getInputs())}`);
-        console.log(`I am bucket: ${bucket}`);
-        console.log(`I am name: ${name}`);
-        console.log(`I am concurrency: ${concurrency}`);
-        console.log(`I am folderName: ${folderName}`);
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: name,
         });
-        console.log(`I am objectList: ${objectList}`);
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
-            // const newFilename = downloadFolderName.concat('/',getItemName(item));
-            const newFilename = folderName.concat('/', getItemName(item));
-            // create a folder to hold the downloaded objects
-            // add { recursive: true } to continue without error if the folder already exists
-            // fs.mkdir(downloadFolderName, { recursive: true} )
-            promises_default().mkdir(folderName, { recursive: true });
+            const newFilename = getItemName(item);
             if (item.includes(name)) {
                 newObjectList.push(item);
-                console.log(`I am newFilename: ${newFilename}`);
                 promises_default().writeFile(newFilename, '');
             }
         }
@@ -56615,10 +56602,7 @@ async function runDownload() {
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, 
-            // getItemName(artifactPath)
-            // downloadFolderName.concat('/',getItemName(artifactPath))
-            folderName.concat('/', getItemName(artifactPath)));
+            }, getItemName(artifactPath));
             console.log(`Item downloaded: ${artifactPath}`);
             return getFiles;
         };
