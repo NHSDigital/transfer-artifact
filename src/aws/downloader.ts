@@ -10,6 +10,11 @@ function getItemName(str: string) {
   return splitString[splitString.length - 1];
 }
 
+// function getItemName(str: string) {
+//     const splitString = str.split('ci-pipeline-upload-artifacts/');
+//     return splitString[splitString.length - 1];
+//   }
+
 function logDownloadInformation(begin: number, downloads: number[]) {
   const finish = Date.now();
   let fileCount = 0;
@@ -36,7 +41,6 @@ export async function runDownload(): Promise<any> {
     const concurrency = inputs.concurrency;
     // 2009 - try trimming off the . at the beginning
     const downloadPath = inputs.searchPath.replace('./','');
-    const folderName = inputs.folderName
 
     console.log(`I am inputs: ${JSON.stringify(getInputs())}`)
 
@@ -48,6 +52,12 @@ export async function runDownload(): Promise<any> {
 
     console.log('I am reading from __dirname:')
     fs.readdir(__dirname)
+
+    console.log('I am reading from .:')
+    fs.readdir('.')
+
+    console.log('I am reading from downloadPath:')
+    fs.readdir(downloadPath)
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -63,7 +73,7 @@ export async function runDownload(): Promise<any> {
 
       // const newFilename = getItemName(item);
 
-      const newFilename = downloadPath.concat('/',item)
+      const newFilename = downloadPath.concat('/',getItemName(item));
       
       if (item.includes(name)) {
         newObjectList.push(item);
@@ -72,20 +82,14 @@ export async function runDownload(): Promise<any> {
       }
     }
 
-    console.log(`I am downloadPath.concat('/',getItemName(name)): ${downloadPath.concat('/',getItemName(name))}`)
-    console.log(`I am downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name)): ${downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name))}`)
-    console.log(`I am downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name)): ${downloadPath.concat('/ci-pipeline-upload-artifacts',folderName,'/',getItemName(name))}`)
-
-
     const mapper = async (artifactPath: string) => {
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
           Key: artifactPath,
         },
-        // downloadPath.concat('/',getItemName(artifactPath))
-        downloadPath.concat('/',)
-
+        downloadPath.concat('/',getItemName(artifactPath))
+        // getItemName(artifactPath)
       );
       console.log(`Item downloaded: ${artifactPath}`);
       return getFiles;
