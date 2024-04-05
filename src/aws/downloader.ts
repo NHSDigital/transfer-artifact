@@ -34,6 +34,14 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
+    const downloadPath = inputs.searchPath;
+
+    console.log(`I am inputs: ${JSON.stringify(getInputs())}`)
+
+    // create a folder to hold the downloaded objects
+    // add { recursive: true } to continue without error if the folder already exists
+    // fs.mkdir(downloadFolderName, { recursive: true} )
+    fs.mkdir(downloadPath, { recursive: true} )
 
 
     const objectList = await listS3Objects({
@@ -48,11 +56,14 @@ export async function runDownload(): Promise<any> {
 
     for (const item of objectList) {
 
-      const newFilename = getItemName(item);
+      // const newFilename = getItemName(item);
+
+      const newFilename = downloadPath.concat('/',item)
       
       if (item.includes(name)) {
         newObjectList.push(item);
         fs.writeFile(newFilename, '');
+        console.log(`I am newFilename: ${newFilename}`)
       }
     }
 
