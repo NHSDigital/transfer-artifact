@@ -13,6 +13,7 @@ export interface UploadInputs {
 
   /**
    * The search path used to describe what to upload as part of the artifact
+   * Or where to download the artifact
    */
   searchPath: string
 

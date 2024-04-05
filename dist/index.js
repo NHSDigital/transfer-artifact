@@ -56584,6 +56584,12 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
+        const downloadPath = inputs.searchPath;
+        console.log(`I am inputs: ${JSON.stringify(getInputs())}`);
+        // create a folder to hold the downloaded objects
+        // add { recursive: true } to continue without error if the folder already exists
+        // fs.mkdir(downloadFolderName, { recursive: true} )
+        promises_default().mkdir(downloadPath, { recursive: true });
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: name,
@@ -56592,10 +56598,12 @@ async function runDownload() {
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
-            const newFilename = getItemName(item);
+            // const newFilename = getItemName(item);
+            const newFilename = downloadPath.concat('/', item);
             if (item.includes(name)) {
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');
+                console.log(`I am newFilename: ${newFilename}`);
             }
         }
         const mapper = async (artifactPath) => {
