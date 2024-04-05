@@ -10,11 +10,6 @@ function getItemName(str: string) {
   return splitString[splitString.length - 1];
 }
 
-// function getItemName(str: string) {
-//     const splitString = str.split('ci-pipeline-upload-artifacts/');
-//     return splitString[splitString.length - 1];
-//   }
-
 function logDownloadInformation(begin: number, downloads: number[]) {
   const finish = Date.now();
   let fileCount = 0;
@@ -40,13 +35,13 @@ export async function runDownload(): Promise<any> {
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
     // 2009 - try trimming off the . at the beginning
-    const downloadPath = inputs.searchPath.replace('./','');
+    // const downloadPath = inputs.searchPath.replace('./','');
+    const downloadPath = inputs.searchPath
 
     console.log(`I am inputs: ${JSON.stringify(getInputs())}`)
 
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
-    // fs.mkdir(downloadFolderName, { recursive: true} )
     fs.mkdir(downloadPath, { recursive: true} )
     console.log(`I have made a path: ${downloadPath}`)
 

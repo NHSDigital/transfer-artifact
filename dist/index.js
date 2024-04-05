@@ -56565,10 +56565,6 @@ function getItemName(str) {
     const splitString = str.split('/');
     return splitString[splitString.length - 1];
 }
-// function getItemName(str: string) {
-//     const splitString = str.split('ci-pipeline-upload-artifacts/');
-//     return splitString[splitString.length - 1];
-//   }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
     let fileCount = 0;
@@ -56589,11 +56585,11 @@ async function runDownload() {
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
         // 2009 - try trimming off the . at the beginning
-        const downloadPath = inputs.searchPath.replace('./', '');
+        // const downloadPath = inputs.searchPath.replace('./','');
+        const downloadPath = inputs.searchPath;
         console.log(`I am inputs: ${JSON.stringify(getInputs())}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
-        // fs.mkdir(downloadFolderName, { recursive: true} )
         promises_default().mkdir(downloadPath, { recursive: true });
         console.log(`I have made a path: ${downloadPath}`);
         console.log('I am reading from __dirname:');
