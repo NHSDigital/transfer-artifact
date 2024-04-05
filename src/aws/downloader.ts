@@ -34,7 +34,9 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
-    const downloadPath = inputs.searchPath;
+    // 2009 - try trimming off the . at the beginning
+    const downloadPath = inputs.searchPath.replace('./','');
+    const folderName = inputs.folderName
 
     console.log(`I am inputs: ${JSON.stringify(getInputs())}`)
 
@@ -42,7 +44,10 @@ export async function runDownload(): Promise<any> {
     // add { recursive: true } to continue without error if the folder already exists
     // fs.mkdir(downloadFolderName, { recursive: true} )
     fs.mkdir(downloadPath, { recursive: true} )
+    console.log(`I have made a path: ${downloadPath}`)
 
+    console.log('I am reading from __dirname:')
+    fs.readdir(__dirname)
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -67,13 +72,20 @@ export async function runDownload(): Promise<any> {
       }
     }
 
+    console.log(`I am downloadPath.concat('/',getItemName(name)): ${downloadPath.concat('/',getItemName(name))}`)
+    console.log(`I am downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name)): ${downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name))}`)
+    console.log(`I am downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name)): ${downloadPath.concat('/ci-pipeline-upload-artifacts',folderName,'/',getItemName(name))}`)
+
+
     const mapper = async (artifactPath: string) => {
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
           Key: artifactPath,
         },
-        getItemName(artifactPath)
+        // downloadPath.concat('/',getItemName(artifactPath))
+        downloadPath.concat('/',)
+
       );
       console.log(`Item downloaded: ${artifactPath}`);
       return getFiles;

@@ -56584,12 +56584,17 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
-        const downloadPath = inputs.searchPath;
+        // 2009 - try trimming off the . at the beginning
+        const downloadPath = inputs.searchPath.replace('./', '');
+        const folderName = inputs.folderName;
         console.log(`I am inputs: ${JSON.stringify(getInputs())}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         // fs.mkdir(downloadFolderName, { recursive: true} )
         promises_default().mkdir(downloadPath, { recursive: true });
+        console.log(`I have made a path: ${downloadPath}`);
+        console.log('I am reading from __dirname:');
+        promises_default().readdir(__dirname);
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: name,
@@ -56606,11 +56611,16 @@ async function runDownload() {
                 console.log(`I am newFilename: ${newFilename}`);
             }
         }
+        console.log(`I am downloadPath.concat('/',getItemName(name)): ${downloadPath.concat('/', getItemName(name))}`);
+        console.log(`I am downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name)): ${downloadPath.concat('/ci-pipeline-upload-artifacts', getItemName(name))}`);
+        console.log(`I am downloadPath.concat('/ci-pipeline-upload-artifacts',getItemName(name)): ${downloadPath.concat('/ci-pipeline-upload-artifacts', folderName, '/', getItemName(name))}`);
         const mapper = async (artifactPath) => {
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, getItemName(artifactPath));
+            }, 
+            // downloadPath.concat('/',getItemName(artifactPath))
+            downloadPath.concat('/'));
             console.log(`Item downloaded: ${artifactPath}`);
             return getFiles;
         };
