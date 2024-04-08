@@ -34,25 +34,11 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
-    // 2009 - try trimming off the . at the beginning
-    // const downloadPath = inputs.searchPath.replace('./','');
     const downloadPath = inputs.searchPath
-
-    console.log(`I am inputs: ${JSON.stringify(getInputs())}`)
 
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
-    fs.mkdir(downloadPath, { recursive: true} )
-    console.log(`I have made a path: ${downloadPath}`)
-
-    console.log('I am reading from __dirname:')
-    fs.readdir(__dirname)
-
-    console.log('I am reading from .:')
-    fs.readdir('.')
-
-    console.log('I am reading from downloadPath:')
-    fs.readdir(downloadPath)
+    fs.mkdir(downloadPath, { recursive: true } )
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -66,14 +52,11 @@ export async function runDownload(): Promise<any> {
 
     for (const item of objectList) {
 
-      // const newFilename = getItemName(item);
-
       const newFilename = downloadPath.concat('/',getItemName(item));
       
       if (item.includes(name)) {
         newObjectList.push(item);
         fs.writeFile(newFilename, '');
-        console.log(`I am newFilename: ${newFilename}`)
       }
     }
 
@@ -84,9 +67,8 @@ export async function runDownload(): Promise<any> {
           Key: artifactPath,
         },
         downloadPath.concat('/',getItemName(artifactPath))
-        // getItemName(artifactPath)
       );
-      console.log(`Item downloaded: ${artifactPath}`);
+      console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/',getItemName(artifactPath))}`);
       return getFiles;
     };
 
