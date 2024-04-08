@@ -56584,20 +56584,10 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
-        // 2009 - try trimming off the . at the beginning
-        // const downloadPath = inputs.searchPath.replace('./','');
         const downloadPath = inputs.searchPath;
-        console.log(`I am inputs: ${JSON.stringify(getInputs())}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
-        console.log(`I have made a path: ${downloadPath}`);
-        console.log('I am reading from __dirname:');
-        promises_default().readdir(__dirname);
-        console.log('I am reading from .:');
-        promises_default().readdir('.');
-        console.log('I am reading from downloadPath:');
-        promises_default().readdir(downloadPath);
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: name,
@@ -56606,22 +56596,18 @@ async function runDownload() {
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
-            // const newFilename = getItemName(item);
             const newFilename = downloadPath.concat('/', getItemName(item));
             if (item.includes(name)) {
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');
-                console.log(`I am newFilename: ${newFilename}`);
             }
         }
         const mapper = async (artifactPath) => {
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, downloadPath.concat('/', getItemName(artifactPath))
-            // getItemName(artifactPath)
-            );
-            console.log(`Item downloaded: ${artifactPath}`);
+            }, downloadPath.concat('/', getItemName(artifactPath)));
+            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
             return getFiles;
         };
         const result = await p_map_default()(newObjectList, mapper, { concurrency: concurrency });
