@@ -290,8 +290,9 @@ steps:
   with:
     name: my-folder/path/to/artifact
     direction: 'download'
+    path: local/download/folder
 ```
-This will download every object in the S3 bucket which matches the `my-folder/my-artifact/path/to/artifact` name prefix. 
+This will download every object in the S3 bucket which matches the `my-folder/my-artifact/path/to/artifact` name prefix into a folder called `local/download/folder`. 
 
 ### Downloading one file
 
@@ -305,5 +306,6 @@ steps:
   with:
     name: my-folder/path/to/artifact/word.txt
     direction: 'download'
+    path: local/download/folder
 ```
-This will download only the file `my-artifact/path/to/artifact/word.txt`
+This will download only the file `my-artifact/path/to/artifact/word.txt` into a folder called `local/download/folder`. 
