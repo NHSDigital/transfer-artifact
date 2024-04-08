@@ -3,7 +3,9 @@ description: 'Upload or download a build artifact that can be used by subsequent
 author: 'GitHub'
 inputs:
   path:
-    description: 'A file, directory or wildcard pattern that describes what to upload'
+    description: >
+      When uploading: A file, directory or wildcard pattern that describes what to upload
+      When downloading: The name of the directory to download the object into
     required: true
     default: './'
   if-no-files-found:
