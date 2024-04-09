@@ -13,19 +13,19 @@ See [action.yml](action.yml)
 
 ```yaml
 steps:
-- uses: actions/checkout@v3
+  - uses: actions/checkout@v3
 
-- run: mkdir -p path/to/artifact
+  - run: mkdir -p path/to/artifact
 
-- run: echo hello > path/to/artifact/world.txt
+  - run: echo hello > path/to/artifact/world.txt
 
-- uses: NHSDigital/CAAS-transfer-artifact@s3
-  env:
-    bucket: abcd-123456789-eu-west-2-my-S3-bucket
-  with:
-    name: my-folder
-    direction: 'upload'
-    path: path/to/artifact/world.txt
+  - uses: NHSDigital/CAAS-transfer-artifact@s3
+    env:
+      bucket: abcd-123456789-eu-west-2-my-S3-bucket
+    with:
+      name: my-folder
+      direction: 'upload'
+      path: path/to/artifact/world.txt
 ```
 
 ### Upload an Entire Directory
@@ -171,20 +171,20 @@ With the following example, the available artifact (named `artifact` by default 
 Each artifact behaves as a file share. Uploading to the same artifact multiple times in the same workflow can overwrite and append already uploaded files:
 
 ```yaml
-    strategy:
-      matrix:
-          node-version: [8.x, 10.x, 12.x, 13.x]
-    steps:
-        - name: Create a file
-          run: echo ${{ github.run_number }} > my_file.txt
-        - name: Accidentally upload to the same artifact via multiple jobs
-          uses: NHSDigital/CAAS-transfer-artifact@s3
-          env:
-            bucket: abcd-123456789-eu-west-2-my-S3-bucket
-          with:
-              name: my-folder
-              direction: 'upload'
-              path: ${{ github.workspace }}
+strategy:
+  matrix:
+    node-version: [8.x, 10.x, 12.x, 13.x]
+steps:
+  - name: Create a file
+    run: echo ${{ github.run_number }} > my_file.txt
+  - name: Accidentally upload to the same artifact via multiple jobs
+    uses: NHSDigital/CAAS-transfer-artifact@s3
+    env:
+      bucket: abcd-123456789-eu-west-2-my-S3-bucket
+    with:
+      name: my-folder
+      direction: 'upload'
+      path: ${{ github.workspace }}
 ```
 
 > **_Warning:_** Be careful when uploading to the same artifact via multiple jobs as artifacts may become corrupted. When uploading a file with an identical name and path in multiple jobs, uploads may fail with 503 errors due to conflicting uploads happening at the same time. Ensure uploads to identical locations to not interfere with each other.
@@ -192,13 +192,13 @@ Each artifact behaves as a file share. Uploading to the same artifact multiple t
 In the above example, four jobs will upload four different files to the same artifact but there will only be one file available when `my-artifact` is downloaded. Each job overwrites what was previously uploaded. To ensure that jobs don't overwrite existing artifacts, use a different name per job:
 
 ```yaml
-          uses: NHSDigital/CAAS-transfer-artifact@s3
-          env:
-            bucket: abcd-123456789-eu-west-2-my-S3-bucket
-          with:
-              name: my-folder
-              direction: 'upload'
-              path: ${{ github.workspace }}
+uses: NHSDigital/CAAS-transfer-artifact@s3
+env:
+  bucket: abcd-123456789-eu-west-2-my-S3-bucket
+with:
+  name: my-folder
+  direction: 'upload'
+  path: ${{ github.workspace }}
 ```
 
 ### Environment Variables and Tilde Expansion
@@ -222,24 +222,24 @@ You can use `~` in the path input as a substitute for `$HOME`. Basic tilde expan
 Environment variables along with context expressions can also be used for input. For documentation see [context and expression syntax](https://help.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions):
 
 ```yaml
-    steps:
-    - run: |
-        mkdir -p ${{ github.workspace }}/artifact
-        echo hello > ${{ github.workspace }}/artifact/world.txt
-    - uses: NHSDigital/CAAS-transfer-artifact@s3
-      env:
-        bucket: abcd-123456789-eu-west-2-my-S3-bucket
-      with:
-        name: my-folder
-        path: ${{ github.workspace }}/artifact/**/*#
-        direction: 'upload'
+steps:
+  - run: |
+      mkdir -p ${{ github.workspace }}/artifact
+      echo hello > ${{ github.workspace }}/artifact/world.txt
+  - uses: NHSDigital/CAAS-transfer-artifact@s3
+    env:
+      bucket: abcd-123456789-eu-west-2-my-S3-bucket
+    with:
+      name: my-folder
+      path: ${{ github.workspace }}/artifact/**/*#
+      direction: 'upload'
 ```
 
 For environment variables created in other steps, make sure to use the `env` expression syntax
 
 ```yaml
     steps:
-    - run: | 
+    - run: |
         mkdir testing
         echo "This is a file to upload" > testing/file.txt
         echo "artifactPath=testing/file.txt" >> $GITHUB_ENV
@@ -258,54 +258,56 @@ For environment variables created in other steps, make sure to use the `env` exp
 Artifacts are retained for 90 days by default. You can specify a shorter retention period using the `retention-days` input:
 
 ```yaml
-  - name: Create a file
-    run: echo "I won't live long" > my_file.txt
+- name: Create a file
+  run: echo "I won't live long" > my_file.txt
 
-  - name: Upload Artifact
-    uses: NHSDigital/CAAS-transfer-artifact@s3
-    env:
-      bucket: abcd-123456789-eu-west-2-my-S3-bucket
-    with:
-      name: my-folder
-      path: my_file.txt
-      retention-days: 5
-      direction: 'upload'
+- name: Upload Artifact
+  uses: NHSDigital/CAAS-transfer-artifact@s3
+  env:
+    bucket: abcd-123456789-eu-west-2-my-S3-bucket
+  with:
+    name: my-folder
+    path: my_file.txt
+    retention-days: 5
+    direction: 'upload'
 ```
 
 The retention period must be between 1 and 90 inclusive. For more information see [artifact and log retention policies](https://docs.github.com/en/free-pro-team@latest/actions/reference/usage-limits-billing-and-administration#artifact-and-log-retention-policy).
 
 ## Where does the upload go?
 
-Artifacts are uploaded to the specified S3 bucket, into a folder called `folder-name`.  The artifacts for each pipeline are put in a subfolder named `${{ github.run_number }}-folder-name`
+Artifacts are uploaded to the specified S3 bucket, into a folder called `folder-name`. The artifacts for each pipeline are put in a subfolder named `${{ github.run_number }}-folder-name`
 
 ### Downloading all files
 
 ```yaml
 steps:
-- uses: actions/checkout@v3
+  - uses: actions/checkout@v3
 
-- uses: NHSDigital/CAAS-transfer-artifact@s3
-  env:
-    bucket: abcd-123456789-eu-west-2-my-S3-bucket
-  with:
-    name: my-folder/path/to/artifact
-    direction: 'download'
-    path: local/download/folder
+  - uses: NHSDigital/CAAS-transfer-artifact@s3
+    env:
+      bucket: abcd-123456789-eu-west-2-my-S3-bucket
+    with:
+      name: my-folder/path/to/artifact
+      direction: 'download'
+      path: local/download/folder
 ```
-This will download every object in the S3 bucket which matches the `my-folder/my-artifact/path/to/artifact` name prefix into a folder called `local/download/folder`. 
+
+This will download every object in the S3 bucket which matches the `my-folder/my-artifact/path/to/artifact` name prefix into a folder called `local/download/folder`.
 
 ### Downloading one file
 
 ```yaml
 steps:
-- uses: actions/checkout@v3
+  - uses: actions/checkout@v3
 
-- uses: NHSDigital/CAAS-transfer-artifact@s3
-  env:
-    bucket: abcd-123456789-eu-west-2-my-S3-bucket
-  with:
-    name: my-folder/path/to/artifact/word.txt
-    direction: 'download'
-    path: local/download/folder
+  - uses: NHSDigital/CAAS-transfer-artifact@s3
+    env:
+      bucket: abcd-123456789-eu-west-2-my-S3-bucket
+    with:
+      name: my-folder/path/to/artifact/word.txt
+      direction: 'download'
+      path: local/download/folder
 ```
-This will download only the file `my-artifact/path/to/artifact/word.txt` into a folder called `local/download/folder`. 
+
+This will download only the file `my-artifact/path/to/artifact/word.txt` into a folder called `local/download/folder`.

@@ -56356,7 +56356,7 @@ const Inputs = {
     ArtifactBucket: 'artifact-bucket',
     Direction: 'direction',
     FolderName: 'name',
-    Concurrency: 'concurrency'
+    Concurrency: 'concurrency',
 };
 
 ;// CONCATENATED MODULE: ./src/input-helper.ts
@@ -56370,7 +56370,8 @@ function raiseError(errorMessage) {
  */
 function getInputs() {
     // generate a name for the artifact sub-folder which includes the github run number
-    const name = (core.getInput(Inputs.RunNumber)).concat("-", core.getInput(Inputs.FolderName));
+    const name = core.getInput(Inputs.RunNumber)
+        .concat('-', core.getInput(Inputs.FolderName));
     const path = core.getInput(Inputs.Path, { required: true });
     const bucket = core.getInput(Inputs.ArtifactBucket) ||
         process.env.ARTIFACTS_S3_BUCKET ||
@@ -56391,7 +56392,7 @@ function getInputs() {
         searchPath: path,
         ifNoFilesFound: noFileBehavior,
         direction: direction,
-        folderName: folderName
+        folderName: folderName,
     };
     const retentionDaysStr = core.getInput(Inputs.RetentionDays);
     if (retentionDaysStr) {
@@ -56443,8 +56444,8 @@ function s3_client_getS3Client() {
 class StreamCounter extends external_node_stream_namespaceObject.Transform {
     totalBytes = 0;
     /**
-   * Get the total of all bytes transfered
-   */
+     * Get the total of all bytes transfered
+     */
     totalBytesTransfered() {
         return this.totalBytes;
     }
@@ -56473,7 +56474,7 @@ async function streamToString(Body) {
     return new Promise((resolve, reject) => {
         const chunks = [];
         Body.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        Body.on('error', error => {
+        Body.on('error', (error) => {
             reject(error);
         });
         Body.on('end', () => {
@@ -56543,10 +56544,12 @@ async function listS3Objects({ Bucket, Key, }) {
             Key,
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
-        return data.Contents?.map(element => element.Key ?? '') ?? [];
+        return data.Contents?.map((element) => element.Key ?? '') ?? [];
     }
     catch (error_) {
-        const error = error_ instanceof Error ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`) : error_;
+        const error = error_ instanceof Error
+            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
+            : error_;
         throw error;
     }
 }
@@ -56610,7 +56613,9 @@ async function runDownload() {
             console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
             return getFiles;
         };
-        const result = await p_map_default()(newObjectList, mapper, { concurrency: concurrency });
+        const result = await p_map_default()(newObjectList, mapper, {
+            concurrency: concurrency,
+        });
         logDownloadInformation(startTime, result);
         console.log(`Total objects downloaded: ${newObjectList.length}`);
         return result;
@@ -56642,7 +56647,7 @@ function getDefaultGlobOptions() {
     return {
         followSymbolicLinks: true,
         implicitDescendants: true,
-        omitBrokenSymbolicLinks: true
+        omitBrokenSymbolicLinks: true,
     };
 }
 /**
@@ -56735,7 +56740,7 @@ async function findFilesToUpload(searchPath, globOptions) {
         (0,core.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
         return {
             filesToUpload: searchResults,
-            rootDirectory: lcaSearchPath
+            rootDirectory: lcaSearchPath,
         };
     }
     /*
@@ -56745,12 +56750,12 @@ async function findFilesToUpload(searchPath, globOptions) {
     if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
         return {
             filesToUpload: searchResults,
-            rootDirectory: (0,external_path_.dirname)(searchResults[0])
+            rootDirectory: (0,external_path_.dirname)(searchResults[0]),
         };
     }
     return {
         filesToUpload: searchResults,
-        rootDirectory: searchPaths[0]
+        rootDirectory: searchPaths[0],
     };
 }
 
@@ -56823,12 +56828,12 @@ const invalidArtifactFilePathCharacters = new Map([
     ['*', ' Asterisk *'],
     ['?', ' Question mark ?'],
     ['\r', ' Carriage return \\r'],
-    ['\n', ' Line feed \\n']
+    ['\n', ' Line feed \\n'],
 ]);
 const invalidArtifactNameCharacters = new Map([
     ...invalidArtifactFilePathCharacters,
     ['\\', ' Backslash \\'],
-    ['/', ' Forward slash /']
+    ['/', ' Forward slash /'],
 ]);
 /**
  * Scans the name of the artifact to make sure there are no illegal characters
@@ -56837,7 +56842,7 @@ function checkArtifactName(name) {
     if (!name) {
         throw new Error(`Artifact name: ${name}, is incorrectly provided`);
     }
-    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactNameCharacters) {
+    for (const [invalidCharacterKey, errorMessageForCharacter,] of invalidArtifactNameCharacters) {
         if (name.includes(invalidCharacterKey)) {
             throw new Error(`Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
           
@@ -56855,7 +56860,7 @@ function checkArtifactFilePath(path) {
     if (!path) {
         throw new Error(`Artifact path: ${path}, is incorrectly provided`);
     }
-    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactFilePathCharacters) {
+    for (const [invalidCharacterKey, errorMessageForCharacter,] of invalidArtifactFilePathCharacters) {
         if (path.includes(invalidCharacterKey)) {
             throw new Error(`Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
           
@@ -56891,24 +56896,24 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
     rootDirectory = (0,external_path_.normalize)(rootDirectory);
     rootDirectory = (0,external_path_.resolve)(rootDirectory);
     /*
-       Example to demonstrate behavior
-
-       Input:
-         artifactName: my-artifact
-         rootDirectory: '/home/user/files/plz-upload'
-         artifactFiles: [
-           '/home/user/files/plz-upload/file1.txt',
-           '/home/user/files/plz-upload/file2.txt',
-           '/home/user/files/plz-upload/dir/file3.txt'
-         ]
-
-       Output:
-         specifications: [
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
-         ]
-    */
+         Example to demonstrate behavior
+  
+         Input:
+           artifactName: my-artifact
+           rootDirectory: '/home/user/files/plz-upload'
+           artifactFiles: [
+             '/home/user/files/plz-upload/file1.txt',
+             '/home/user/files/plz-upload/file2.txt',
+             '/home/user/files/plz-upload/dir/file3.txt'
+           ]
+  
+         Output:
+           specifications: [
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
+           ]
+      */
     for (let file of artifactFiles) {
         if (!external_fs_.existsSync(file)) {
             throw new Error(`File ${file} does not exist`);
@@ -56924,18 +56929,18 @@ function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
             const uploadPath = file.replace(rootDirectory, '');
             checkArtifactFilePath(uploadPath);
             /*
-              uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
-              be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
-
-              path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
-                join('artifact-name/', 'file-to-upload.txt')
-                join('artifact-name/', '/file-to-upload.txt')
-                join('artifact-name', 'file-to-upload.txt')
-                join('artifact-name', '/file-to-upload.txt')
-            */
+                    uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
+                    be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
+      
+                    path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
+                      join('artifact-name/', 'file-to-upload.txt')
+                      join('artifact-name/', '/file-to-upload.txt')
+                      join('artifact-name', 'file-to-upload.txt')
+                      join('artifact-name', '/file-to-upload.txt')
+                  */
             specifications.push({
                 absoluteFilePath: file,
-                uploadFilePath: (0,external_path_.join)(artifactName, uploadPath)
+                uploadFilePath: (0,external_path_.join)(artifactName, uploadPath),
             });
         }
         else {
@@ -57019,7 +57024,7 @@ async function runUpload() {
             }
             const artifactClient = (0,artifact_client/* create */.U)();
             const options = {
-                continueOnError: false
+                continueOnError: false,
             };
             if (inputs.retentionDays) {
                 options.retentionDays = inputs.retentionDays;

@@ -34,11 +34,11 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
-    const downloadPath = inputs.searchPath
+    const downloadPath = inputs.searchPath;
 
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
-    fs.mkdir(downloadPath, { recursive: true } )
+    fs.mkdir(downloadPath, { recursive: true });
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -51,9 +51,8 @@ export async function runDownload(): Promise<any> {
     // use an if statement to find only files relevant to this pipeline
 
     for (const item of objectList) {
+      const newFilename = downloadPath.concat('/', getItemName(item));
 
-      const newFilename = downloadPath.concat('/',getItemName(item));
-      
       if (item.includes(name)) {
         newObjectList.push(item);
         fs.writeFile(newFilename, '');
@@ -66,13 +65,20 @@ export async function runDownload(): Promise<any> {
           Bucket: bucket,
           Key: artifactPath,
         },
-        downloadPath.concat('/',getItemName(artifactPath))
+        downloadPath.concat('/', getItemName(artifactPath))
       );
-      console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/',getItemName(artifactPath))}`);
+      console.log(
+        `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat(
+          '/',
+          getItemName(artifactPath)
+        )}`
+      );
       return getFiles;
     };
 
-    const result = await pMap(newObjectList, mapper, {concurrency: concurrency});
+    const result = await pMap(newObjectList, mapper, {
+      concurrency: concurrency,
+    });
 
     logDownloadInformation(startTime, result);
 
