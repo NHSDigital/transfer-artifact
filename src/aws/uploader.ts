@@ -36,7 +36,11 @@ export async function uploadArtifact(
 ): Promise<any> {
   const startTime = Date.now();
 
-  const uploadSpec: UploadSpecification[] = getUploadSpecification(artifactName,rootDirectory,filesToUpload);
+  const uploadSpec: UploadSpecification[] = getUploadSpecification(
+    artifactName,
+    rootDirectory,
+    filesToUpload
+  );
 
   const mapper = async (fileSpec: UploadSpecification) => {
     try {
@@ -53,7 +57,7 @@ export async function uploadArtifact(
     }
   };
 
-  const result = await pMap(uploadSpec, mapper, {concurrency: concurrency});
+  const result = await pMap(uploadSpec, mapper, { concurrency: concurrency });
 
   logUploadInformation(startTime, result);
 
