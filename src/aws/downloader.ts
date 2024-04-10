@@ -36,6 +36,8 @@ export async function runDownload(): Promise<any> {
     const concurrency = inputs.concurrency;
     const downloadPath = inputs.searchPath;
 
+    console.log(`I am getInputs(): ${JSON.stringify(getInputs())}`)
+
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
     fs.mkdir(downloadPath, { recursive: true });
@@ -52,8 +54,9 @@ export async function runDownload(): Promise<any> {
 
     for (const item of objectList) {
       const newFilename = downloadPath.concat('/', getItemName(item));
-
+      console.log(`I am newFilename: ${newFilename}`)
       if (item.includes(name)) {
+        console.log(`I include name: ${name}`)
         newObjectList.push(item);
         fs.writeFile(newFilename, '');
       }
@@ -67,6 +70,7 @@ export async function runDownload(): Promise<any> {
         },
         downloadPath.concat('/', getItemName(artifactPath))
       );
+      `I am downloadPath.concat('/', getItemName(artifactPath)): ${downloadPath.concat('/', getItemName(artifactPath))}`
       console.log(
         `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat(
           '/',
