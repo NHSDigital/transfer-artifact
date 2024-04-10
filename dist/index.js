@@ -56597,7 +56597,8 @@ async function runDownload() {
         promises_default().mkdir(downloadPath, { recursive: true });
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: name,
+            // Prefix: name,
+            Prefix: `ci-pipeline-upload-artifacts/${name}`
         });
         console.log(`I am objectList: ${objectList}`);
         let newObjectList = [];

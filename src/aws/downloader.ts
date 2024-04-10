@@ -46,7 +46,8 @@ export async function runDownload(): Promise<any> {
 
     const objectList = await listS3Objects({
       Bucket: bucket,
-      Prefix: name,
+      // Prefix: name,
+      Prefix: `ci-pipeline-upload-artifacts/${name}`
     });
 
     console.log(`I am objectList: ${objectList}`)
