@@ -56537,11 +56537,14 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Key, }) {
+async function listS3Objects({ Bucket, 
+// Key,
+Prefix }) {
     try {
         const parameters = {
             Bucket,
-            Key,
+            // Key,
+            Prefix
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56588,19 +56591,31 @@ async function runDownload() {
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
         const downloadPath = inputs.searchPath;
+        const folderName = inputs.folderName;
+        console.log(`I am getInputs(): ${JSON.stringify(getInputs())}`);
+        console.log(`I am bucket: ${bucket}`);
+        console.log(`I am name: ${name}`);
+        console.log(`I am downloadPath: ${downloadPath}`);
+        console.log(`I am folderName: ${folderName}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: name,
+            // Prefix: name,
+            // Prefix: `ci-pipeline-upload-artifacts/${name}`
+            // Prefix: folderName
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
         });
+        console.log(`I am ci-pipeline-upload-artifacts/${folderName}/${name}`);
+        console.log(`I am objectList: ${objectList}`);
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             const newFilename = downloadPath.concat('/', getItemName(item));
             if (item.includes(name)) {
+                console.log(`I include name: ${name}`);
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');
             }
@@ -56610,6 +56625,7 @@ async function runDownload() {
                 Bucket: bucket,
                 Key: artifactPath,
             }, downloadPath.concat('/', getItemName(artifactPath)));
+            `I am downloadPath.concat('/', getItemName(artifactPath)): ${downloadPath.concat('/', getItemName(artifactPath))}`;
             console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
             return getFiles;
         };
