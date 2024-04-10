@@ -56596,12 +56596,12 @@ async function runDownload() {
             Bucket: bucket,
             Prefix: name,
         });
+        console.log(`I am objectList: ${objectList}`);
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             const newFilename = downloadPath.concat('/', getItemName(item));
-            console.log(`I am newFilename: ${newFilename}`);
             if (item.includes(name)) {
                 console.log(`I include name: ${name}`);
                 newObjectList.push(item);

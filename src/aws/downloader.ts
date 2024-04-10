@@ -47,6 +47,8 @@ export async function runDownload(): Promise<any> {
       Prefix: name,
     });
 
+    console.log(`I am objectList: ${objectList}`)
+
     let newObjectList: string[] = [];
 
     // listS3Objects brings back everything in the S3 bucket
@@ -54,7 +56,6 @@ export async function runDownload(): Promise<any> {
 
     for (const item of objectList) {
       const newFilename = downloadPath.concat('/', getItemName(item));
-      console.log(`I am newFilename: ${newFilename}`)
       if (item.includes(name)) {
         console.log(`I include name: ${name}`)
         newObjectList.push(item);
