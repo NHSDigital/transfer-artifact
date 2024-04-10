@@ -56588,6 +56588,7 @@ async function runDownload() {
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
         const downloadPath = inputs.searchPath;
+        console.log(`I am getInputs(): ${JSON.stringify(getInputs())}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
@@ -56600,7 +56601,9 @@ async function runDownload() {
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             const newFilename = downloadPath.concat('/', getItemName(item));
+            console.log(`I am newFilename: ${newFilename}`);
             if (item.includes(name)) {
+                console.log(`I include name: ${name}`);
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');
             }
@@ -56610,6 +56613,7 @@ async function runDownload() {
                 Bucket: bucket,
                 Key: artifactPath,
             }, downloadPath.concat('/', getItemName(artifactPath)));
+            `I am downloadPath.concat('/', getItemName(artifactPath)): ${downloadPath.concat('/', getItemName(artifactPath))}`;
             console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
             return getFiles;
         };
