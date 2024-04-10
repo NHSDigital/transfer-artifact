@@ -56589,6 +56589,9 @@ async function runDownload() {
         const concurrency = inputs.concurrency;
         const downloadPath = inputs.searchPath;
         console.log(`I am getInputs(): ${JSON.stringify(getInputs())}`);
+        console.log(`I am bucket: ${bucket}`);
+        console.log(`I am name: ${name}`);
+        console.log(`I am downloadPath: ${downloadPath}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
