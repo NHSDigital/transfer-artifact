@@ -56537,11 +56537,14 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Key, }) {
+async function listS3Objects({ Bucket, 
+// Key,
+Prefix }) {
     try {
         const parameters = {
             Bucket,
-            Key,
+            // Key,
+            Prefix
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56602,8 +56605,9 @@ async function runDownload() {
             // Prefix: name,
             // Prefix: `ci-pipeline-upload-artifacts/${name}`
             // Prefix: folderName
-            Prefix: `ci-pipeline-upload-artifacts/${folderName}`
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
         });
+        console.log(`I am ci-pipeline-upload-artifacts/${folderName}/${name}`);
         console.log(`I am objectList: ${objectList}`);
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket

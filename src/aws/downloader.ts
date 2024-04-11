@@ -51,8 +51,10 @@ export async function runDownload(): Promise<any> {
       // Prefix: name,
       // Prefix: `ci-pipeline-upload-artifacts/${name}`
       // Prefix: folderName
-      Prefix: `ci-pipeline-upload-artifacts/${folderName}`
+      Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
     });
+
+    console.log(`I am ci-pipeline-upload-artifacts/${folderName}/${name}`)
 
     console.log(`I am objectList: ${objectList}`)
 
