@@ -19,7 +19,7 @@ steps:
 
   - run: echo hello > path/to/artifact/world.txt
 
-  - uses: NHSDigital/CAAS-transfer-artifact@s3
+  - uses: NHSDigital/transfer-artifact@s3
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
@@ -31,7 +31,7 @@ steps:
 ### Upload an Entire Directory
 
 ```yaml
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -43,7 +43,7 @@ steps:
 ### Upload using a Wildcard Pattern
 
 ```yaml
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -55,7 +55,7 @@ steps:
 ### Upload using Multiple Paths and Exclusions
 
 ```yaml
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -94,7 +94,7 @@ The [@actions/artifact](https://github.com/actions/toolkit/tree/main/packages/ar
 If a path (or paths), result in no files being found for the artifact, the action will succeed but print out a warning. In certain scenarios it may be desirable to fail the action or suppress the warning. The `if-no-files-found` option allows you to customize the behavior of the action if no files are found:
 
 ```yaml
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -109,7 +109,7 @@ If a path (or paths), result in no files being found for the artifact, the actio
 To upload artifacts only when the previous step of a job failed, use [`if: failure()`](https://help.github.com/en/articles/contexts-and-expression-syntax-for-github-actions#job-status-check-functions):
 
 ```yaml
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   if: failure()
@@ -124,7 +124,7 @@ To upload artifacts only when the previous step of a job failed, use [`if: failu
 You can upload an artifact without specifying a name
 
 ```yaml
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -141,7 +141,7 @@ With the following example, the available artifact (named `artifact` by default 
 
 ```yaml
 - run: echo hi > world.txt
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -150,7 +150,7 @@ With the following example, the available artifact (named `artifact` by default 
     direction: 'upload'
 
 - run: echo howdy > extra-file.txt
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -159,7 +159,7 @@ With the following example, the available artifact (named `artifact` by default 
     direction: 'upload'
 
 - run: echo hello > world.txt
-- uses: NHSDigital/CAAS-transfer-artifact@s3
+- uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -178,7 +178,7 @@ steps:
   - name: Create a file
     run: echo ${{ github.run_number }} > my_file.txt
   - name: Accidentally upload to the same artifact via multiple jobs
-    uses: NHSDigital/CAAS-transfer-artifact@s3
+    uses: NHSDigital/transfer-artifact@s3
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
@@ -192,7 +192,7 @@ steps:
 In the above example, four jobs will upload four different files to the same artifact but there will only be one file available when `my-artifact` is downloaded. Each job overwrites what was previously uploaded. To ensure that jobs don't overwrite existing artifacts, use a different name per job:
 
 ```yaml
-uses: NHSDigital/CAAS-transfer-artifact@s3
+uses: NHSDigital/transfer-artifact@s3
 env:
   bucket: abcd-123456789-eu-west-2-my-S3-bucket
 with:
@@ -209,7 +209,7 @@ You can use `~` in the path input as a substitute for `$HOME`. Basic tilde expan
   - run: |
       mkdir -p ~/new/artifact
       echo hello > ~/new/artifact/world.txt
-  - uses: NHSDigital/CAAS-transfer-artifact@s3
+  - uses: NHSDigital/transfer-artifact@s3
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
@@ -226,7 +226,7 @@ steps:
   - run: |
       mkdir -p ${{ github.workspace }}/artifact
       echo hello > ${{ github.workspace }}/artifact/world.txt
-  - uses: NHSDigital/CAAS-transfer-artifact@s3
+  - uses: NHSDigital/transfer-artifact@s3
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
@@ -243,7 +243,7 @@ For environment variables created in other steps, make sure to use the `env` exp
         mkdir testing
         echo "This is a file to upload" > testing/file.txt
         echo "artifactPath=testing/file.txt" >> $GITHUB_ENV
-    - uses: NHSDigital/CAAS-transfer-artifact@s3
+    - uses: NHSDigital/transfer-artifact@s3
       env:
         bucket: abcd-123456789-eu-west-2-my-S3-bucket
       with:
@@ -262,7 +262,7 @@ Artifacts are retained for 90 days by default. You can specify a shorter retenti
   run: echo "I won't live long" > my_file.txt
 
 - name: Upload Artifact
-  uses: NHSDigital/CAAS-transfer-artifact@s3
+  uses: NHSDigital/transfer-artifact@s3
   env:
     bucket: abcd-123456789-eu-west-2-my-S3-bucket
   with:
@@ -284,7 +284,7 @@ Artifacts are uploaded to the specified S3 bucket, into a folder called `folder-
 steps:
   - uses: actions/checkout@v3
 
-  - uses: NHSDigital/CAAS-transfer-artifact@s3
+  - uses: NHSDigital/transfer-artifact@s3
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
@@ -301,7 +301,7 @@ This will download every object in the S3 bucket which matches the `my-folder/my
 steps:
   - uses: actions/checkout@v3
 
-  - uses: NHSDigital/CAAS-transfer-artifact@s3
+  - uses: NHSDigital/transfer-artifact@s3
     env:
       bucket: abcd-123456789-eu-west-2-my-S3-bucket
     with:
