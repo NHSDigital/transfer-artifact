@@ -50,7 +50,8 @@ export async function runDownload(): Promise<any> {
       Bucket: bucket,
       // Prefix: name,
       // Prefix: `ci-pipeline-upload-artifacts/${name}`
-      Prefix: folderName
+      // Prefix: folderName
+      Prefix: `ci-pipeline-upload-artifacts/${folderName}`
     });
 
     console.log(`I am objectList: ${objectList}`)
