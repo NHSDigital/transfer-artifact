@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/prefer-type-error */
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import { promisify } from 'node:util';
@@ -108,12 +107,12 @@ export async function writeS3ObjectToFile(
 
 export async function listS3Objects({
   Bucket,
-  Key,
+  Prefix
 }: S3Location): Promise<string[]> {
   try {
     const parameters = {
       Bucket,
-      Key,
+      Prefix
     };
 
     const data = await getS3Client().send(new ListObjectsV2Command(parameters));

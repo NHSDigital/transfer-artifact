@@ -56458,7 +56458,6 @@ class StreamCounter extends external_node_stream_namespaceObject.Transform {
 }
 
 ;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
-/* eslint-disable unicorn/prefer-type-error */
 
 
 
@@ -56537,11 +56536,11 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Key, }) {
+async function listS3Objects({ Bucket, Prefix }) {
     try {
         const parameters = {
             Bucket,
-            Key,
+            Prefix
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56588,12 +56587,13 @@ async function runDownload() {
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
         const downloadPath = inputs.searchPath;
+        const folderName = inputs.folderName;
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: name,
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
         });
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket

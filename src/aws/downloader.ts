@@ -35,6 +35,7 @@ export async function runDownload(): Promise<any> {
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
     const downloadPath = inputs.searchPath;
+    const folderName = inputs.folderName
 
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
@@ -42,7 +43,7 @@ export async function runDownload(): Promise<any> {
 
     const objectList = await listS3Objects({
       Bucket: bucket,
-      Prefix: name,
+      Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
     });
 
     let newObjectList: string[] = [];
