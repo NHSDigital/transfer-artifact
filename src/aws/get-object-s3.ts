@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/prefer-type-error */
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import { promisify } from 'node:util';

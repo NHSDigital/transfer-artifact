@@ -56458,7 +56458,6 @@ class StreamCounter extends external_node_stream_namespaceObject.Transform {
 }
 
 ;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
-/* eslint-disable unicorn/prefer-type-error */
 
 
 
