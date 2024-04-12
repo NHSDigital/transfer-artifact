@@ -37,11 +37,6 @@ export async function runDownload(): Promise<any> {
     const downloadPath = inputs.searchPath;
     const folderName = inputs.folderName
 
-    console.log(`I am getInputs(): ${JSON.stringify(getInputs())}`)
-    console.log(`I am bucket: ${bucket}`)
-    console.log(`I am name: ${name}`)
-    console.log(`I am downloadPath: ${downloadPath}`)
-    console.log(`I am folderName: ${folderName}`)
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
     fs.mkdir(downloadPath, { recursive: true });
@@ -51,10 +46,6 @@ export async function runDownload(): Promise<any> {
       Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
     });
 
-    console.log(`I am ci-pipeline-upload-artifacts/${folderName}/${name}`)
-
-    console.log(`I am objectList: ${objectList}`)
-
     let newObjectList: string[] = [];
 
     // listS3Objects brings back everything in the S3 bucket
@@ -62,8 +53,8 @@ export async function runDownload(): Promise<any> {
 
     for (const item of objectList) {
       const newFilename = downloadPath.concat('/', getItemName(item));
+
       if (item.includes(name)) {
-        console.log(`I include name: ${name}`)
         newObjectList.push(item);
         fs.writeFile(newFilename, '');
       }
@@ -77,7 +68,6 @@ export async function runDownload(): Promise<any> {
         },
         downloadPath.concat('/', getItemName(artifactPath))
       );
-      `I am downloadPath.concat('/', getItemName(artifactPath)): ${downloadPath.concat('/', getItemName(artifactPath))}`
       console.log(
         `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat(
           '/',

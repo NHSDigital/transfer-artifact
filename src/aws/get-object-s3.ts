@@ -108,13 +108,11 @@ export async function writeS3ObjectToFile(
 
 export async function listS3Objects({
   Bucket,
-  // Key,
   Prefix
 }: S3Location): Promise<string[]> {
   try {
     const parameters = {
       Bucket,
-      // Key,
       Prefix
     };
 
