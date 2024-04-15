@@ -6,10 +6,6 @@ function raiseError(errorMessage: string): never {
   throw new Error(errorMessage);
 }
 
-function raiseError(errorMessage: string): never {
-  throw new Error(errorMessage);
-}
-
 /**
  * Helper to get all the inputs for the action
  */

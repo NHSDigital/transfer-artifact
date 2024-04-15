@@ -47965,101 +47965,6 @@ function parseCommaParts(str) {
 
   return parts;
 }
-exports.ClientTlsContext = ClientTlsContext;
-/**
- * TLS context used for server TLS communications over sockets. If no
- * options are supplied, the context will default to disabling peer verification
- * only.
- *
- * nodejs only.
- * @category TLS
- */
-class ServerTlsContext extends TlsContext {
-    constructor(ctx_opt) {
-        if (!ctx_opt) {
-            ctx_opt = new TlsContextOptions();
-            ctx_opt.verify_peer = false;
-        }
-        super(ctx_opt);
-    }
-}
-exports.ServerTlsContext = ServerTlsContext;
-/**
- * TLS options that are unique to a given connection using a shared TlsContext.
- *
- * nodejs only.
- * @category TLS
- */
-class TlsConnectionOptions extends native_resource_1.NativeResource {
-    constructor(tls_ctx, server_name, alpn_list = []) {
-        if (tls_ctx == null || tls_ctx == undefined) {
-            throw new error_1.CrtError("TlsConnectionOptions constructor: tls_ctx not defined");
-        }
-        super(binding_1.default.io_tls_connection_options_new(tls_ctx.native_handle(), server_name, (alpn_list && alpn_list.length > 0) ? alpn_list.join(';') : undefined));
-        this.tls_ctx = tls_ctx;
-        this.server_name = server_name;
-        this.alpn_list = alpn_list;
-    }
-}
-exports.TlsConnectionOptions = TlsConnectionOptions;
-/**
- * Handle to a loaded PKCS#11 library.
- *
- * For most use cases, a single instance of Pkcs11Lib should be used
- * for the lifetime of your application.
- *
- * nodejs only.
- * @category TLS
- */
-class Pkcs11Lib extends native_resource_1.NativeResource {
-    /**
-     * @param path - Path to PKCS#11 library.
-     * @param behavior - Specifies how `C_Initialize()` and `C_Finalize()`
-     *                   will be called on the PKCS#11 library.
-     */
-    constructor(path, behavior = Pkcs11Lib.InitializeFinalizeBehavior.DEFAULT) {
-        super(binding_1.default.io_pkcs11_lib_new(path, behavior));
-    }
-    /**
-     * Release the PKCS#11 library immediately, without waiting for the GC.
-     */
-    close() {
-        binding_1.default.io_pkcs11_lib_close(this.native_handle());
-    }
-}
-exports.Pkcs11Lib = Pkcs11Lib;
-(function (Pkcs11Lib) {
-    /**
-     * Controls `C_Initialize()` and `C_Finalize()` are called on the PKCS#11 library.
-     */
-    let InitializeFinalizeBehavior;
-    (function (InitializeFinalizeBehavior) {
-        /**
-         * Default behavior that accommodates most use cases.
-         *
-         * `C_Initialize()` is called on creation, and "already-initialized"
-         * errors are ignored. `C_Finalize()` is never called, just in case
-         * another part of your application is still using the PKCS#11 library.
-         */
-        InitializeFinalizeBehavior[InitializeFinalizeBehavior["DEFAULT"] = 0] = "DEFAULT";
-        /**
-         * Skip calling `C_Initialize()` and `C_Finalize()`.
-         *
-         * Use this if your application has already initialized the PKCS#11 library,
-         * and you do not want `C_Initialize()` called again.
-         */
-        InitializeFinalizeBehavior[InitializeFinalizeBehavior["OMIT"] = 1] = "OMIT";
-        /**
-         * `C_Initialize()` is called on creation and `C_Finalize()` is called on cleanup.
-         *
-         * If `C_Initialize()` reports that's it's already initialized, this is
-         * treated as an error. Use this if you need perfect cleanup (ex: running
-         * valgrind with --leak-check).
-         */
-        InitializeFinalizeBehavior[InitializeFinalizeBehavior["STRICT"] = 2] = "STRICT";
-    })(InitializeFinalizeBehavior = Pkcs11Lib.InitializeFinalizeBehavior || (Pkcs11Lib.InitializeFinalizeBehavior = {}));
-})(Pkcs11Lib = exports.Pkcs11Lib || (exports.Pkcs11Lib = {}));
-//# sourceMappingURL=io.js.map
 
 function expandTop(str) {
   if (!str)
@@ -49475,7 +49380,6 @@ class OrderedObjParser{
     this.saveTextToParentTag = saveTextToParentTag;
     this.addChild = addChild;
   }
-};
 
 }
 
@@ -49903,7 +49807,6 @@ function tagExpWithClosingIndex(xmlData, i, closingChar = ">"){
     }
     tagExp += ch;
   }
-  return i;
 }
 
 function findClosingIndex(xmlData, str, i, errMsg){
@@ -50009,10 +49912,6 @@ function parseValue(val, shouldParse, options) {
   }
 }
 
-/**
- * Select all the attributes whether valid or invalid.
- */
-const validAttrStrRegxp = new RegExp('(\\s*)([^\\s=]+)(\\s*=)?(\\s*([\'"])(([\\s\\S])*?)\\5)?', 'g');
 
 module.exports = OrderedObjParser;
 
@@ -50306,17 +50205,6 @@ function unmonkeypatch () {
   fs.realpathSync = origRealpathSync
 }
 
-function buildEmptyObjNode(val, key, attrStr, level) {
-  if (val !== '') {
-    return this.buildObjectNode(val, key, attrStr, level);
-  } else {
-    if(key[0] === "?") return  this.indentate(level) + '<' + key + attrStr+ '?' + this.tagEndChar;
-    else {
-      return  this.indentate(level) + '<' + key + attrStr + '/' + this.tagEndChar;
-      // return this.buildTagStr(level,key, attrStr);
-    }
-  }
-}
 
 /***/ }),
 
@@ -50747,15 +50635,6 @@ try {
   module.exports = __nccwpck_require__(8544);
 }
 
-function rethrow() {
-  // Only enable in debug mode. A backtrace uses ~1000 bytes of heap space and
-  // is fairly slow to generate.
-  var callback;
-  if (DEBUG) {
-    var backtrace = new Error;
-    callback = debugCallback;
-  } else
-    callback = missingCallback;
 
 /***/ }),
 
@@ -50851,6 +50730,7 @@ function filter (pattern, options) {
   return function (p, i, list) {
     return minimatch(p, pattern, options)
   }
+}
 
 function ext (a, b) {
   b = b || {}
@@ -51793,25 +51673,12 @@ function onceStrict (fn) {
 }
 
 
-Minimatch.prototype.makeRe = makeRe
-function makeRe () {
-  if (this.regexp || this.regexp === false) return this.regexp
-
-  // at this point, this.set is a 2d array of partial
-  // pattern strings, or "**".
-  //
-  // It's better to use .match().  This function shouldn't
-  // be used, really, but it's pretty convenient sometimes,
-  // when you just want to work with a regex.
-  var set = this.set
+/***/ }),
 
 /***/ 91855:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-  var twoStar = options.noglobstar ? star
-    : options.dot ? twoStarDot
-    : twoStarNoDot
-  var flags = options.nocase ? 'i' : ''
+"use strict";
 
 const AggregateError = __nccwpck_require__(61231);
 
@@ -51894,30 +51761,13 @@ module.exports = async (
 	});
 };
 
-minimatch.match = function (list, pattern, options) {
-  options = options || {}
-  var mm = new Minimatch(pattern, options)
-  list = list.filter(function (f) {
-    return mm.match(f)
-  })
-  if (mm.options.nonull && !list.length) {
-    list.push(pattern)
-  }
-  return list
-}
 
-Minimatch.prototype.match = function match (f, partial) {
-  if (typeof partial === 'undefined') partial = this.partial
-  this.debug('match', f, this.pattern)
-  // short-circuit in the case of busted things.
-  // comments, etc.
-  if (this.comment) return false
-  if (this.empty) return f === ''
+/***/ }),
 
 /***/ 38714:
 /***/ ((module) => {
 
-  var options = this.options
+"use strict";
 
 
 function posix(path) {
@@ -52372,6 +52222,7 @@ function Glob (pattern, options, cb) {
       }
     }
   }
+}
 
 Glob.prototype._finish = function () {
   assert(this instanceof Glob)
@@ -52403,6 +52254,7 @@ Glob.prototype._realpath = function () {
     if (--n === 0)
       self._finish()
   }
+}
 
 Glob.prototype._realpathSet = function (index, cb) {
   var matchset = this.matches[index]
@@ -53839,14 +53691,8 @@ const rmkidsSync = (p, options) => {
 module.exports = rimraf
 rimraf.sync = rimrafSync
 
-/*
- * The working inner variables.
- */
-const
-  // the random characters to choose from
-  RANDOM_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 
-  TEMPLATE_PATTERN = /XXXXXX/,
+/***/ }),
 
 /***/ 14526:
 /***/ ((module) => {
@@ -53956,11 +53802,6 @@ function toNumber(str, options = {}){
         }else{ //non-numeric string
             return str;
         }
-
-        cb(null, name);
-      });
-    } catch (err) {
-      cb(err);
     }
 }
 
@@ -54827,17 +54668,7 @@ module.exports.tmpNameSync = tmpNameSync;
 module.exports.setGracefulCleanup = setGracefulCleanup;
 
 
-    __createBinding = Object.create ? (function(o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-            desc = { enumerable: true, get: function() { return m[k]; } };
-        }
-        Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-    });
+/***/ }),
 
 /***/ 4351:
 /***/ ((module) => {
@@ -55264,41 +55095,21 @@ var __disposeResources;
     exporter("__disposeResources", __disposeResources);
 });
 
-function httpOverHttps(options) {
-  var agent = new TunnelingAgent(options);
-  agent.request = https.request;
-  return agent;
-}
 
-function httpsOverHttps(options) {
-  var agent = new TunnelingAgent(options);
-  agent.request = https.request;
-  agent.createSocket = createSecureSocket;
-  agent.defaultPort = 443;
-  return agent;
-}
+/***/ }),
 
 /***/ 74294:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 module.exports = __nccwpck_require__(54219);
 
-TunnelingAgent.prototype.addRequest = function addRequest(req, host, port, localAddress) {
-  var self = this;
-  var options = mergeOptions({request: req}, self.options, toOptions(host, port, localAddress));
 
-  if (self.sockets.length >= this.maxSockets) {
-    // We are over limit so we'll add it to the queue.
-    self.requests.push(options);
-    return;
-  }
+/***/ }),
 
 /***/ 54219:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
-    function onFree() {
-      self.emit('free', socket, options);
-    }
+"use strict";
 
 
 var net = __nccwpck_require__(41808);
@@ -55801,7 +55612,6 @@ function rng() {
 
 "use strict";
 
-"use strict";
 
 Object.defineProperty(exports, "__esModule", ({
   value: true
@@ -56648,7 +56458,6 @@ class StreamCounter extends external_node_stream_namespaceObject.Transform {
 }
 
 ;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
-/* eslint-disable unicorn/prefer-type-error */
 
 
 
@@ -56727,11 +56536,11 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Key, }) {
+async function listS3Objects({ Bucket, Prefix }) {
     try {
         const parameters = {
             Bucket,
-            Key,
+            Prefix
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56778,12 +56587,13 @@ async function runDownload() {
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
         const downloadPath = inputs.searchPath;
+        const folderName = inputs.folderName;
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: name,
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
         });
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket

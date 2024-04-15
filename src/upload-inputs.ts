@@ -12,11 +12,6 @@ export interface UploadInputs {
   artifactBucket: string;
 
   /**
-   * The S3 bucket to upload to
-   */
-  artifactBucket: string
-
-  /**
    * The search path used to describe what to upload as part of the artifact
    * Or where to download the artifact
    */

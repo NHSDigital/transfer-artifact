@@ -1,21 +1,4 @@
 {
-<<<<<<< HEAD
-    "env": { "node": true, "jest": true },
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": { "ecmaVersion": 9, "sourceType": "module" },
-    "extends": [
-      "eslint:recommended",
-      "plugin:import/errors",
-      "plugin:import/warnings",
-      "plugin:import/typescript",
-      "plugin:prettier/recommended"
-    ],
-    "rules": {
-       "@typescript-eslint/no-empty-function": "off"
-    },
-    "plugins": ["@typescript-eslint", "jest"]
-}
-=======
   "env": { "node": true, "jest": true },
   "parser": "@typescript-eslint/parser",
   "parserOptions": { "ecmaVersion": 9, "sourceType": "module" },
@@ -25,4 +8,3 @@
   },
   "plugins": ["@typescript-eslint", "jest"]
 }
->>>>>>> feature/CAAS-2009_upload_artifact_package_changes
