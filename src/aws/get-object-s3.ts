@@ -107,12 +107,12 @@ export async function writeS3ObjectToFile(
 
 export async function listS3Objects({
   Bucket,
-  Prefix,
+  Prefix
 }: S3Location): Promise<string[]> {
   try {
     const parameters = {
       Bucket,
-      Prefix,
+      Prefix
     };
 
     const data = await getS3Client().send(new ListObjectsV2Command(parameters));
