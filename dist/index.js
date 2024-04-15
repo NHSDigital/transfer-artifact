@@ -5,9 +5,10 @@
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
+var __webpack_unused_export__;
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.create = void 0;
+__webpack_unused_export__ = ({ value: true });
+exports.U = void 0;
 const artifact_client_1 = __nccwpck_require__(48802);
 /**
  * Constructs an ArtifactClient
@@ -15,7 +16,7 @@ const artifact_client_1 = __nccwpck_require__(48802);
 function create() {
     return artifact_client_1.DefaultArtifactClient.create();
 }
-exports.create = create;
+exports.U = create;
 //# sourceMappingURL=artifact-client.js.map
 
 /***/ }),
@@ -644,7 +645,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DownloadHttpClient = void 0;
 const fs = __importStar(__nccwpck_require__(57147));
 const core = __importStar(__nccwpck_require__(42186));
-const zlib = __importStar(__nccwpck_require__(59796));
+const zlib = __importStar(__nccwpck_require__(15206));
 const utils_1 = __nccwpck_require__(36327);
 const url_1 = __nccwpck_require__(57310);
 const status_reporter_1 = __nccwpck_require__(39081);
@@ -1309,7 +1310,7 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createGZipFileInBuffer = exports.createGZipFileOnDisk = void 0;
 const fs = __importStar(__nccwpck_require__(57147));
-const zlib = __importStar(__nccwpck_require__(59796));
+const zlib = __importStar(__nccwpck_require__(15206));
 const util_1 = __nccwpck_require__(73837);
 const stat = (0, util_1.promisify)(fs.stat);
 /**
@@ -39219,7 +39220,7 @@ tslib_1.__exportStar(__nccwpck_require__(32964), exports);
 tslib_1.__exportStar(__nccwpck_require__(83495), exports);
 tslib_1.__exportStar(__nccwpck_require__(74857), exports);
 tslib_1.__exportStar(__nccwpck_require__(15342), exports);
-tslib_1.__exportStar(__nccwpck_require__(53456), exports);
+tslib_1.__exportStar(__nccwpck_require__(59796), exports);
 tslib_1.__exportStar(__nccwpck_require__(1752), exports);
 tslib_1.__exportStar(__nccwpck_require__(92480), exports);
 
@@ -39670,7 +39671,7 @@ exports.resolvedPath = resolvedPath;
 
 /***/ }),
 
-/***/ 53456:
+/***/ 59796:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -41635,6 +41636,61 @@ exports.checkExceptions = checkExceptions;
 
 /***/ }),
 
+/***/ 61231:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const indentString = __nccwpck_require__(98043);
+const cleanStack = __nccwpck_require__(27972);
+
+const cleanInternalStack = stack => stack.replace(/\s+at .*aggregate-error\/index.js:\d+:\d+\)?/g, '');
+
+class AggregateError extends Error {
+	constructor(errors) {
+		if (!Array.isArray(errors)) {
+			throw new TypeError(`Expected input to be an Array, got ${typeof errors}`);
+		}
+
+		errors = [...errors].map(error => {
+			if (error instanceof Error) {
+				return error;
+			}
+
+			if (error !== null && typeof error === 'object') {
+				// Handle plain error objects with message property and/or possibly other metadata
+				return Object.assign(new Error(error.message), error);
+			}
+
+			return new Error(error);
+		});
+
+		let message = errors
+			.map(error => {
+				// The `stack` property is not standardized, so we can't assume it exists
+				return typeof error.stack === 'string' ? cleanInternalStack(cleanStack(error.stack)) : String(error);
+			})
+			.join('\n');
+		message = '\n' + indentString(message, 4);
+		super(message);
+
+		this.name = 'AggregateError';
+
+		Object.defineProperty(this, '_errors', {value: errors});
+	}
+
+	* [Symbol.iterator]() {
+		for (const error of this._errors) {
+			yield error;
+		}
+	}
+}
+
+module.exports = AggregateError;
+
+
+/***/ }),
+
 /***/ 50463:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -41668,7 +41724,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.extractRegionFromEndpoint = exports.buildMqtt5FinalUsername = exports.populate_username_string_with_custom_authorizer = exports.is_string_and_not_empty = exports.add_to_username_parameter = void 0;
+exports.extractRegionFromEndpoint = exports.buildMqtt5FinalUsername = exports.canonicalizeCustomAuthConfig = exports.canonicalizeCustomAuthTokenSignature = exports.populate_username_string_with_custom_authorizer = exports.is_string_and_not_empty = exports.add_to_username_parameter = void 0;
 /**
  *
  * A module containing miscellaneous functionality that is shared across both native and browser for aws_iot
@@ -41677,6 +41733,7 @@ exports.extractRegionFromEndpoint = exports.buildMqtt5FinalUsername = exports.po
  * @module aws_iot
  */
 const platform = __importStar(__nccwpck_require__(97377));
+const utils = __importStar(__nccwpck_require__(13391));
 /**
  * A helper function to add parameters to the username in with_custom_authorizer function
  *
@@ -41736,24 +41793,48 @@ function populate_username_string_with_custom_authorizer(current_username, input
     if (is_string_and_not_empty(input_authorizer) && input_authorizer) {
         username_string = add_to_username_parameter(username_string, input_authorizer, "x-amz-customauthorizer-name=");
     }
-    if (is_string_and_not_empty(input_signature) && input_signature) {
-        username_string = add_to_username_parameter(username_string, input_signature, "x-amz-customauthorizer-signature=");
-        if ((is_string_and_not_empty(input_token_key_name) && input_token_key_name) || (is_string_and_not_empty(input_token_value) && input_token_value)) {
-            console.log("Warning: Signed custom authorizers with signature will not work without a token key name and " +
-                "token value. Your connection may be rejected/stalled on the IoT Core side due to this. Please " +
-                "set the token key name and token value to connect to a signed custom authorizer.");
+    if (is_string_and_not_empty(input_signature) || is_string_and_not_empty(input_token_value) || is_string_and_not_empty(input_token_key_name)) {
+        if (!input_token_value || !input_token_key_name || !input_signature) {
+            throw new Error("Signing-based custom authentication requires all token-related properties to be set");
         }
     }
-    if (is_string_and_not_empty(input_signature) || is_string_and_not_empty(input_token_value) || is_string_and_not_empty(input_token_key_name)) {
-        if (!input_token_value || !input_token_key_name) {
-            throw new Error("Token-based custom authentication requires all token-related properties to be set");
-        }
+    if (is_string_and_not_empty(input_signature) && input_signature) {
+        username_string = add_to_username_parameter(username_string, input_signature, "x-amz-customauthorizer-signature=");
+    }
+    if (is_string_and_not_empty(input_token_value) && is_string_and_not_empty(input_token_key_name)) {
+        // @ts-ignore
         username_string = add_to_username_parameter(username_string, input_token_value, input_token_key_name + "=");
     }
     return username_string;
 }
 exports.populate_username_string_with_custom_authorizer = populate_username_string_with_custom_authorizer;
 ;
+/** @internal */
+function canonicalizeCustomAuthTokenSignature(signature) {
+    if (signature === undefined || signature == null) {
+        return undefined;
+    }
+    let hasPercent = signature.indexOf("%") != -1;
+    if (hasPercent) {
+        return signature;
+    }
+    else {
+        return encodeURIComponent(signature);
+    }
+}
+exports.canonicalizeCustomAuthTokenSignature = canonicalizeCustomAuthTokenSignature;
+/** @internal */
+function canonicalizeCustomAuthConfig(config) {
+    let processedConfig = {};
+    utils.set_defined_property(processedConfig, "authorizerName", config.authorizerName);
+    utils.set_defined_property(processedConfig, "username", config.username);
+    utils.set_defined_property(processedConfig, "password", config.password);
+    utils.set_defined_property(processedConfig, "tokenKeyName", config.tokenKeyName);
+    utils.set_defined_property(processedConfig, "tokenValue", config.tokenValue);
+    utils.set_defined_property(processedConfig, "tokenSignature", canonicalizeCustomAuthTokenSignature(config.tokenSignature));
+    return processedConfig;
+}
+exports.canonicalizeCustomAuthConfig = canonicalizeCustomAuthConfig;
 /** @internal */
 function addParam(paramName, paramValue, paramSet) {
     if (paramValue) {
@@ -42302,7 +42383,7 @@ exports.DEFAULT_RECONNECT_MIN_SEC = 1;
  * SPDX-License-Identifier: Apache-2.0.
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RetryJitterType = exports.ClientSessionBehavior = void 0;
+exports.InboundTopicAliasBehaviorType = exports.OutboundTopicAliasBehaviorType = exports.RetryJitterType = exports.ClientSessionBehavior = void 0;
 /**
  * Controls how the MQTT5 client should behave with respect to MQTT sessions.
  */
@@ -42355,6 +42436,60 @@ var RetryJitterType;
      */
     RetryJitterType[RetryJitterType["Decorrelated"] = 3] = "Decorrelated";
 })(RetryJitterType = exports.RetryJitterType || (exports.RetryJitterType = {}));
+/**
+ * An enumeration that controls how the client applies topic aliasing to outbound publish packets.
+ *
+ * Topic alias behavior is described in https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901113
+ */
+var OutboundTopicAliasBehaviorType;
+(function (OutboundTopicAliasBehaviorType) {
+    /**
+     * Maps to Disabled.  This keeps the client from being broken (by default) if the broker
+     * topic aliasing implementation has a problem.
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["Default"] = 0] = "Default";
+    /**
+     * Outbound aliasing is the user's responsibility.  Client will cache and use
+     * previously-established aliases if they fall within the negotiated limits of the connection.
+     *
+     * The user must still always submit a full topic in their publishes because disconnections disrupt
+     * topic alias mappings unpredictably.  The client will properly use a requested alias when the most-recently-seen
+     * binding for a topic alias value matches the alias and topic in the publish packet.
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["Manual"] = 1] = "Manual";
+    /**
+     * (Recommended) The client will use an LRU cache to drive alias usage.
+     *
+     * Manually setting a topic alias will be ignored (the LRU cache is authoritative)
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["LRU"] = 2] = "LRU";
+    /**
+     * Completely disable outbound topic aliasing.
+     */
+    OutboundTopicAliasBehaviorType[OutboundTopicAliasBehaviorType["Disabled"] = 3] = "Disabled";
+})(OutboundTopicAliasBehaviorType = exports.OutboundTopicAliasBehaviorType || (exports.OutboundTopicAliasBehaviorType = {}));
+/**
+ * An enumeration that controls whether or not the client allows the broker to send publishes that use topic
+ * aliasing.
+ *
+ * Topic alias behavior is described in https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901113
+ */
+var InboundTopicAliasBehaviorType;
+(function (InboundTopicAliasBehaviorType) {
+    /**
+     * Maps to Disabled.  This keeps the client from being broken (by default) if the broker
+     * topic aliasing implementation has a problem.
+     */
+    InboundTopicAliasBehaviorType[InboundTopicAliasBehaviorType["Default"] = 0] = "Default";
+    /**
+     * Allow the server to send PUBLISH packets to the client that use topic aliasing
+     */
+    InboundTopicAliasBehaviorType[InboundTopicAliasBehaviorType["Enabled"] = 1] = "Enabled";
+    /**
+     * Forbid the server from sending PUBLISH packets to the client that use topic aliasing
+     */
+    InboundTopicAliasBehaviorType[InboundTopicAliasBehaviorType["Disabled"] = 2] = "Disabled";
+})(InboundTopicAliasBehaviorType = exports.InboundTopicAliasBehaviorType || (exports.InboundTopicAliasBehaviorType = {}));
 //# sourceMappingURL=mqtt5.js.map
 
 /***/ }),
@@ -43215,6 +43350,30 @@ exports.using = using;
 
 /***/ }),
 
+/***/ 13391:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.set_defined_property = void 0;
+/** @internal */
+function set_defined_property(object, propertyName, value) {
+    if (value === undefined || value == null) {
+        return false;
+    }
+    object[propertyName] = value;
+    return true;
+}
+exports.set_defined_property = set_defined_property;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
 /***/ 71478:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -43859,13 +44018,13 @@ class AwsIotMqttConnectionConfigBuilder {
      *                 check to see if a username has already been set (via WithUsername function). If no
      *                 username is set then no username will be passed with the MQTT connection.
      * @param authorizer_name The name of the custom authorizer. If an empty string is passed, then
-     *                       'x-amz-customauthorizer-name' will not be added with the MQTT connection.
+     *                       'x-amz-customauthorizer-name' will not be added with the MQTT connection.  It is strongly
+     *                       recommended to URL-encode this value; the SDK will not do so for you.
      * @param authorizer_signature The signature of the custom authorizer. If an empty string is passed, then
      *                            'x-amz-customauthorizer-signature' will not be added with the MQTT connection.
      *                            The signature must be based on the private key associated with the custom authorizer.
      *                            The signature must be base64 encoded.
-     *                            Required if the custom authorizer has signing enabled.  It is strongly suggested to URL-encode
-     *                            this value; the SDK will not do so for you.
+     *                            Required if the custom authorizer has signing enabled.
      * @param password The password to use with the custom authorizer. If null is passed, then no password will
      *                 be set.
      * @param token_key_name Key used to extract the custom authorizer token from MQTT username query-string properties.
@@ -43877,7 +44036,8 @@ class AwsIotMqttConnectionConfigBuilder {
      */
     with_custom_authorizer(username, authorizer_name, authorizer_signature, password, token_key_name, token_value) {
         this.is_using_custom_authorizer = true;
-        let username_string = iot_shared.populate_username_string_with_custom_authorizer("", username, authorizer_name, authorizer_signature, this.params.username, token_key_name, token_value);
+        let uri_encoded_signature = iot_shared.canonicalizeCustomAuthTokenSignature(authorizer_signature);
+        let username_string = iot_shared.populate_username_string_with_custom_authorizer("", username, authorizer_name, uri_encoded_signature, this.params.username, token_key_name, token_value);
         this.params.username = username_string;
         this.params.password = password;
         if (!this.params.use_websocket) {
@@ -44031,14 +44191,8 @@ const error_1 = __nccwpck_require__(77385);
 const iot_shared = __importStar(__nccwpck_require__(50463));
 const mqtt_shared = __importStar(__nccwpck_require__(12425));
 /**
- * Builder pattern class to create an {@link Mqtt5ClientConfig} which can then be used to create
- * an {@link Mqtt5Client}, configured for use with AWS IoT.
- *
- * DEVELOPER PREVIEW DISCLAIMER
- *
- * MQTT5 support is currently in **developer preview**.  We encourage feedback at all times, but feedback during the
- * preview window is especially valuable in shaping the final product.  During the preview period we may make
- * backwards-incompatible changes to the public API, but in general, this is something we will try our best to avoid.
+ * Builder pattern class to create an {@link mqtt5.Mqtt5ClientConfig} which can then be used to create
+ * an {@link mqtt5.Mqtt5Client}, configured for use with AWS IoT.
  *
  * [MQTT5 Client User Guide](https://www.github.com/awslabs/aws-crt-nodejs/blob/main/MQTT5-UserGuide.md)
  *
@@ -44146,7 +44300,7 @@ class AwsIotMqtt5ClientConfigBuilder {
      */
     static newDirectMqttBuilderWithCustomAuth(hostName, customAuthConfig) {
         let builder = new AwsIotMqtt5ClientConfigBuilder(hostName, AwsIotMqtt5ClientConfigBuilder.DEFAULT_WEBSOCKET_MQTT_PORT, new io.TlsContextOptions());
-        builder.customAuthConfig = customAuthConfig;
+        builder.customAuthConfig = iot_shared.canonicalizeCustomAuthConfig(customAuthConfig);
         builder.tlsContextOptions.alpn_list = ["mqtt"];
         return builder;
     }
@@ -44384,6 +44538,15 @@ class AwsIotMqtt5ClientConfigBuilder {
         return this;
     }
     /**
+     * Overrides how the MQTT5 client should behave with respect to topic aliasing
+     *
+     * @param topicAliasingOptions how the MQTT5 client should behave with respect to topic aliasing
+     */
+    withTopicAliasingOptions(topicAliasingOptions) {
+        this.config.topicAliasingOptions = topicAliasingOptions;
+        return this;
+    }
+    /**
      * Constructs an MQTT5 Client configuration object for creating mqtt5 clients.
      */
     build() {
@@ -44497,18 +44660,38 @@ if ((0, fs_1.existsSync)(dist)) {
     source_root = dist;
 }
 const bin_path = path.resolve(source_root, 'bin');
-const search_paths = [
-    path.join(bin_path, platformDir, binary_name),
+let search_paths = [
+    path.join(bin_path, platformDir, binary_name) + '.node',
 ];
+/*
+ * Environment variables can inject (at lower-priority) paths into the search process as well.  Support both relative
+ * and absolute path overrides.
+ */
+let relative_path = process.env.AWS_CRT_NODEJS_BINARY_RELATIVE_PATH;
+if (relative_path) {
+    let final_path = path.resolve(__dirname, ...relative_path.split(path.sep));
+    search_paths.push(final_path);
+}
+if (process.env.AWS_CRT_NODEJS_BINARY_ABSOLUTE_PATH) {
+    search_paths.push(process.env.AWS_CRT_NODEJS_BINARY_ABSOLUTE_PATH);
+}
 let binding;
 for (const path of search_paths) {
-    if ((0, fs_1.existsSync)(path + '.node')) {
+    if ((0, fs_1.existsSync)(path)) {
         binding = require(path);
         break;
     }
 }
 if (binding == undefined) {
     throw new Error("AWS CRT binary not present in any of the following locations:\n\t" + search_paths.join('\n\t'));
+}
+const binding_1 = __importDefault(__nccwpck_require__(94719));
+/** Electron will shutdown the node process on exit, which causes the threadsafe function to segfault. To prevent
+  * the segfault we disable the threadsafe function on node process exit. */
+if (process.versions.hasOwnProperty('electron')) {
+    process.on('exit', function () {
+        binding_1.default.disable_threadsafe_function();
+    });
 }
 exports["default"] = binding;
 //# sourceMappingURL=binding.js.map
@@ -45941,6 +46124,20 @@ exports.HttpProxyOptions = HttpProxyOptions;
  * @category HTTP
  */
 class HttpClientConnection extends HttpConnection {
+    _on_setup(native_handle, error_code) {
+        if (error_code) {
+            this.emit('error', new error_1.CrtError(error_code));
+            return;
+        }
+        this.emit('connect');
+    }
+    _on_shutdown(native_handle, error_code) {
+        if (error_code) {
+            this.emit('error', new error_1.CrtError(error_code));
+            return;
+        }
+        this.emit('close');
+    }
     /** Asynchronously establish a new HttpClientConnection.
      * @param bootstrap Client bootstrap to use when initiating socket connection.  Leave undefined to use the
      *          default system-wide bootstrap (recommended).
@@ -45964,20 +46161,6 @@ class HttpClientConnection extends HttpConnection {
         this.bootstrap = bootstrap;
         this.socket_options = socket_options;
         this.tls_opts = tls_opts;
-    }
-    _on_setup(native_handle, error_code) {
-        if (error_code) {
-            this.emit('error', new error_1.CrtError(error_code));
-            return;
-        }
-        this.emit('connect');
-    }
-    _on_shutdown(native_handle, error_code) {
-        if (error_code) {
-            this.emit('error', new error_1.CrtError(error_code));
-            return;
-        }
-        this.emit('close');
     }
     /**
      * Create {@link HttpClientStream} to carry out the request/response exchange.
@@ -46757,7 +46940,7 @@ Object.defineProperty(exports, "MqttWill", ({ enumerable: true, get: function ()
  */
 class MqttClient extends native_resource_1.NativeResource {
     /**
-     * @param bootstrap The {@link ClientBootstrap} to use for socket connections.  Leave undefined to use the
+     * @param bootstrap The {@link io.ClientBootstrap} to use for socket connections.  Leave undefined to use the
      *          default system-wide bootstrap (recommended).
      */
     constructor(bootstrap = undefined) {
@@ -46820,7 +47003,7 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
         if (config.socket_options == undefined || config.socket_options == null) {
             throw new error_1.CrtError("MqttClientConnection constructor: socket_options in configuration not defined");
         }
-        this._super(binding_1.default.mqtt_client_connection_new(client.native_handle(), (error_code) => { this._on_connection_interrupted(error_code); }, (return_code, session_present) => { this._on_connection_resumed(return_code, session_present); }, config.tls_ctx ? config.tls_ctx.native_handle() : null, will, config.username, config.password, config.use_websocket, config.proxy_options ? config.proxy_options.create_native_handle() : undefined, config.websocket_handshake_transform, min_sec, max_sec));
+        this._super(binding_1.default.mqtt_client_connection_new(client.native_handle(), (error_code) => { this._on_connection_interrupted(error_code); }, (return_code, session_present) => { this._on_connection_resumed(return_code, session_present); }, (return_code, session_present) => { this._on_connection_success(return_code, session_present); }, (error_code) => { this._on_connection_failure(error_code); }, config.tls_ctx ? config.tls_ctx.native_handle() : null, will, config.username, config.password, config.use_websocket, config.proxy_options ? config.proxy_options.create_native_handle() : undefined, config.websocket_handshake_transform, min_sec, max_sec));
         this.tls_ctx = config.tls_ctx;
         binding_1.default.mqtt_client_connection_on_message(this.native_handle(), this._on_any_publish.bind(this));
         binding_1.default.mqtt_client_connection_on_closed(this.native_handle(), this._on_connection_closed.bind(this));
@@ -47012,8 +47195,17 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
      *
      * @group Node-only
      */
-    getQueueStatistics() {
+    getOperationalStatistics() {
         return binding_1.default.mqtt_client_connection_get_queue_statistics(this.native_handle());
+    }
+    /**
+     * Queries a small set of numerical statistics about the current state of the connection's operation queue
+     * @deprecated use getOperationalStatistics instead
+     *
+     * @group Node-only
+     */
+    getQueueStatistics() {
+        return this.getOperationalStatistics();
     }
     // Wrap a promise rejection with a function that will also emit the error as an event
     _reject(reject) {
@@ -47024,13 +47216,19 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
             });
         };
     }
+    _on_connection_failure(error_code) {
+        let failureCallbackData = { error: new error_1.CrtError(error_code) };
+        this.emit('connection_failure', failureCallbackData);
+    }
+    _on_connection_success(return_code, session_present) {
+        let successCallbackData = { session_present: session_present, reason_code: return_code };
+        this.emit('connection_success', successCallbackData);
+    }
     _on_connection_interrupted(error_code) {
         this.emit('interrupt', new error_1.CrtError(error_code));
     }
     _on_connection_resumed(return_code, session_present) {
         this.emit('resume', return_code, session_present);
-        let successCallbackData = { session_present: session_present, reason_code: return_code };
-        this.emit('connection_success', successCallbackData);
     }
     _on_any_publish(topic, payload, dup, qos, retain) {
         this.emit('message', topic, payload, dup, qos, retain);
@@ -47048,18 +47246,12 @@ class MqttClientConnection extends (0, native_resource_1.NativeResourceMixin)(ev
         if (error_code == 0 && return_code == 0) {
             resolve(session_present);
             this.emit('connect', session_present);
-            let successCallbackData = { session_present: session_present, reason_code: return_code };
-            this.emit('connection_success', successCallbackData);
         }
         else if (error_code != 0) {
             reject("Failed to connect: " + io.error_code_to_string(error_code));
-            let failureCallbackData = { error: new error_1.CrtError(error_code) };
-            this.emit('connection_failure', failureCallbackData);
         }
         else {
             reject("Server rejected connection.");
-            let failureCallbackData = { error: new error_1.CrtError(5134) }; // 5134 = AWS_ERROR_MQTT_UNEXPECTED_HANGUP
-            this.emit('connection_failure', failureCallbackData);
         }
     }
     _on_puback_callback(resolve, reject, packet_id, error_code) {
@@ -47209,12 +47401,6 @@ exports.Mqtt5Client = exports.ClientExtendedValidationAndFlowControl = exports.C
 /**
  * Node.js specific MQTT5 client implementation
  *
- * DEVELOPER PREVIEW DISCLAIMER
- *
- * MQTT5 support is currently in **developer preview**.  We encourage feedback at all times, but feedback during the
- * preview window is especially valuable in shaping the final product.  During the preview period we may make
- * backwards-incompatible changes to the public API, but in general, this is something we will try our best to avoid.
- *
  * [MQTT5 Client User Guide](https://www.github.com/awslabs/aws-crt-nodejs/blob/main/MQTT5-UserGuide.md)
  *
  * @packageDocumentation
@@ -47289,12 +47475,6 @@ var ClientExtendedValidationAndFlowControl;
 })(ClientExtendedValidationAndFlowControl = exports.ClientExtendedValidationAndFlowControl || (exports.ClientExtendedValidationAndFlowControl = {}));
 /**
  * Node.js specific MQTT5 client implementation
- *
- * DEVELOPER PREVIEW DISCLAIMER
- *
- * MQTT5 support is currently in **developer preview**.  We encourage feedback at all times, but feedback during the
- * preview window is especially valuable in shaping the final product.  During the preview period we may make
- * backwards-incompatible changes to the public API, but in general, this is something we will try our best to avoid.
  *
  * Not all parts of the MQTT5 spec are supported. We currently do not support:
  *
@@ -47435,8 +47615,17 @@ class Mqtt5Client extends (0, native_resource_1.NativeResourceMixin)(event_1.Buf
      *
      * @group Node-only
      */
-    getQueueStatistics() {
+    getOperationalStatistics() {
         return binding_1.default.mqtt5_client_get_queue_statistics(this.native_handle());
+    }
+    /**
+     * Queries a small set of numerical statistics about the current state of the client's operation queue
+     * @deprecated use getOperationalStatistics instead
+     *
+     * @group Node-only
+     */
+    getQueueStatistics() {
+        return this.getOperationalStatistics();
     }
     on(event, listener) {
         super.on(event, listener);
@@ -47776,6 +47965,101 @@ function parseCommaParts(str) {
 
   return parts;
 }
+exports.ClientTlsContext = ClientTlsContext;
+/**
+ * TLS context used for server TLS communications over sockets. If no
+ * options are supplied, the context will default to disabling peer verification
+ * only.
+ *
+ * nodejs only.
+ * @category TLS
+ */
+class ServerTlsContext extends TlsContext {
+    constructor(ctx_opt) {
+        if (!ctx_opt) {
+            ctx_opt = new TlsContextOptions();
+            ctx_opt.verify_peer = false;
+        }
+        super(ctx_opt);
+    }
+}
+exports.ServerTlsContext = ServerTlsContext;
+/**
+ * TLS options that are unique to a given connection using a shared TlsContext.
+ *
+ * nodejs only.
+ * @category TLS
+ */
+class TlsConnectionOptions extends native_resource_1.NativeResource {
+    constructor(tls_ctx, server_name, alpn_list = []) {
+        if (tls_ctx == null || tls_ctx == undefined) {
+            throw new error_1.CrtError("TlsConnectionOptions constructor: tls_ctx not defined");
+        }
+        super(binding_1.default.io_tls_connection_options_new(tls_ctx.native_handle(), server_name, (alpn_list && alpn_list.length > 0) ? alpn_list.join(';') : undefined));
+        this.tls_ctx = tls_ctx;
+        this.server_name = server_name;
+        this.alpn_list = alpn_list;
+    }
+}
+exports.TlsConnectionOptions = TlsConnectionOptions;
+/**
+ * Handle to a loaded PKCS#11 library.
+ *
+ * For most use cases, a single instance of Pkcs11Lib should be used
+ * for the lifetime of your application.
+ *
+ * nodejs only.
+ * @category TLS
+ */
+class Pkcs11Lib extends native_resource_1.NativeResource {
+    /**
+     * @param path - Path to PKCS#11 library.
+     * @param behavior - Specifies how `C_Initialize()` and `C_Finalize()`
+     *                   will be called on the PKCS#11 library.
+     */
+    constructor(path, behavior = Pkcs11Lib.InitializeFinalizeBehavior.DEFAULT) {
+        super(binding_1.default.io_pkcs11_lib_new(path, behavior));
+    }
+    /**
+     * Release the PKCS#11 library immediately, without waiting for the GC.
+     */
+    close() {
+        binding_1.default.io_pkcs11_lib_close(this.native_handle());
+    }
+}
+exports.Pkcs11Lib = Pkcs11Lib;
+(function (Pkcs11Lib) {
+    /**
+     * Controls `C_Initialize()` and `C_Finalize()` are called on the PKCS#11 library.
+     */
+    let InitializeFinalizeBehavior;
+    (function (InitializeFinalizeBehavior) {
+        /**
+         * Default behavior that accommodates most use cases.
+         *
+         * `C_Initialize()` is called on creation, and "already-initialized"
+         * errors are ignored. `C_Finalize()` is never called, just in case
+         * another part of your application is still using the PKCS#11 library.
+         */
+        InitializeFinalizeBehavior[InitializeFinalizeBehavior["DEFAULT"] = 0] = "DEFAULT";
+        /**
+         * Skip calling `C_Initialize()` and `C_Finalize()`.
+         *
+         * Use this if your application has already initialized the PKCS#11 library,
+         * and you do not want `C_Initialize()` called again.
+         */
+        InitializeFinalizeBehavior[InitializeFinalizeBehavior["OMIT"] = 1] = "OMIT";
+        /**
+         * `C_Initialize()` is called on creation and `C_Finalize()` is called on cleanup.
+         *
+         * If `C_Initialize()` reports that's it's already initialized, this is
+         * treated as an error. Use this if you need perfect cleanup (ex: running
+         * valgrind with --leak-check).
+         */
+        InitializeFinalizeBehavior[InitializeFinalizeBehavior["STRICT"] = 2] = "STRICT";
+    })(InitializeFinalizeBehavior = Pkcs11Lib.InitializeFinalizeBehavior || (Pkcs11Lib.InitializeFinalizeBehavior = {}));
+})(Pkcs11Lib = exports.Pkcs11Lib || (exports.Pkcs11Lib = {}));
+//# sourceMappingURL=io.js.map
 
 function expandTop(str) {
   if (!str)
@@ -47914,6 +48198,54 @@ function expand(str, isTop) {
   return expansions;
 }
 
+
+
+/***/ }),
+
+/***/ 27972:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const os = __nccwpck_require__(22037);
+
+const extractPathRegex = /\s+at.*(?:\(|\s)(.*)\)?/;
+const pathRegex = /^(?:(?:(?:node|(?:internal\/[\w/]*|.*node_modules\/(?:babel-polyfill|pirates)\/.*)?\w+)\.js:\d+:\d+)|native)/;
+const homeDir = typeof os.homedir === 'undefined' ? '' : os.homedir();
+
+module.exports = (stack, options) => {
+	options = Object.assign({pretty: false}, options);
+
+	return stack.replace(/\\/g, '/')
+		.split('\n')
+		.filter(line => {
+			const pathMatches = line.match(extractPathRegex);
+			if (pathMatches === null || !pathMatches[1]) {
+				return true;
+			}
+
+			const match = pathMatches[1];
+
+			// Electron
+			if (
+				match.includes('.app/Contents/Resources/electron.asar') ||
+				match.includes('.app/Contents/Resources/default_app.asar')
+			) {
+				return false;
+			}
+
+			return !pathRegex.test(match);
+		})
+		.filter(line => line.trim() !== '')
+		.map(line => {
+			if (options.pretty) {
+				return line.replace(extractPathRegex, (m, p1) => m.replace(p1, p1.replace(homeDir, '~')));
+			}
+
+			return line;
+		})
+		.join('\n');
+};
 
 
 /***/ }),
@@ -49143,6 +49475,7 @@ class OrderedObjParser{
     this.saveTextToParentTag = saveTextToParentTag;
     this.addChild = addChild;
   }
+};
 
 }
 
@@ -49570,6 +49903,7 @@ function tagExpWithClosingIndex(xmlData, i, closingChar = ">"){
     }
     tagExp += ch;
   }
+  return i;
 }
 
 function findClosingIndex(xmlData, str, i, errMsg){
@@ -49675,6 +50009,10 @@ function parseValue(val, shouldParse, options) {
   }
 }
 
+/**
+ * Select all the attributes whether valid or invalid.
+ */
+const validAttrStrRegxp = new RegExp('(\\s*)([^\\s=]+)(\\s*=)?(\\s*([\'"])(([\\s\\S])*?)\\5)?', 'g');
 
 module.exports = OrderedObjParser;
 
@@ -49968,6 +50306,17 @@ function unmonkeypatch () {
   fs.realpathSync = origRealpathSync
 }
 
+function buildEmptyObjNode(val, key, attrStr, level) {
+  if (val !== '') {
+    return this.buildObjectNode(val, key, attrStr, level);
+  } else {
+    if(key[0] === "?") return  this.indentate(level) + '<' + key + attrStr+ '?' + this.tagEndChar;
+    else {
+      return  this.indentate(level) + '<' + key + attrStr + '/' + this.tagEndChar;
+      // return this.buildTagStr(level,key, attrStr);
+    }
+  }
+}
 
 /***/ }),
 
@@ -50281,6 +50630,49 @@ exports.realpath = function realpath(p, cache, cb) {
 
 /***/ }),
 
+/***/ 98043:
+/***/ ((module) => {
+
+"use strict";
+
+
+module.exports = (string, count = 1, options) => {
+	options = {
+		indent: ' ',
+		includeEmptyLines: false,
+		...options
+	};
+
+	if (typeof string !== 'string') {
+		throw new TypeError(
+			`Expected \`input\` to be a \`string\`, got \`${typeof string}\``
+		);
+	}
+
+	if (typeof count !== 'number') {
+		throw new TypeError(
+			`Expected \`count\` to be a \`number\`, got \`${typeof count}\``
+		);
+	}
+
+	if (typeof options.indent !== 'string') {
+		throw new TypeError(
+			`Expected \`options.indent\` to be a \`string\`, got \`${typeof options.indent}\``
+		);
+	}
+
+	if (count === 0) {
+		return string;
+	}
+
+	const regex = options.includeEmptyLines ? /^/gm : /^(?!\s*$)/gm;
+
+	return string.replace(regex, options.indent.repeat(count));
+};
+
+
+/***/ }),
+
 /***/ 52492:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -50355,6 +50747,15 @@ try {
   module.exports = __nccwpck_require__(8544);
 }
 
+function rethrow() {
+  // Only enable in debug mode. A backtrace uses ~1000 bytes of heap space and
+  // is fairly slow to generate.
+  var callback;
+  if (DEBUG) {
+    var backtrace = new Error;
+    callback = debugCallback;
+  } else
+    callback = missingCallback;
 
 /***/ }),
 
@@ -50450,7 +50851,6 @@ function filter (pattern, options) {
   return function (p, i, list) {
     return minimatch(p, pattern, options)
   }
-}
 
 function ext (a, b) {
   b = b || {}
@@ -51393,12 +51793,131 @@ function onceStrict (fn) {
 }
 
 
-/***/ }),
+Minimatch.prototype.makeRe = makeRe
+function makeRe () {
+  if (this.regexp || this.regexp === false) return this.regexp
+
+  // at this point, this.set is a 2d array of partial
+  // pattern strings, or "**".
+  //
+  // It's better to use .match().  This function shouldn't
+  // be used, really, but it's pretty convenient sometimes,
+  // when you just want to work with a regex.
+  var set = this.set
+
+/***/ 91855:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+  var twoStar = options.noglobstar ? star
+    : options.dot ? twoStarDot
+    : twoStarNoDot
+  var flags = options.nocase ? 'i' : ''
+
+const AggregateError = __nccwpck_require__(61231);
+
+module.exports = async (
+	iterable,
+	mapper,
+	{
+		concurrency = Infinity,
+		stopOnError = true
+	} = {}
+) => {
+	return new Promise((resolve, reject) => {
+		if (typeof mapper !== 'function') {
+			throw new TypeError('Mapper function is required');
+		}
+
+		if (!((Number.isSafeInteger(concurrency) || concurrency === Infinity) && concurrency >= 1)) {
+			throw new TypeError(`Expected \`concurrency\` to be an integer from 1 and up or \`Infinity\`, got \`${concurrency}\` (${typeof concurrency})`);
+		}
+
+		const result = [];
+		const errors = [];
+		const iterator = iterable[Symbol.iterator]();
+		let isRejected = false;
+		let isIterableDone = false;
+		let resolvingCount = 0;
+		let currentIndex = 0;
+
+		const next = () => {
+			if (isRejected) {
+				return;
+			}
+
+			const nextItem = iterator.next();
+			const index = currentIndex;
+			currentIndex++;
+
+			if (nextItem.done) {
+				isIterableDone = true;
+
+				if (resolvingCount === 0) {
+					if (!stopOnError && errors.length !== 0) {
+						reject(new AggregateError(errors));
+					} else {
+						resolve(result);
+					}
+				}
+
+				return;
+			}
+
+			resolvingCount++;
+
+			(async () => {
+				try {
+					const element = await nextItem.value;
+					result[index] = await mapper(element, index);
+					resolvingCount--;
+					next();
+				} catch (error) {
+					if (stopOnError) {
+						isRejected = true;
+						reject(error);
+					} else {
+						errors.push(error);
+						resolvingCount--;
+						next();
+					}
+				}
+			})();
+		};
+
+		for (let i = 0; i < concurrency; i++) {
+			next();
+
+			if (isIterableDone) {
+				break;
+			}
+		}
+	});
+};
+
+minimatch.match = function (list, pattern, options) {
+  options = options || {}
+  var mm = new Minimatch(pattern, options)
+  list = list.filter(function (f) {
+    return mm.match(f)
+  })
+  if (mm.options.nonull && !list.length) {
+    list.push(pattern)
+  }
+  return list
+}
+
+Minimatch.prototype.match = function match (f, partial) {
+  if (typeof partial === 'undefined') partial = this.partial
+  this.debug('match', f, this.pattern)
+  // short-circuit in the case of busted things.
+  // comments, etc.
+  if (this.comment) return false
+  if (this.empty) return f === ''
 
 /***/ 38714:
 /***/ ((module) => {
 
-"use strict";
+  var options = this.options
 
 
 function posix(path) {
@@ -51853,7 +52372,6 @@ function Glob (pattern, options, cb) {
       }
     }
   }
-}
 
 Glob.prototype._finish = function () {
   assert(this instanceof Glob)
@@ -51885,7 +52403,6 @@ Glob.prototype._realpath = function () {
     if (--n === 0)
       self._finish()
   }
-}
 
 Glob.prototype._realpathSet = function (index, cb) {
   var matchset = this.matches[index]
@@ -53322,8 +53839,14 @@ const rmkidsSync = (p, options) => {
 module.exports = rimraf
 rimraf.sync = rimrafSync
 
+/*
+ * The working inner variables.
+ */
+const
+  // the random characters to choose from
+  RANDOM_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 
-/***/ }),
+  TEMPLATE_PATTERN = /XXXXXX/,
 
 /***/ 14526:
 /***/ ((module) => {
@@ -53433,6 +53956,11 @@ function toNumber(str, options = {}){
         }else{ //non-numeric string
             return str;
         }
+
+        cb(null, name);
+      });
+    } catch (err) {
+      cb(err);
     }
 }
 
@@ -54299,7 +54827,17 @@ module.exports.tmpNameSync = tmpNameSync;
 module.exports.setGracefulCleanup = setGracefulCleanup;
 
 
-/***/ }),
+    __createBinding = Object.create ? (function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+            desc = { enumerable: true, get: function() { return m[k]; } };
+        }
+        Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+    });
 
 /***/ 4351:
 /***/ ((module) => {
@@ -54726,21 +55264,41 @@ var __disposeResources;
     exporter("__disposeResources", __disposeResources);
 });
 
+function httpOverHttps(options) {
+  var agent = new TunnelingAgent(options);
+  agent.request = https.request;
+  return agent;
+}
 
-/***/ }),
+function httpsOverHttps(options) {
+  var agent = new TunnelingAgent(options);
+  agent.request = https.request;
+  agent.createSocket = createSecureSocket;
+  agent.defaultPort = 443;
+  return agent;
+}
 
 /***/ 74294:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 module.exports = __nccwpck_require__(54219);
 
+TunnelingAgent.prototype.addRequest = function addRequest(req, host, port, localAddress) {
+  var self = this;
+  var options = mergeOptions({request: req}, self.options, toOptions(host, port, localAddress));
 
-/***/ }),
+  if (self.sockets.length >= this.maxSockets) {
+    // We are over limit so we'll add it to the queue.
+    self.requests.push(options);
+    return;
+  }
 
 /***/ 54219:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
-"use strict";
+    function onFree() {
+      self.emit('free', socket, options);
+    }
 
 
 var net = __nccwpck_require__(41808);
@@ -55243,6 +55801,7 @@ function rng() {
 
 "use strict";
 
+"use strict";
 
 Object.defineProperty(exports, "__esModule", ({
   value: true
@@ -55695,712 +56254,6 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 2291:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.env = exports.region = void 0;
-const node_process_1 = __importDefault(__nccwpck_require__(97742));
-const region = () => node_process_1.default.env.AWS_REGION ?? 'eu-west-2';
-exports.region = region;
-const env = () => node_process_1.default.env.ENVIRONMENT ?? 'unknown';
-exports.env = env;
-
-
-/***/ }),
-
-/***/ 7548:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.uploadObjectToS3 = exports.putDataS3 = void 0;
-const client_s3_1 = __nccwpck_require__(19250);
-const s3_client_1 = __nccwpck_require__(2915);
-async function putDataS3(fileData, { Bucket, Key }) {
-    try {
-        const parameters = {
-            Bucket,
-            Key,
-            Body: JSON.stringify(fileData, null, 2),
-        };
-        const data = await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
-        console.log(`Data uploaded to ${Bucket}/${Key}`);
-        return data;
-    }
-    catch (error) {
-        throw new Error(`Upload to ${Bucket}/${Key} failed, error: ${String(error)}`);
-    }
-}
-exports.putDataS3 = putDataS3;
-/**
- * Upload a stream, string or blob to as an S3 object.
- *
- *
- * @param params
- * @param log
- *
- * @example
- *    await uploadObjectToS3({
- *       Bucket: s3AssetsBucket,
- *       Key: remotePath,
- *       Body: data,
- *       ACL: 'bucket-owner-full-control',
- *     });
- */
-async function uploadObjectToS3(parameters, log) {
-    try {
-        log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
-        return await (0, s3_client_1.getS3Client)().send(new client_s3_1.PutObjectCommand(parameters));
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            const newMessage = `Upload to ${parameters.Bucket}/${parameters.Key} failed, error: ${error.message}`;
-            log.error(newMessage);
-            throw error;
-        }
-        else {
-            throw error;
-        }
-    }
-}
-exports.uploadObjectToS3 = uploadObjectToS3;
-
-
-/***/ }),
-
-/***/ 2915:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getS3Client = void 0;
-const client_s3_1 = __nccwpck_require__(19250);
-const locations_1 = __nccwpck_require__(2291);
-let s3Client;
-function getS3Client() {
-    if (!s3Client) {
-        s3Client = new client_s3_1.S3Client({ region: (0, locations_1.region)() });
-    }
-    return s3Client;
-}
-exports.getS3Client = getS3Client;
-
-
-/***/ }),
-
-/***/ 87256:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.uploadArtifact = void 0;
-const put_data_s3_1 = __nccwpck_require__(7548);
-const node_fs_1 = __importDefault(__nccwpck_require__(87561));
-const core = __importStar(__nccwpck_require__(42186));
-const upload_specification_1 = __nccwpck_require__(86096);
-async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket) {
-    const uploadResponse = {
-        artifactName: artifactName,
-        artifactItems: [],
-        size: -1,
-        failedItems: [],
-    };
-    const uploadSpec = (0, upload_specification_1.getUploadSpecification)(artifactName, rootDirectory, filesToUpload);
-    for (const fileSpec of uploadSpec) {
-        try {
-            await (0, put_data_s3_1.uploadObjectToS3)({
-                Body: node_fs_1.default.createReadStream(fileSpec.absoluteFilePath),
-                Bucket: bucket,
-                Key: `ci-pipeline-upload-artifacts/aaa/${fileSpec.uploadFilePath}`, // TODO: fix path
-            }, core);
-        }
-        catch (err) {
-            uploadResponse.failedItems.push(fileSpec.absoluteFilePath);
-        }
-    }
-    return uploadResponse;
-}
-exports.uploadArtifact = uploadArtifact;
-
-
-/***/ }),
-
-/***/ 69042:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.NoFileOptions = exports.Inputs = void 0;
-/* eslint-disable no-unused-vars */
-var Inputs;
-(function (Inputs) {
-    Inputs["Name"] = "name";
-    Inputs["Path"] = "path";
-    Inputs["IfNoFilesFound"] = "if-no-files-found";
-    Inputs["RetentionDays"] = "retention-days";
-    Inputs["ArtifactBucket"] = "artifact-bucket";
-})(Inputs || (exports.Inputs = Inputs = {}));
-var NoFileOptions;
-(function (NoFileOptions) {
-    /**
-     * Default. Output a warning but do not fail the action
-     */
-    NoFileOptions["warn"] = "warn";
-    /**
-     * Fail the action with an error message
-     */
-    NoFileOptions["error"] = "error";
-    /**
-     * Do not output any warnings or errors, the action does not fail
-     */
-    NoFileOptions["ignore"] = "ignore";
-})(NoFileOptions || (exports.NoFileOptions = NoFileOptions = {}));
-
-
-/***/ }),
-
-/***/ 46455:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getInputs = void 0;
-const core = __importStar(__nccwpck_require__(42186));
-const constants_1 = __nccwpck_require__(69042);
-function raiseError(errorMessage) {
-    throw new Error(errorMessage);
-}
-/**
- * Helper to get all the inputs for the action
- */
-function getInputs() {
-    const name = core.getInput(constants_1.Inputs.Name);
-    const path = core.getInput(constants_1.Inputs.Path, { required: true });
-    const bucket = core.getInput(constants_1.Inputs.ArtifactBucket) || process.env.ARTIFACTS_S3_BUCKET || raiseError('no artifact-bucket supplied');
-    const ifNoFilesFound = core.getInput(constants_1.Inputs.IfNoFilesFound);
-    const noFileBehavior = constants_1.NoFileOptions[ifNoFilesFound];
-    if (!noFileBehavior) {
-        core.setFailed(`Unrecognized ${constants_1.Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: ${Object.keys(constants_1.NoFileOptions)}`);
-    }
-    const inputs = {
-        artifactName: name,
-        artifactBucket: bucket,
-        searchPath: path,
-        ifNoFilesFound: noFileBehavior
-    };
-    const retentionDaysStr = core.getInput(constants_1.Inputs.RetentionDays);
-    if (retentionDaysStr) {
-        inputs.retentionDays = parseInt(retentionDaysStr);
-        if (isNaN(inputs.retentionDays)) {
-            core.setFailed('Invalid retention-days');
-        }
-    }
-    return inputs;
-}
-exports.getInputs = getInputs;
-
-
-/***/ }),
-
-/***/ 64969:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkArtifactFilePath = exports.checkArtifactName = void 0;
-const core_1 = __nccwpck_require__(42186);
-/**
- * Invalid characters that cannot be in the artifact name or an uploaded file. Will be rejected
- * from the server if attempted to be sent over. These characters are not allowed due to limitations with certain
- * file systems such as NTFS. To maintain platform-agnostic behavior, all characters that are not supported by an
- * individual filesystem/platform will not be supported on all fileSystems/platforms
- *
- * FilePaths can include characters such as \ and / which are not permitted in the artifact name alone
- */
-const invalidArtifactFilePathCharacters = new Map([
-    ['"', ' Double quote "'],
-    [':', ' Colon :'],
-    ['<', ' Less than <'],
-    ['>', ' Greater than >'],
-    ['|', ' Vertical bar |'],
-    ['*', ' Asterisk *'],
-    ['?', ' Question mark ?'],
-    ['\r', ' Carriage return \\r'],
-    ['\n', ' Line feed \\n']
-]);
-const invalidArtifactNameCharacters = new Map([
-    ...invalidArtifactFilePathCharacters,
-    ['\\', ' Backslash \\'],
-    ['/', ' Forward slash /']
-]);
-/**
- * Scans the name of the artifact to make sure there are no illegal characters
- */
-function checkArtifactName(name) {
-    if (!name) {
-        throw new Error(`Artifact name: ${name}, is incorrectly provided`);
-    }
-    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactNameCharacters) {
-        if (name.includes(invalidCharacterKey)) {
-            throw new Error(`Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
-          
-Invalid characters include: ${Array.from(invalidArtifactNameCharacters.values()).toString()}
-          
-These characters are not allowed in the artifact name due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.`);
-        }
-    }
-    (0, core_1.info)(`Artifact name is valid!`);
-}
-exports.checkArtifactName = checkArtifactName;
-/**
- * Scans the name of the filePath used to make sure there are no illegal characters
- */
-function checkArtifactFilePath(path) {
-    if (!path) {
-        throw new Error(`Artifact path: ${path}, is incorrectly provided`);
-    }
-    for (const [invalidCharacterKey, errorMessageForCharacter] of invalidArtifactFilePathCharacters) {
-        if (path.includes(invalidCharacterKey)) {
-            throw new Error(`Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
-          
-Invalid characters include: ${Array.from(invalidArtifactFilePathCharacters.values()).toString()}
-          
-The following characters are not allowed in files that are uploaded due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.
-          `);
-        }
-    }
-}
-exports.checkArtifactFilePath = checkArtifactFilePath;
-
-
-/***/ }),
-
-/***/ 13930:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.findFilesToUpload = void 0;
-const glob = __importStar(__nccwpck_require__(28090));
-const path = __importStar(__nccwpck_require__(71017));
-const core_1 = __nccwpck_require__(42186);
-const fs_1 = __nccwpck_require__(57147);
-const path_1 = __nccwpck_require__(71017);
-const util_1 = __nccwpck_require__(73837);
-const stats = (0, util_1.promisify)(fs_1.stat);
-function getDefaultGlobOptions() {
-    return {
-        followSymbolicLinks: true,
-        implicitDescendants: true,
-        omitBrokenSymbolicLinks: true
-    };
-}
-/**
- * If multiple paths are specific, the least common ancestor (LCA) of the search paths is used as
- * the delimiter to control the directory structure for the artifact. This function returns the LCA
- * when given an array of search paths
- *
- * Example 1: The patterns `/foo/` and `/bar/` returns `/`
- *
- * Example 2: The patterns `~/foo/bar/*` and `~/foo/voo/two/*` and `~/foo/mo/` returns `~/foo`
- */
-function getMultiPathLCA(searchPaths) {
-    if (searchPaths.length < 2) {
-        throw new Error('At least two search paths must be provided');
-    }
-    const commonPaths = new Array();
-    const splitPaths = new Array();
-    let smallestPathLength = Number.MAX_SAFE_INTEGER;
-    // split each of the search paths using the platform specific separator
-    for (const searchPath of searchPaths) {
-        (0, core_1.debug)(`Using search path ${searchPath}`);
-        const splitSearchPath = path.normalize(searchPath).split(path.sep);
-        // keep track of the smallest path length so that we don't accidentally later go out of bounds
-        smallestPathLength = Math.min(smallestPathLength, splitSearchPath.length);
-        splitPaths.push(splitSearchPath);
-    }
-    // on Unix-like file systems, the file separator exists at the beginning of the file path, make sure to preserve it
-    if (searchPaths[0].startsWith(path.sep)) {
-        commonPaths.push(path.sep);
-    }
-    let splitIndex = 0;
-    // function to check if the paths are the same at a specific index
-    function isPathTheSame() {
-        const compare = splitPaths[0][splitIndex];
-        for (let i = 1; i < splitPaths.length; i++) {
-            if (compare !== splitPaths[i][splitIndex]) {
-                // a non-common index has been reached
-                return false;
-            }
-        }
-        return true;
-    }
-    // loop over all the search paths until there is a non-common ancestor or we go out of bounds
-    while (splitIndex < smallestPathLength) {
-        if (!isPathTheSame()) {
-            break;
-        }
-        // if all are the same, add to the end result & increment the index
-        commonPaths.push(splitPaths[0][splitIndex]);
-        splitIndex++;
-    }
-    return path.join(...commonPaths);
-}
-async function findFilesToUpload(searchPath, globOptions) {
-    const searchResults = [];
-    const globber = await glob.create(searchPath, globOptions || getDefaultGlobOptions());
-    const rawSearchResults = await globber.glob();
-    /*
-      Files are saved with case insensitivity. Uploading both a.txt and A.txt will files to be overwritten
-      Detect any files that could be overwritten for user awareness
-    */
-    const set = new Set();
-    /*
-      Directories will be rejected if attempted to be uploaded. This includes just empty
-      directories so filter any directories out from the raw search results
-    */
-    for (const searchResult of rawSearchResults) {
-        const fileStats = await stats(searchResult);
-        // isDirectory() returns false for symlinks if using fs.lstat(), make sure to use fs.stat() instead
-        if (!fileStats.isDirectory()) {
-            (0, core_1.debug)(`File:${searchResult} was found using the provided searchPath`);
-            searchResults.push(searchResult);
-            // detect any files that would be overwritten because of case insensitivity
-            if (set.has(searchResult.toLowerCase())) {
-                (0, core_1.info)(`Uploads are case insensitive: ${searchResult} was detected that it will be overwritten by another file with the same path`);
-            }
-            else {
-                set.add(searchResult.toLowerCase());
-            }
-        }
-        else {
-            (0, core_1.debug)(`Removing ${searchResult} from rawSearchResults because it is a directory`);
-        }
-    }
-    // Calculate the root directory for the artifact using the search paths that were utilized
-    const searchPaths = globber.getSearchPaths();
-    if (searchPaths.length > 1) {
-        (0, core_1.info)(`Multiple search paths detected. Calculating the least common ancestor of all paths`);
-        const lcaSearchPath = getMultiPathLCA(searchPaths);
-        (0, core_1.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
-        return {
-            filesToUpload: searchResults,
-            rootDirectory: lcaSearchPath
-        };
-    }
-    /*
-      Special case for a single file artifact that is uploaded without a directory or wildcard pattern. The directory structure is
-      not preserved and the root directory will be the single files parent directory
-    */
-    if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
-        return {
-            filesToUpload: searchResults,
-            rootDirectory: (0, path_1.dirname)(searchResults[0])
-        };
-    }
-    return {
-        filesToUpload: searchResults,
-        rootDirectory: searchPaths[0]
-    };
-}
-exports.findFilesToUpload = findFilesToUpload;
-
-
-/***/ }),
-
-/***/ 10334:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(42186));
-const artifact_1 = __nccwpck_require__(52605);
-const search_1 = __nccwpck_require__(13930);
-const input_helper_1 = __nccwpck_require__(46455);
-const constants_1 = __nccwpck_require__(69042);
-const uploader_1 = __nccwpck_require__(87256);
-async function run() {
-    try {
-        const inputs = (0, input_helper_1.getInputs)();
-        const searchResult = await (0, search_1.findFilesToUpload)(inputs.searchPath);
-        if (searchResult.filesToUpload.length === 0) {
-            // No files were found, different use cases warrant different types of behavior if nothing is found
-            switch (inputs.ifNoFilesFound) {
-                case constants_1.NoFileOptions.warn: {
-                    core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                    break;
-                }
-                case constants_1.NoFileOptions.error: {
-                    core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                    break;
-                }
-                case constants_1.NoFileOptions.ignore: {
-                    core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                    break;
-                }
-            }
-        }
-        else {
-            const s = searchResult.filesToUpload.length === 1 ? '' : 's';
-            core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
-            core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
-            if (searchResult.filesToUpload.length > 10000) {
-                core.warning(`There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`);
-            }
-            const artifactClient = (0, artifact_1.create)();
-            const options = {
-                continueOnError: false
-            };
-            if (inputs.retentionDays) {
-                options.retentionDays = inputs.retentionDays;
-            }
-            core.info(`Uploading ${inputs.artifactName} with ${searchResult.filesToUpload}, ${searchResult.rootDirectory}, ${options}`);
-            let uploadResponse;
-            const useS3 = true;
-            if (useS3) {
-                uploadResponse = await (0, uploader_1.uploadArtifact)(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket);
-            }
-            else {
-                uploadResponse = await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
-            }
-            if (uploadResponse.failedItems.length > 0) {
-                core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
-            }
-            else {
-                core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
-            }
-        }
-    }
-    catch (error) {
-        core.setFailed(error.message);
-    }
-}
-run();
-
-
-/***/ }),
-
-/***/ 86096:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getUploadSpecification = void 0;
-const fs = __importStar(__nccwpck_require__(57147));
-const core_1 = __nccwpck_require__(42186);
-const path_1 = __nccwpck_require__(71017);
-const path_and_artifact_name_validation_1 = __nccwpck_require__(64969);
-/**
- * Creates a specification that describes how each file that is part of the artifact will be uploaded
- * @param artifactName the name of the artifact being uploaded. Used during upload to denote where the artifact is stored on the server
- * @param rootDirectory an absolute file path that denotes the path that should be removed from the beginning of each artifact file
- * @param artifactFiles a list of absolute file paths that denote what should be uploaded as part of the artifact
- */
-function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
-    // artifact name was checked earlier on, no need to check again
-    const specifications = [];
-    if (!fs.existsSync(rootDirectory)) {
-        throw new Error(`Provided rootDirectory ${rootDirectory} does not exist`);
-    }
-    if (!fs.statSync(rootDirectory).isDirectory()) {
-        throw new Error(`Provided rootDirectory ${rootDirectory} is not a valid directory`);
-    }
-    // Normalize and resolve, this allows for either absolute or relative paths to be used
-    rootDirectory = (0, path_1.normalize)(rootDirectory);
-    rootDirectory = (0, path_1.resolve)(rootDirectory);
-    /*
-       Example to demonstrate behavior
-
-       Input:
-         artifactName: my-artifact
-         rootDirectory: '/home/user/files/plz-upload'
-         artifactFiles: [
-           '/home/user/files/plz-upload/file1.txt',
-           '/home/user/files/plz-upload/file2.txt',
-           '/home/user/files/plz-upload/dir/file3.txt'
-         ]
-
-       Output:
-         specifications: [
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
-           ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
-         ]
-    */
-    for (let file of artifactFiles) {
-        if (!fs.existsSync(file)) {
-            throw new Error(`File ${file} does not exist`);
-        }
-        if (!fs.statSync(file).isDirectory()) {
-            // Normalize and resolve, this allows for either absolute or relative paths to be used
-            file = (0, path_1.normalize)(file);
-            file = (0, path_1.resolve)(file);
-            if (!file.startsWith(rootDirectory)) {
-                throw new Error(`The rootDirectory: ${rootDirectory} is not a parent directory of the file: ${file}`);
-            }
-            // Check for forbidden characters in file paths that will be rejected during upload
-            const uploadPath = file.replace(rootDirectory, '');
-            (0, path_and_artifact_name_validation_1.checkArtifactFilePath)(uploadPath);
-            /*
-              uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
-              be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
-
-              path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
-                join('artifact-name/', 'file-to-upload.txt')
-                join('artifact-name/', '/file-to-upload.txt')
-                join('artifact-name', 'file-to-upload.txt')
-                join('artifact-name', '/file-to-upload.txt')
-            */
-            specifications.push({
-                absoluteFilePath: file,
-                uploadFilePath: (0, path_1.join)(artifactName, uploadPath)
-            });
-        }
-        else {
-            // Directories are rejected by the server during upload
-            (0, core_1.debug)(`Removing ${file} from rawSearchResults because it is a directory`);
-        }
-    }
-    return specifications;
-}
-exports.getUploadSpecification = getUploadSpecification;
-
-
-/***/ }),
-
 /***/ 39491:
 /***/ ((module) => {
 
@@ -56481,22 +56334,6 @@ module.exports = require("net");
 
 /***/ }),
 
-/***/ 87561:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:fs");
-
-/***/ }),
-
-/***/ 97742:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:process");
-
-/***/ }),
-
 /***/ 22037:
 /***/ ((module) => {
 
@@ -56561,7 +56398,7 @@ module.exports = require("util");
 
 /***/ }),
 
-/***/ 59796:
+/***/ 15206:
 /***/ ((module) => {
 
 "use strict";
@@ -56605,7 +56442,7 @@ module.exports = JSON.parse('{"partitions":[{"id":"aws","outputs":{"dnsSuffix":"
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"aws-crt","version":"1.18.1","description":"NodeJS/browser bindings to the aws-c-* libraries","homepage":"https://github.com/awslabs/aws-crt-nodejs","repository":{"type":"git","url":"git+https://github.com/awslabs/aws-crt-nodejs.git"},"contributors":["AWS Common Runtime Team <aws-sdk-common-runtime@amazon.com>"],"license":"Apache-2.0","main":"./dist/index.js","browser":"./dist.browser/browser.js","types":"./dist/index.d.ts","scripts":{"tsc":"node ./scripts/tsc.js","test":"npm run test:native","test:node":"npm run test:native","test:native":"npx jest --runInBand --verbose --config test/native/jest.config.js --forceExit","test:browser":"npx jest --runInBand --verbose --config test/browser/jest.config.js --forceExit","test:browser:ci":"npm run install:puppeteer && npm run test:browser","install:puppeteer":"npm install --save-dev jest-puppeteer puppeteer @types/puppeteer","prepare":"node ./scripts/tsc.js && node ./scripts/install.js","install":"node ./scripts/install.js"},"devDependencies":{"@types/crypto-js":"^3.1.43","@types/jest":"^27.0.1","@types/node":"^10.17.54","@types/prettier":"2.6.0","@types/puppeteer":"^5.4.7","@types/uuid":"^3.4.8","@types/ws":"^7.4.7","aws-sdk":"^2.848.0","https-proxy-agent":"^5.0.1","jest":"^27.2.1","jest-puppeteer":"^5.0.4","jest-runtime":"^27.2.1","puppeteer":"^3.3.0","ts-jest":"^27.0.5","typedoc":"^0.22.18","typedoc-plugin-merge-modules":"^3.1.0","typescript":"^4.7.4","uuid":"^8.3.2","yargs":"^17.2.1","cmake-js":"^6.3.2","tar":"^6.1.11"},"dependencies":{"@aws-sdk/util-utf8-browser":"^3.109.0","@httptoolkit/websocket-stream":"^6.0.0","axios":"^0.24.0","buffer":"^6.0.3","crypto-js":"^4.0.0","mqtt":"^4.3.7","process":"^0.11.10"}}');
+module.exports = JSON.parse('{"name":"aws-crt","version":"1.21.1","description":"NodeJS/browser bindings to the aws-c-* libraries","homepage":"https://github.com/awslabs/aws-crt-nodejs","repository":{"type":"git","url":"git+https://github.com/awslabs/aws-crt-nodejs.git"},"contributors":["AWS Common Runtime Team <aws-sdk-common-runtime@amazon.com>"],"license":"Apache-2.0","main":"./dist/index.js","browser":"./dist.browser/browser.js","types":"./dist/index.d.ts","scripts":{"tsc":"node ./scripts/tsc.js","test":"npm run test:native","test:node":"npm run test:native","test:native":"npx jest --runInBand --verbose --config test/native/jest.config.js --forceExit","test:browser":"npx jest --runInBand --verbose --config test/browser/jest.config.js --forceExit","test:browser:ci":"npm run install:puppeteer && npm run test:browser","install:puppeteer":"npm install --save-dev jest-puppeteer puppeteer @types/puppeteer","prepare":"node ./scripts/tsc.js && node ./scripts/install.js","install":"node ./scripts/install.js"},"devDependencies":{"@types/crypto-js":"^3.1.43","@types/jest":"^27.0.1","@types/node":"^10.17.54","@types/prettier":"2.6.0","@types/puppeteer":"^5.4.7","@types/uuid":"^3.4.13","@types/ws":"^7.4.7","aws-sdk":"^2.1537.0","cmake-js":"^7.3.0","https-proxy-agent":"^5.0.1","jest":"^27.2.1","jest-puppeteer":"^5.0.4","jest-runtime":"^27.2.1","puppeteer":"^3.3.0","tar":"^6.2.0","ts-jest":"^27.0.5","typedoc":"^0.24.8","typedoc-plugin-merge-modules":"^5.1.0","typescript":"^4.9.5","uuid":"^8.3.2","yargs":"^17.2.1"},"dependencies":{"@aws-sdk/util-utf8-browser":"^3.109.0","@httptoolkit/websocket-stream":"^6.0.1","axios":"^1.6.0","buffer":"^6.0.3","crypto-js":"^4.2.0","mqtt":"^4.3.8","process":"^0.11.10"}}');
 
 /***/ })
 
@@ -56642,17 +56479,780 @@ module.exports = JSON.parse('{"name":"aws-crt","version":"1.18.1","description":
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(10334);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+// ESM COMPAT FLAG
+__nccwpck_require__.r(__webpack_exports__);
+
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(42186);
+;// CONCATENATED MODULE: external "node:fs/promises"
+const promises_namespaceObject = require("node:fs/promises");
+var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_namespaceObject);
+;// CONCATENATED MODULE: ./src/constants.ts
+/* eslint-disable no-unused-vars */
+const Inputs = {
+    RunNumber: 'run-number',
+    Path: 'path',
+    IfNoFilesFound: 'if-no-files-found',
+    RetentionDays: 'retention-days',
+    ArtifactBucket: 'artifact-bucket',
+    Direction: 'direction',
+    FolderName: 'name',
+    Concurrency: 'concurrency',
+};
+
+;// CONCATENATED MODULE: ./src/input-helper.ts
+
+
+function raiseError(errorMessage) {
+    throw new Error(errorMessage);
+}
+/**
+ * Helper to get all the inputs for the action
+ */
+function getInputs() {
+    // generate a name for the artifact sub-folder which includes the github run number
+    const name = core.getInput(Inputs.RunNumber)
+        .concat('-', core.getInput(Inputs.FolderName));
+    const path = core.getInput(Inputs.Path, { required: true });
+    const bucket = core.getInput(Inputs.ArtifactBucket) ||
+        process.env.ARTIFACTS_S3_BUCKET ||
+        raiseError('no artifact-bucket supplied');
+    const direction = core.getInput(Inputs.Direction);
+    const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
+    const noFileBehavior = ifNoFilesFound;
+    // 2009 - rename to uploadFolderName
+    // also rename UploadInputs
+    const folderName = core.getInput(Inputs.FolderName);
+    const concurrency = core.getInput(Inputs.Concurrency);
+    if (!noFileBehavior) {
+        core.setFailed(`Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`);
+    }
+    const inputs = {
+        artifactName: name,
+        artifactBucket: bucket,
+        searchPath: path,
+        ifNoFilesFound: noFileBehavior,
+        direction: direction,
+        folderName: folderName,
+    };
+    const retentionDaysStr = core.getInput(Inputs.RetentionDays);
+    if (retentionDaysStr) {
+        inputs.retentionDays = parseInt(retentionDaysStr);
+        if (isNaN(inputs.retentionDays)) {
+            core.setFailed('Invalid retention-days');
+        }
+    }
+    return inputs;
+}
+
+;// CONCATENATED MODULE: external "node:buffer"
+const external_node_buffer_namespaceObject = require("node:buffer");
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
+;// CONCATENATED MODULE: external "node:util"
+const external_node_util_namespaceObject = require("node:util");
+;// CONCATENATED MODULE: external "node:stream"
+const external_node_stream_namespaceObject = require("node:stream");
+// EXTERNAL MODULE: ./node_modules/@aws-sdk/client-s3/dist-cjs/index.js
+var dist_cjs = __nccwpck_require__(19250);
+;// CONCATENATED MODULE: external "node:process"
+const external_node_process_namespaceObject = require("node:process");
+var external_node_process_default = /*#__PURE__*/__nccwpck_require__.n(external_node_process_namespaceObject);
+;// CONCATENATED MODULE: ./src/aws/locations.ts
+
+const region = () => (external_node_process_default()).env.AWS_REGION ?? 'eu-west-2';
+const env = () => process.env.ENVIRONMENT ?? 'unknown';
+
+;// CONCATENATED MODULE: ./src/aws/s3-client.ts
+
+
+let s3Client;
+function s3_client_getS3Client() {
+    if (!s3Client) {
+        s3Client = new dist_cjs.S3Client({ region: region() });
+    }
+    return s3Client;
+}
+
+;// CONCATENATED MODULE: ./src/aws/stream-counter.ts
+
+/**
+ * Duplex (Transform) stream that counts the number of bytes that pass through it.
+ *
+ * The data itself is pushed through as-is.
+ */
+class StreamCounter extends external_node_stream_namespaceObject.Transform {
+    totalBytes = 0;
+    /**
+     * Get the total of all bytes transfered
+     */
+    totalBytesTransfered() {
+        return this.totalBytes;
+    }
+    _transform(chunk, encoding, cb) {
+        if (typeof chunk?.length === 'number') {
+            this.totalBytes += chunk.length;
+        }
+        cb(null, chunk);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/aws/get-object-s3.ts
+/* eslint-disable unicorn/prefer-type-error */
+
+
+
+
+
+
+
+const pipelineP = (0,external_node_util_namespaceObject.promisify)(external_node_stream_namespaceObject.pipeline);
+function isReadable(body) {
+    return body !== undefined && body && body.read !== undefined;
+}
+async function streamToString(Body) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        Body.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        Body.on('error', (error) => {
+            reject(error);
+        });
+        Body.on('end', () => {
+            resolve(Buffer.concat(chunks).toString('utf8'));
+        });
+    });
+}
+/**
+ * Stream to file, and return number of bytes saved to the file
+ */
+async function writeToFile(inputStream, filePath) {
+    const counter = new StreamCounter();
+    await pipelineP(inputStream, counter, external_node_fs_default().createWriteStream(filePath));
+    return counter.totalBytesTransfered();
+}
+async function getS3ObjectStream({ Bucket, Key, }) {
+    const parameters = {
+        Bucket,
+        Key,
+    };
+    try {
+        const { Body } = await s3_client_getS3Client().send(new dist_cjs.GetObjectCommand(parameters));
+        // https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+        if (isReadable(Body)) {
+            return Body;
+        }
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Could not retrieve from bucket 's3://${Bucket}/${Key}' from S3: ${error.message}`);
+        }
+        else {
+            throw error;
+        }
+    }
+    throw new Error(`Could not read file from bucket. 's3://${Bucket}/${Key}'`);
+}
+async function getS3Object(location, defaultValue) {
+    try {
+        return await streamToString(await getS3ObjectStream(location));
+    }
+    catch (error) {
+        if (defaultValue) {
+            return defaultValue;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}' from S3: ${message}`);
+    }
+}
+async function writeS3ObjectToFile(location, filename) {
+    try {
+        return await writeToFile(await getS3ObjectStream(location), filename);
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${error.message}`);
+        }
+        else {
+            throw error;
+        }
+    }
+}
+async function listS3Objects({ Bucket, Key, }) {
+    try {
+        const parameters = {
+            Bucket,
+            Key,
+        };
+        const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
+        return data.Contents?.map((element) => element.Key ?? '') ?? [];
+    }
+    catch (error_) {
+        const error = error_ instanceof Error
+            ? new Error(`Could not list files in S3: ${error_.name} ${error_.message}`)
+            : error_;
+        throw error;
+    }
+}
+
+// EXTERNAL MODULE: ./node_modules/p-map/index.js
+var p_map = __nccwpck_require__(91855);
+var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
+;// CONCATENATED MODULE: ./src/aws/downloader.ts
+
+
+
+
+
+// used for getting the name of the item, which is the last part of the file path
+function getItemName(str) {
+    const splitString = str.split('/');
+    return splitString[splitString.length - 1];
+}
+function logDownloadInformation(begin, downloads) {
+    const finish = Date.now();
+    let fileCount = 0;
+    let byteCount = 0;
+    for (const fileSize of downloads) {
+        byteCount += fileSize;
+        fileCount += 1;
+    }
+    const duration = finish - begin;
+    const rate = byteCount / duration;
+    console.log(`Downloaded ${byteCount} bytes, in ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds at a rate of ${rate.toFixed(0)} KB/s`);
+}
+async function runDownload() {
+    try {
+        const startTime = Date.now();
+        const inputs = getInputs();
+        const bucket = inputs.artifactBucket;
+        const name = inputs.artifactName;
+        const concurrency = inputs.concurrency;
+        const downloadPath = inputs.searchPath;
+        // create a folder to hold the downloaded objects
+        // add { recursive: true } to continue without error if the folder already exists
+        promises_default().mkdir(downloadPath, { recursive: true });
+        const objectList = await listS3Objects({
+            Bucket: bucket,
+            Prefix: name,
+        });
+        let newObjectList = [];
+        // listS3Objects brings back everything in the S3 bucket
+        // use an if statement to find only files relevant to this pipeline
+        for (const item of objectList) {
+            const newFilename = downloadPath.concat('/', getItemName(item));
+            if (item.includes(name)) {
+                newObjectList.push(item);
+                promises_default().writeFile(newFilename, '');
+            }
+        }
+        const mapper = async (artifactPath) => {
+            const getFiles = await writeS3ObjectToFile({
+                Bucket: bucket,
+                Key: artifactPath,
+            }, downloadPath.concat('/', getItemName(artifactPath)));
+            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
+            return getFiles;
+        };
+        const result = await p_map_default()(newObjectList, mapper, {
+            concurrency: concurrency,
+        });
+        logDownloadInformation(startTime, result);
+        console.log(`Total objects downloaded: ${newObjectList.length}`);
+        return result;
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+
+// EXTERNAL MODULE: ./node_modules/@actions/artifact/lib/artifact-client.js
+var artifact_client = __nccwpck_require__(52605);
+// EXTERNAL MODULE: ./node_modules/@actions/glob/lib/glob.js
+var glob = __nccwpck_require__(28090);
+// EXTERNAL MODULE: external "path"
+var external_path_ = __nccwpck_require__(71017);
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(57147);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(73837);
+;// CONCATENATED MODULE: ./src/search.ts
+
+
+
+
+
+
+const stats = (0,external_util_.promisify)(external_fs_.stat);
+function getDefaultGlobOptions() {
+    return {
+        followSymbolicLinks: true,
+        implicitDescendants: true,
+        omitBrokenSymbolicLinks: true,
+    };
+}
+/**
+ * If multiple paths are specific, the least common ancestor (LCA) of the search paths is used as
+ * the delimiter to control the directory structure for the artifact. This function returns the LCA
+ * when given an array of search paths
+ *
+ * Example 1: The patterns `/foo/` and `/bar/` returns `/`
+ *
+ * Example 2: The patterns `~/foo/bar/*` and `~/foo/voo/two/*` and `~/foo/mo/` returns `~/foo`
+ */
+function getMultiPathLCA(searchPaths) {
+    if (searchPaths.length < 2) {
+        throw new Error('At least two search paths must be provided');
+    }
+    const commonPaths = new Array();
+    const splitPaths = new Array();
+    let smallestPathLength = Number.MAX_SAFE_INTEGER;
+    // split each of the search paths using the platform specific separator
+    for (const searchPath of searchPaths) {
+        (0,core.debug)(`Using search path ${searchPath}`);
+        const splitSearchPath = external_path_.normalize(searchPath).split(external_path_.sep);
+        // keep track of the smallest path length so that we don't accidentally later go out of bounds
+        smallestPathLength = Math.min(smallestPathLength, splitSearchPath.length);
+        splitPaths.push(splitSearchPath);
+    }
+    // on Unix-like file systems, the file separator exists at the beginning of the file path, make sure to preserve it
+    if (searchPaths[0].startsWith(external_path_.sep)) {
+        commonPaths.push(external_path_.sep);
+    }
+    let splitIndex = 0;
+    // function to check if the paths are the same at a specific index
+    function isPathTheSame() {
+        const compare = splitPaths[0][splitIndex];
+        for (let i = 1; i < splitPaths.length; i++) {
+            if (compare !== splitPaths[i][splitIndex]) {
+                // a non-common index has been reached
+                return false;
+            }
+        }
+        return true;
+    }
+    // loop over all the search paths until there is a non-common ancestor or we go out of bounds
+    while (splitIndex < smallestPathLength) {
+        if (!isPathTheSame()) {
+            break;
+        }
+        // if all are the same, add to the end result & increment the index
+        commonPaths.push(splitPaths[0][splitIndex]);
+        splitIndex++;
+    }
+    return external_path_.join(...commonPaths);
+}
+async function findFilesToUpload(searchPath, globOptions) {
+    const searchResults = [];
+    const globber = await glob.create(searchPath, globOptions || getDefaultGlobOptions());
+    const rawSearchResults = await globber.glob();
+    /*
+      Files are saved with case insensitivity. Uploading both a.txt and A.txt will files to be overwritten
+      Detect any files that could be overwritten for user awareness
+    */
+    const set = new Set();
+    /*
+      Directories will be rejected if attempted to be uploaded. This includes just empty
+      directories so filter any directories out from the raw search results
+    */
+    for (const searchResult of rawSearchResults) {
+        const fileStats = await stats(searchResult);
+        // isDirectory() returns false for symlinks if using fs.lstat(), make sure to use fs.stat() instead
+        if (!fileStats.isDirectory()) {
+            (0,core.debug)(`File:${searchResult} was found using the provided searchPath`);
+            searchResults.push(searchResult);
+            // detect any files that would be overwritten because of case insensitivity
+            if (set.has(searchResult.toLowerCase())) {
+                (0,core.info)(`Uploads are case insensitive: ${searchResult} was detected that it will be overwritten by another file with the same path`);
+            }
+            else {
+                set.add(searchResult.toLowerCase());
+            }
+        }
+        else {
+            (0,core.debug)(`Removing ${searchResult} from rawSearchResults because it is a directory`);
+        }
+    }
+    // Calculate the root directory for the artifact using the search paths that were utilized
+    const searchPaths = globber.getSearchPaths();
+    if (searchPaths.length > 1) {
+        (0,core.info)(`Multiple search paths detected. Calculating the least common ancestor of all paths`);
+        const lcaSearchPath = getMultiPathLCA(searchPaths);
+        (0,core.info)(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
+        return {
+            filesToUpload: searchResults,
+            rootDirectory: lcaSearchPath,
+        };
+    }
+    /*
+      Special case for a single file artifact that is uploaded without a directory or wildcard pattern. The directory structure is
+      not preserved and the root directory will be the single files parent directory
+    */
+    if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
+        return {
+            filesToUpload: searchResults,
+            rootDirectory: (0,external_path_.dirname)(searchResults[0]),
+        };
+    }
+    return {
+        filesToUpload: searchResults,
+        rootDirectory: searchPaths[0],
+    };
+}
+
+;// CONCATENATED MODULE: ./src/aws/put-data-s3.ts
+
+
+async function putDataS3(fileData, { Bucket, Key }) {
+    try {
+        const parameters = {
+            Bucket,
+            Key,
+            Body: JSON.stringify(fileData, null, 2),
+        };
+        const data = await getS3Client().send(new PutObjectCommand(parameters));
+        console.log(`Data uploaded to ${Bucket}/${Key}`);
+        return data;
+    }
+    catch (error) {
+        throw new Error(`Upload to ${Bucket}/${Key} failed, error: ${String(error)}`);
+    }
+}
+/**
+ * Upload a stream, string or blob to as an S3 object.
+ *
+ *
+ * @param params
+ * @param log
+ *
+ * @example
+ *    await uploadObjectToS3({
+ *       Bucket: s3AssetsBucket,
+ *       Key: remotePath,
+ *       Body: data,
+ *       ACL: 'bucket-owner-full-control',
+ *     });
+ */
+async function uploadObjectToS3(parameters, log) {
+    try {
+        log.info(`Starting upload to s3://${parameters.Bucket}/${parameters.Key}`);
+        return await s3_client_getS3Client().send(new dist_cjs.PutObjectCommand(parameters));
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            const newMessage = `Upload to ${parameters.Bucket}/${parameters.Key} failed, error: ${error.message}`;
+            log.error(newMessage);
+            throw error;
+        }
+        else {
+            throw error;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/path-and-artifact-name-validation.ts
+
+/**
+ * Invalid characters that cannot be in the artifact name or an uploaded file. Will be rejected
+ * from the server if attempted to be sent over. These characters are not allowed due to limitations with certain
+ * file systems such as NTFS. To maintain platform-agnostic behavior, all characters that are not supported by an
+ * individual filesystem/platform will not be supported on all fileSystems/platforms
+ *
+ * FilePaths can include characters such as \ and / which are not permitted in the artifact name alone
+ */
+const invalidArtifactFilePathCharacters = new Map([
+    ['"', ' Double quote "'],
+    [':', ' Colon :'],
+    ['<', ' Less than <'],
+    ['>', ' Greater than >'],
+    ['|', ' Vertical bar |'],
+    ['*', ' Asterisk *'],
+    ['?', ' Question mark ?'],
+    ['\r', ' Carriage return \\r'],
+    ['\n', ' Line feed \\n'],
+]);
+const invalidArtifactNameCharacters = new Map([
+    ...invalidArtifactFilePathCharacters,
+    ['\\', ' Backslash \\'],
+    ['/', ' Forward slash /'],
+]);
+/**
+ * Scans the name of the artifact to make sure there are no illegal characters
+ */
+function checkArtifactName(name) {
+    if (!name) {
+        throw new Error(`Artifact name: ${name}, is incorrectly provided`);
+    }
+    for (const [invalidCharacterKey, errorMessageForCharacter,] of invalidArtifactNameCharacters) {
+        if (name.includes(invalidCharacterKey)) {
+            throw new Error(`Artifact name is not valid: ${name}. Contains the following character: ${errorMessageForCharacter}
+          
+Invalid characters include: ${Array.from(invalidArtifactNameCharacters.values()).toString()}
+          
+These characters are not allowed in the artifact name due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.`);
+        }
+    }
+    info(`Artifact name is valid!`);
+}
+/**
+ * Scans the name of the filePath used to make sure there are no illegal characters
+ */
+function checkArtifactFilePath(path) {
+    if (!path) {
+        throw new Error(`Artifact path: ${path}, is incorrectly provided`);
+    }
+    for (const [invalidCharacterKey, errorMessageForCharacter,] of invalidArtifactFilePathCharacters) {
+        if (path.includes(invalidCharacterKey)) {
+            throw new Error(`Artifact path is not valid: ${path}. Contains the following character: ${errorMessageForCharacter}
+          
+Invalid characters include: ${Array.from(invalidArtifactFilePathCharacters.values()).toString()}
+          
+The following characters are not allowed in files that are uploaded due to limitations with certain file systems such as NTFS. To maintain file system agnostic behavior, these characters are intentionally not allowed to prevent potential problems with downloads on different file systems.
+          `);
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/upload-specification.ts
+
+
+
+
+/**
+ * Creates a specification that describes how each file that is part of the artifact will be uploaded
+ * @param artifactName the name of the artifact being uploaded. Used during upload to denote where the artifact is stored on the server
+ * @param rootDirectory an absolute file path that denotes the path that should be removed from the beginning of each artifact file
+ * @param artifactFiles a list of absolute file paths that denote what should be uploaded as part of the artifact
+ */
+function getUploadSpecification(artifactName, rootDirectory, artifactFiles) {
+    // artifact name was checked earlier on, no need to check again
+    const specifications = [];
+    if (!external_fs_.existsSync(rootDirectory)) {
+        throw new Error(`Provided rootDirectory ${rootDirectory} does not exist`);
+    }
+    if (!external_fs_.statSync(rootDirectory).isDirectory()) {
+        throw new Error(`Provided rootDirectory ${rootDirectory} is not a valid directory`);
+    }
+    // Normalize and resolve, this allows for either absolute or relative paths to be used
+    rootDirectory = (0,external_path_.normalize)(rootDirectory);
+    rootDirectory = (0,external_path_.resolve)(rootDirectory);
+    /*
+         Example to demonstrate behavior
+  
+         Input:
+           artifactName: my-artifact
+           rootDirectory: '/home/user/files/plz-upload'
+           artifactFiles: [
+             '/home/user/files/plz-upload/file1.txt',
+             '/home/user/files/plz-upload/file2.txt',
+             '/home/user/files/plz-upload/dir/file3.txt'
+           ]
+  
+         Output:
+           specifications: [
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file1.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/file2.txt'],
+             ['/home/user/files/plz-upload/file1.txt', 'my-artifact/dir/file3.txt']
+           ]
+      */
+    for (let file of artifactFiles) {
+        if (!external_fs_.existsSync(file)) {
+            throw new Error(`File ${file} does not exist`);
+        }
+        if (!external_fs_.statSync(file).isDirectory()) {
+            // Normalize and resolve, this allows for either absolute or relative paths to be used
+            file = (0,external_path_.normalize)(file);
+            file = (0,external_path_.resolve)(file);
+            if (!file.startsWith(rootDirectory)) {
+                throw new Error(`The rootDirectory: ${rootDirectory} is not a parent directory of the file: ${file}`);
+            }
+            // Check for forbidden characters in file paths that will be rejected during upload
+            const uploadPath = file.replace(rootDirectory, '');
+            checkArtifactFilePath(uploadPath);
+            /*
+                    uploadFilePath denotes where the file will be uploaded in the file container on the server. During a run, if multiple artifacts are uploaded, they will all
+                    be saved in the same container. The artifact name is used as the root directory in the container to separate and distinguish uploaded artifacts
+      
+                    path.join handles all the following cases and would return 'artifact-name/file-to-upload.txt
+                      join('artifact-name/', 'file-to-upload.txt')
+                      join('artifact-name/', '/file-to-upload.txt')
+                      join('artifact-name', 'file-to-upload.txt')
+                      join('artifact-name', '/file-to-upload.txt')
+                  */
+            specifications.push({
+                absoluteFilePath: file,
+                uploadFilePath: (0,external_path_.join)(artifactName, uploadPath),
+            });
+        }
+        else {
+            // Directories are rejected by the server during upload
+            (0,core.debug)(`Removing ${file} from rawSearchResults because it is a directory`);
+        }
+    }
+    return specifications;
+}
+
+;// CONCATENATED MODULE: ./src/aws/uploader.ts
+
+
+
+
+
+function logUploadInformation(begin, uploads) {
+    const finish = Date.now();
+    let fileCount = 0;
+    for (const item of uploads) {
+        fileCount += 1;
+    }
+    const duration = finish - begin;
+    console.log(`Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`);
+}
+async function uploadArtifact(artifactName, filesToUpload, rootDirectory, options, bucket, folderName, concurrency
+// the p-map does all the work and then returns a null array
+) {
+    const startTime = Date.now();
+    const uploadSpec = getUploadSpecification(artifactName, rootDirectory, filesToUpload);
+    const mapper = async (fileSpec) => {
+        try {
+            await uploadObjectToS3({
+                Body: external_node_fs_default().createReadStream(fileSpec.absoluteFilePath),
+                Bucket: bucket,
+                Key: `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
+            }, core);
+        }
+        catch {
+            core.setFailed(`An error was encountered when uploading ${artifactName}`);
+        }
+    };
+    const result = await p_map_default()(uploadSpec, mapper, { concurrency: concurrency });
+    logUploadInformation(startTime, result);
+    return result;
+}
+
+;// CONCATENATED MODULE: ./src/upload-artifact.ts
+
+
+
+
+
+async function runUpload() {
+    try {
+        const inputs = getInputs();
+        const searchResult = await findFilesToUpload(inputs.searchPath);
+        if (searchResult.filesToUpload.length === 0) {
+            // No files were found, different use cases warrant different types of behavior if nothing is found
+            switch (inputs.ifNoFilesFound) {
+                case 'warn': {
+                    core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case 'error': {
+                    core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case 'ignore': {
+                    core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+            }
+        }
+        else {
+            const s = searchResult.filesToUpload.length === 1 ? '' : 's';
+            core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
+            core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
+            if (searchResult.filesToUpload.length > 10000) {
+                core.warning(`There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`);
+            }
+            const artifactClient = (0,artifact_client/* create */.U)();
+            const options = {
+                continueOnError: false,
+            };
+            if (inputs.retentionDays) {
+                options.retentionDays = inputs.retentionDays;
+            }
+            core.info(`Trying to upload files into ${inputs.folderName}/${inputs.artifactName}...`);
+            const useS3 = true;
+            if (useS3) {
+                await uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options, inputs.artifactBucket, inputs.folderName, inputs.concurrency);
+            }
+            else {
+                await artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
+            }
+        }
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/upload-or-download.ts
+
+
+
+const direction = getInputs().direction;
+if (direction == 'upload') {
+    console.log('Starting upload...');
+    runUpload();
+}
+else if (direction == 'download') {
+    console.log('Starting download...');
+    runDownload();
+}
+else {
+    console.log('No input found for direction.  Please specify "upload" or "download".');
+}
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;

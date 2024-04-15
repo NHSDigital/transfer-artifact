@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-      "target": "es2022",
-      "module": "commonjs",
-      "outDir": "./lib",
-      "rootDir": "./src",
-      "strict": true,
-      "noImplicitAny": false,
-      "moduleResolution": "node",
-      "allowSyntheticDefaultImports": true,
-      "esModuleInterop": true,
-      "declaration": false,
-      "sourceMap": true,
-      "lib": ["ES2023"],
-    },
-    "exclude": ["node_modules", "**/*.test.ts"]
-  }
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "es2022",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": true,
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "declaration": false,
+    "sourceMap": true,
+    "lib": ["ES2022"]
+  },
+  "exclude": ["node_modules", "**/*.test.ts"]
+}
