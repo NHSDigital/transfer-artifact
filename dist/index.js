@@ -56569,12 +56569,10 @@ function getItemName(str) {
 }
 function getPathToItem(str, name) {
     const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
-    console.log(`I am splitToGetPath: ${splitToGetPath}`);
     return splitToGetPath;
 }
 function getItemPath(str, name) {
     const getPath = str.replace(name, '');
-    console.log(`I am getPath: ${getPath}`);
     return getPath;
 }
 function logDownloadInformation(begin, downloads) {
@@ -56601,8 +56599,6 @@ async function runDownload() {
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
-        console.log(`I am folderName: ${folderName}`);
-        console.log(`I am name: ${name}`);
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
@@ -56613,29 +56609,49 @@ async function runDownload() {
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             const newFilename = downloadPath.concat('/', getItemName(item));
-            getPathToItem(item, name);
-            getItemPath(item, getItemName(item));
-            if (item.includes(name)) {
-                console.log(`I am creating a new drive...`);
-                promises_default().mkdir(getItemPath(item, getItemName(item)), { recursive: true });
-                newObjectList.push(item);
-                const testNewFilename = downloadPath.concat('/', getPathToItem(item, name));
-                console.log(`I am testNewFilename: ${testNewFilename}`);
-                console.log(`I am creating a new file...`);
-                promises_default().writeFile(testNewFilename, '');
-                console.log(`I'm done :)`);
-            }
+            // getPathToItem(item,name)
+            // getItemPath(item,getItemName(item))
+            // if (item.includes(name)) {
+            //   console.log(`I am creating a new drive...`)
+            //   // 2009 - try adding a require
+            //   // var getDirName = require('path').dirname
+            //   // const drive = getDirName(getItemPath(item,getItemName(item)))
+            //   const drive = getItemPath(item,getItemName(item))
+            //   fs.mkdir(drive,{recursive:true})
+            //   // fs.mkdir(getItemPath(item,getItemName(item)),{recursive:true})
+            //   newObjectList.push(item);
+            //   // const testNewFilename = downloadPath.concat('/', getPathToItem(item,name))
+            //   // console.log(`I am testNewFilename: ${testNewFilename}`)
+            //   console.log(`I am newFilename: ${newFilename}`)
+            //   console.log(`I am creating a new file...`)
+            //   // fs.writeFile(testNewFilename, '');
+            //   fs.writeFile(newFilename,'')
+            //   console.log(`I'm done :)`)
+            // }
             if (item.includes(name)) {
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');
+                console.log(`I have written file to newFilename, ${newFilename}`);
             }
         }
+        console.log(`I have completed all steps in for const item of itemlist`);
+        // 2009 - issue is here, it doesn't seem to be able to find the file (even though it has already been created above)
         const mapper = async (artifactPath) => {
+            const starterFileLocation = getItemName(artifactPath);
+            const newFileLocation = downloadPath.concat('/', getPathToItem(artifactPath, name));
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, downloadPath.concat('/', getItemName(artifactPath)));
-            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
+            }, starterFileLocation);
+            console.log(`I am newFileLocation: ${newFileLocation}`);
+            promises_default().writeFile(newFileLocation, '');
+            console.log(`Item downloaded: ${artifactPath} downloaded to ${starterFileLocation}`);
+            console.log(`I am checking I have access...`);
+            promises_default().access(starterFileLocation);
+            promises_default().access(newFileLocation);
+            console.log(`I am trying to move the file to its final location...`);
+            promises_default().copyFile(starterFileLocation, newFileLocation);
+            console.log(`File successfully moved to newFileLocation, ${newFileLocation}`);
             return getFiles;
         };
         const result = await p_map_default()(newObjectList, mapper, {
