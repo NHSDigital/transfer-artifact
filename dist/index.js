@@ -56536,11 +56536,11 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Prefix }) {
+async function listS3Objects({ Bucket, Prefix, }) {
     try {
         const parameters = {
             Bucket,
-            Prefix
+            Prefix,
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56567,6 +56567,16 @@ function getItemName(str) {
     const splitString = str.split('/');
     return splitString[splitString.length - 1];
 }
+function getPathToItem(str, name) {
+    const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
+    console.log(`I am splitToGetPath: ${splitToGetPath}`);
+    return splitToGetPath;
+}
+function getItemPath(str, name) {
+    const getPath = str.replace(name, '');
+    console.log(`I am getPath: ${getPath}`);
+    return getPath;
+}
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
     let fileCount = 0;
@@ -56591,15 +56601,30 @@ async function runDownload() {
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         promises_default().mkdir(downloadPath, { recursive: true });
+        console.log(`I am folderName: ${folderName}`);
+        console.log(`I am name: ${name}`);
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
         });
         let newObjectList = [];
+        console.log(`I am objectList: ${objectList}`);
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             const newFilename = downloadPath.concat('/', getItemName(item));
+            getPathToItem(item, name);
+            getItemPath(item, getItemName(item));
+            if (item.includes(name)) {
+                console.log(`I am creating a new drive...`);
+                promises_default().mkdir(getItemPath(item, getItemName(item)), { recursive: true });
+                newObjectList.push(item);
+                const testNewFilename = downloadPath.concat('/', getPathToItem(item, name));
+                console.log(`I am testNewFilename: ${testNewFilename}`);
+                console.log(`I am creating a new file...`);
+                promises_default().writeFile(testNewFilename, '');
+                console.log(`I'm done :)`);
+            }
             if (item.includes(name)) {
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');

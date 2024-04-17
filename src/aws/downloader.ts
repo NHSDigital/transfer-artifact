@@ -3,11 +3,24 @@ import fs from 'node:fs/promises';
 import { getInputs } from '../input-helper';
 import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
+import { PathLike } from 'node:fs';
 
 // used for getting the name of the item, which is the last part of the file path
 function getItemName(str: string) {
   const splitString = str.split('/');
   return splitString[splitString.length - 1];
+}
+
+function getPathToItem(str:string, name:string){
+  const splitToGetPath = str.substring(str.indexOf(name)+name.length+1)
+  console.log(`I am splitToGetPath: ${splitToGetPath}`)
+  return splitToGetPath
+}
+
+function getItemPath(str: string, name:string) {
+  const getPath = str.replace(name,'')
+  console.log(`I am getPath: ${getPath}`)
+  return getPath as PathLike
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -41,6 +54,9 @@ export async function runDownload(): Promise<any> {
     // add { recursive: true } to continue without error if the folder already exists
     fs.mkdir(downloadPath, { recursive: true });
 
+    console.log(`I am folderName: ${folderName}`)
+    console.log(`I am name: ${name}`)
+
     const objectList = await listS3Objects({
       Bucket: bucket,
       Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
@@ -48,11 +64,28 @@ export async function runDownload(): Promise<any> {
 
     let newObjectList: string[] = [];
 
+    console.log(`I am objectList: ${objectList}`)
+
     // listS3Objects brings back everything in the S3 bucket
     // use an if statement to find only files relevant to this pipeline
 
     for (const item of objectList) {
       const newFilename = downloadPath.concat('/', getItemName(item));
+
+      getPathToItem(item,name)
+
+      getItemPath(item,getItemName(item))
+
+      if (item.includes(name)) {
+        console.log(`I am creating a new drive...`)
+        fs.mkdir(getItemPath(item,getItemName(item)),{recursive:true})
+        newObjectList.push(item);
+        const testNewFilename = downloadPath.concat('/', getPathToItem(item,name))
+        console.log(`I am testNewFilename: ${testNewFilename}`)
+        console.log(`I am creating a new file...`)
+        fs.writeFile(testNewFilename, '');
+        console.log(`I'm done :)`)
+      }
 
       if (item.includes(name)) {
         newObjectList.push(item);
