@@ -56343,9 +56343,9 @@ __nccwpck_require__.r(__webpack_exports__);
 
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(42186);
-;// CONCATENATED MODULE: external "node:fs/promises"
-const promises_namespaceObject = require("node:fs/promises");
-var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_namespaceObject);
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
 ;// CONCATENATED MODULE: ./src/constants.ts
 /* eslint-disable no-unused-vars */
 const Inputs = {
@@ -56406,9 +56406,6 @@ function getInputs() {
 
 ;// CONCATENATED MODULE: external "node:buffer"
 const external_node_buffer_namespaceObject = require("node:buffer");
-;// CONCATENATED MODULE: external "node:fs"
-const external_node_fs_namespaceObject = require("node:fs");
-var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
 ;// CONCATENATED MODULE: external "node:util"
 const external_node_util_namespaceObject = require("node:util");
 ;// CONCATENATED MODULE: external "node:stream"
@@ -56558,6 +56555,7 @@ var p_map = __nccwpck_require__(91855);
 var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
 ;// CONCATENATED MODULE: ./src/aws/downloader.ts
 
+// import fs from 'node:fs/promises';
 
 
 
@@ -56607,12 +56605,6 @@ async function runDownload() {
         // add { recursive: true } to continue without error if the folder already exists
         // 2009 - check where I actually am!!
         // 2009 - could it be a sync issue??? use a promise???
-        console.log(`I am fs.readdir(__dirname) 1`);
-        promises_default().readdir(__dirname);
-        console.log(`I am listing __dirname: ${__dirname}`);
-        promises_default().mkdir(downloadPath, { recursive: true });
-        console.log(`I am fs.readdir(__dirname) 2`);
-        promises_default().readdir(__dirname);
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
@@ -56631,26 +56623,19 @@ async function runDownload() {
                 const updatedFileName = updatedFolderName.concat('/', getItemName(item));
                 console.log(`I am listing __dirname: ${__dirname}`);
                 console.log(`I am trying to create a new directory at ${updatedFileName}...`);
-                promises_default().mkdir(updatedFolderName, { recursive: true });
-                console.log(`I am fs.readdir(__dirname)`);
-                promises_default().readdir(__dirname);
-                console.log(`I am fs.readdir(downloadPath)`);
-                promises_default().readdir(downloadPath);
-                console.log(`I am fs.readdir(updatedFolderName)`);
-                promises_default().readdir(updatedFolderName);
+                external_node_fs_default().mkdirSync(updatedFolderName, { recursive: true });
                 // du bash command recursively
                 // at the download path folder
                 // or go into pipeline and look in docker image???
                 // check structure of updated folder name (absolute path? relative?)
-                promises_default().stat(updatedFolderName);
                 // console.log(`Checking for access to ${updatedFolderName}`)
                 // fs.access(updatedFolderName)
                 // fs.chmod(updatedFolderName,fs.constants.S_IWOTH)
                 console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`);
-                promises_default().writeFile(updatedFileName, '');
+                external_node_fs_default().writeFileSync(updatedFileName, '');
                 console.log('I have written to updated file name');
                 newObjectList.push(item);
-                promises_default().writeFile(newFilename, '');
+                external_node_fs_default().writeFileSync(newFilename, '');
                 console.log(`I have written file to newFilename, ${newFilename}`);
             }
         }

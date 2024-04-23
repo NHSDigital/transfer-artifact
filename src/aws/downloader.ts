@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
-import fs from 'node:fs/promises';
+// import fs from 'node:fs/promises';
+import fs from 'node:fs'
 import { getInputs } from '../input-helper';
 import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
@@ -60,12 +61,6 @@ export async function runDownload(): Promise<any> {
 
     // 2009 - check where I actually am!!
     // 2009 - could it be a sync issue??? use a promise???
-    console.log(`I am fs.readdir(__dirname) 1`)
-    fs.readdir(__dirname)
-    console.log(`I am listing __dirname: ${__dirname}`)
-    fs.mkdir(downloadPath, { recursive: true });
-    console.log(`I am fs.readdir(__dirname) 2`)
-    fs.readdir(__dirname)
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -94,26 +89,19 @@ export async function runDownload(): Promise<any> {
         const updatedFileName = updatedFolderName.concat('/',getItemName(item))
         console.log(`I am listing __dirname: ${__dirname}`)
         console.log(`I am trying to create a new directory at ${updatedFileName}...`)
-        fs.mkdir(updatedFolderName, {recursive: true})
-        console.log(`I am fs.readdir(__dirname)`)
-        fs.readdir(__dirname)
-        console.log(`I am fs.readdir(downloadPath)`)
-        fs.readdir(downloadPath)
-        console.log(`I am fs.readdir(updatedFolderName)`)
-        fs.readdir(updatedFolderName)
+        fs.mkdirSync(updatedFolderName, {recursive:true})
         // du bash command recursively
         // at the download path folder
         // or go into pipeline and look in docker image???
         // check structure of updated folder name (absolute path? relative?)
-        fs.stat(updatedFolderName)
         // console.log(`Checking for access to ${updatedFolderName}`)
         // fs.access(updatedFolderName)
         // fs.chmod(updatedFolderName,fs.constants.S_IWOTH)
         console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`)
-        fs.writeFile(updatedFileName,'')
+        fs.writeFileSync(updatedFileName,'')
         console.log('I have written to updated file name')
         newObjectList.push(item);
-        fs.writeFile(newFilename, '');
+        fs.writeFileSync(newFilename, '');
         console.log(`I have written file to newFilename, ${newFilename}`)
       }
     }
