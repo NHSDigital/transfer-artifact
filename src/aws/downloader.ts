@@ -51,12 +51,21 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
+    // 2009 - use path concatenation???
     const downloadPath = inputs.searchPath;
     const folderName = inputs.folderName
 
     // create a folder to hold the downloaded objects
     // add { recursive: true } to continue without error if the folder already exists
+
+    // 2009 - check where I actually am!!
+    // 2009 - could it be a sync issue??? use a promise???
+    console.log(`I am fs.readdir(__dirname) 1`)
+    fs.readdir(__dirname)
+    console.log(`I am listing __dirname: ${__dirname}`)
     fs.mkdir(downloadPath, { recursive: true });
+    console.log(`I am fs.readdir(__dirname) 2`)
+    fs.readdir(__dirname)
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -83,8 +92,19 @@ export async function runDownload(): Promise<any> {
 
         const updatedFolderName = downloadPath.concat('/',getItemPath(getPathToItem(item,name)))
         const updatedFileName = updatedFolderName.concat('/',getItemName(item))
+        console.log(`I am listing __dirname: ${__dirname}`)
         console.log(`I am trying to create a new directory at ${updatedFileName}...`)
         fs.mkdir(updatedFolderName, {recursive: true})
+        console.log(`I am fs.readdir(__dirname)`)
+        fs.readdir(__dirname)
+        console.log(`I am fs.readdir(downloadPath)`)
+        fs.readdir(downloadPath)
+        console.log(`I am fs.readdir(updatedFolderName)`)
+        fs.readdir(updatedFolderName)
+        // du bash command recursively
+        // at the download path folder
+        // or go into pipeline and look in docker image???
+        // check structure of updated folder name (absolute path? relative?)
         fs.stat(updatedFolderName)
         // console.log(`Checking for access to ${updatedFolderName}`)
         // fs.access(updatedFolderName)
