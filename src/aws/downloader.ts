@@ -87,7 +87,6 @@ export async function runDownload(): Promise<any> {
 
         const updatedFolderName = downloadPath.concat('/',getItemPath(getPathToItem(item,name)))
         const updatedFileName = updatedFolderName.concat('/',getItemName(item))
-        console.log(`I am listing __dirname: ${__dirname}`)
         console.log(`I am trying to create a new directory at ${updatedFileName}...`)
         fs.mkdirSync(updatedFolderName, {recursive:true})
         // du bash command recursively
@@ -114,13 +113,16 @@ export async function runDownload(): Promise<any> {
           Bucket: bucket,
           Key: artifactPath,
         },
-        downloadPath.concat('/', getItemName(artifactPath))
+        // downloadPath.concat('/', getItemName(artifactPath))
+        downloadPath.concat('/',getItemPath(getPathToItem(artifactPath,name)),'/',getItemName(artifactPath))
       );
       console.log(
-        `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat(
-          '/',
-          getItemName(artifactPath)
-        )}`
+        // `Item downloaded: ${artifactPath} downloaded to 
+        //   ${downloadPath.concat(
+        //   '/',
+        //   getItemName(artifactPath)
+        // )}`
+        `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/',getItemPath(getPathToItem(artifactPath,name)),'/',getItemName(artifactPath))}`
       );
       return getFiles;
     };

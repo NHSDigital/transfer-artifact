@@ -56621,7 +56621,6 @@ async function runDownload() {
                 console.log(`I am newFilename: ${newFilename}`);
                 const updatedFolderName = downloadPath.concat('/', getItemPath(getPathToItem(item, name)));
                 const updatedFileName = updatedFolderName.concat('/', getItemName(item));
-                console.log(`I am listing __dirname: ${__dirname}`);
                 console.log(`I am trying to create a new directory at ${updatedFileName}...`);
                 external_node_fs_default().mkdirSync(updatedFolderName, { recursive: true });
                 // du bash command recursively
@@ -56644,8 +56643,16 @@ async function runDownload() {
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, downloadPath.concat('/', getItemName(artifactPath)));
-            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
+            }, 
+            // downloadPath.concat('/', getItemName(artifactPath))
+            downloadPath.concat('/', getItemPath(getPathToItem(artifactPath, name)), '/', getItemName(artifactPath)));
+            console.log(
+            // `Item downloaded: ${artifactPath} downloaded to 
+            //   ${downloadPath.concat(
+            //   '/',
+            //   getItemName(artifactPath)
+            // )}`
+            `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemPath(getPathToItem(artifactPath, name)), '/', getItemName(artifactPath))}`);
             return getFiles;
         };
         // 2009 - issue is here, it doesn't seem to be able to find the file (even though it has already been created above)
