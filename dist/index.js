@@ -56565,18 +56565,21 @@ var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
 // used for getting the name of the item, which is the last part of the file path
 function getItemName(str) {
     const splitString = str.split('/');
-    console.log(`I am getItemName: ${getItemName}`);
+    console.log(`I am splitString[splitString.length - 1] for getItemName: ${splitString[splitString.length - 1]}`);
     return splitString[splitString.length - 1];
 }
 function getPathToItem(str, name) {
     const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
-    console.log(`I am getPathToItem: ${getPathToItem}`);
+    console.log(`I am splitToGetPath in getPathToItem: ${splitToGetPath}`);
     return splitToGetPath;
 }
-function getItemPath(str, name) {
-    const getPath = str.replace(name, '');
-    console.log(`I am getItemPath: ${getItemPath}`);
-    return getPath;
+function getItemPath(path) {
+    // const getPath = path.replace(file,'')
+    // console.log(`I am getPath in getItemPath: ${getPath}`)
+    // return getPath as PathLike
+    const pathWithoutZipAtEnd = path.slice(0, path.lastIndexOf('/'));
+    console.log(`I am pathWithoutZipAtEnd in getItemPath: ${pathWithoutZipAtEnd}`);
+    return pathWithoutZipAtEnd;
 }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
@@ -56611,27 +56614,22 @@ async function runDownload() {
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
-            const newFilename = downloadPath.concat('/', getItemName(item));
-            getPathToItem(item, name);
-            getItemPath(item, getItemName(item));
-            // if (item.includes(name)) {
-            //   console.log(`I am creating a new drive...`)
-            //   // 2009 - try adding a require
-            //   // var getDirName = require('path').dirname
-            //   // const drive = getDirName(getItemPath(item,getItemName(item)))
-            //   const drive = getItemPath(item,getItemName(item))
-            //   fs.mkdir(drive,{recursive:true})
-            //   // fs.mkdir(getItemPath(item,getItemName(item)),{recursive:true})
-            //   newObjectList.push(item);
-            //   // const testNewFilename = downloadPath.concat('/', getPathToItem(item,name))
-            //   // console.log(`I am testNewFilename: ${testNewFilename}`)
-            //   console.log(`I am newFilename: ${newFilename}`)
-            //   console.log(`I am creating a new file...`)
-            //   // fs.writeFile(testNewFilename, '');
-            //   fs.writeFile(newFilename,'')
-            //   console.log(`I'm done :)`)
-            // }
             if (item.includes(name)) {
+                console.log(`I am getPathToItem: ${getPathToItem(item, name)}`);
+                console.log(`I am getItemPath: ${getItemPath(getPathToItem(item, name))}`);
+                const newFilename = downloadPath.concat('/', getItemName(item));
+                console.log(`I am newFilename: ${newFilename}`);
+                const updatedFolderName = downloadPath.concat('/', getItemPath(getPathToItem(item, name)));
+                const updatedFileName = updatedFolderName.concat('/', getItemName(item));
+                console.log(`I am trying to create a new directory at ${updatedFileName}...`);
+                promises_default().mkdir(updatedFolderName, { recursive: true });
+                promises_default().stat(updatedFolderName);
+                // console.log(`Checking for access to ${updatedFolderName}`)
+                // fs.access(updatedFolderName)
+                // fs.chmod(updatedFolderName,fs.constants.S_IWOTH)
+                console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`);
+                promises_default().writeFile(updatedFileName, '');
+                console.log('I have written to updated file name');
                 newObjectList.push(item);
                 promises_default().writeFile(newFilename, '');
                 console.log(`I have written file to newFilename, ${newFilename}`);

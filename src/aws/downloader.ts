@@ -8,20 +8,23 @@ import { PathLike } from 'node:fs';
 // used for getting the name of the item, which is the last part of the file path
 function getItemName(str: string) {
   const splitString = str.split('/');
-  console.log(`I am getItemName: ${getItemName}`)
+  console.log(`I am splitString[splitString.length - 1] for getItemName: ${splitString[splitString.length - 1]}`)
   return splitString[splitString.length - 1];
 }
 
 function getPathToItem(str:string, name:string){
   const splitToGetPath = str.substring(str.indexOf(name)+name.length+1)
-  console.log(`I am getPathToItem: ${getPathToItem}`)
+  console.log(`I am splitToGetPath in getPathToItem: ${splitToGetPath}`)
   return splitToGetPath
 }
 
-function getItemPath(str: string, name:string) {
-  const getPath = str.replace(name,'')
-  console.log(`I am getItemPath: ${getItemPath}`)
-  return getPath as PathLike
+function getItemPath(path: string) {
+  // const getPath = path.replace(file,'')
+  // console.log(`I am getPath in getItemPath: ${getPath}`)
+  // return getPath as PathLike
+  const pathWithoutZipAtEnd = path.slice(0,path.lastIndexOf('/'))
+  console.log(`I am pathWithoutZipAtEnd in getItemPath: ${pathWithoutZipAtEnd}`)
+  return pathWithoutZipAtEnd
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -68,31 +71,27 @@ export async function runDownload(): Promise<any> {
     // use an if statement to find only files relevant to this pipeline
 
     for (const item of objectList) {
-      const newFilename = downloadPath.concat('/', getItemName(item));
-
-      getPathToItem(item,name)
-
-      getItemPath(item,getItemName(item))
-
-      // if (item.includes(name)) {
-      //   console.log(`I am creating a new drive...`)
-      //   // 2009 - try adding a require
-      //   // var getDirName = require('path').dirname
-      //   // const drive = getDirName(getItemPath(item,getItemName(item)))
-      //   const drive = getItemPath(item,getItemName(item))
-      //   fs.mkdir(drive,{recursive:true})
-      //   // fs.mkdir(getItemPath(item,getItemName(item)),{recursive:true})
-      //   newObjectList.push(item);
-      //   // const testNewFilename = downloadPath.concat('/', getPathToItem(item,name))
-      //   // console.log(`I am testNewFilename: ${testNewFilename}`)
-      //   console.log(`I am newFilename: ${newFilename}`)
-      //   console.log(`I am creating a new file...`)
-      //   // fs.writeFile(testNewFilename, '');
-      //   fs.writeFile(newFilename,'')
-      //   console.log(`I'm done :)`)
-      // }
 
       if (item.includes(name)) {
+        console.log(`I am getPathToItem: ${getPathToItem(item,name)}`)
+
+        console.log(`I am getItemPath: ${getItemPath(getPathToItem(item,name))}`)
+  
+        const newFilename = downloadPath.concat('/', getItemName(item));
+  
+        console.log(`I am newFilename: ${newFilename}`)
+
+        const updatedFolderName = downloadPath.concat('/',getItemPath(getPathToItem(item,name)))
+        const updatedFileName = updatedFolderName.concat('/',getItemName(item))
+        console.log(`I am trying to create a new directory at ${updatedFileName}...`)
+        fs.mkdir(updatedFolderName, {recursive: true})
+        fs.stat(updatedFolderName)
+        // console.log(`Checking for access to ${updatedFolderName}`)
+        // fs.access(updatedFolderName)
+        // fs.chmod(updatedFolderName,fs.constants.S_IWOTH)
+        console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`)
+        fs.writeFile(updatedFileName,'')
+        console.log('I have written to updated file name')
         newObjectList.push(item);
         fs.writeFile(newFilename, '');
         console.log(`I have written file to newFilename, ${newFilename}`)
