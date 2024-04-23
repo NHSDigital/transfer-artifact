@@ -56553,9 +56553,11 @@ async function listS3Objects({ Bucket, Prefix, }) {
 // EXTERNAL MODULE: ./node_modules/p-map/index.js
 var p_map = __nccwpck_require__(91855);
 var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
+// EXTERNAL MODULE: external "path"
+var external_path_ = __nccwpck_require__(71017);
 ;// CONCATENATED MODULE: ./src/aws/downloader.ts
 
-// import fs from 'node:fs/promises';
+
 
 
 
@@ -56566,15 +56568,14 @@ function getItemName(str) {
     console.log(`I am splitString[splitString.length - 1] for getItemName: ${splitString[splitString.length - 1]}`);
     return splitString[splitString.length - 1];
 }
+// used for getting the entire path, including the file name and zip ending
 function getPathToItem(str, name) {
     const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
     console.log(`I am splitToGetPath in getPathToItem: ${splitToGetPath}`);
     return splitToGetPath;
 }
+// used for getting the path, excluding the file itself
 function getItemPath(path) {
-    // const getPath = path.replace(file,'')
-    // console.log(`I am getPath in getItemPath: ${getPath}`)
-    // return getPath as PathLike
     const pathWithoutZipAtEnd = path.slice(0, path.lastIndexOf('/'));
     console.log(`I am pathWithoutZipAtEnd in getItemPath: ${pathWithoutZipAtEnd}`);
     return pathWithoutZipAtEnd;
@@ -56598,13 +56599,8 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
-        // 2009 - use path concatenation???
         const downloadPath = inputs.searchPath;
         const folderName = inputs.folderName;
-        // create a folder to hold the downloaded objects
-        // add { recursive: true } to continue without error if the folder already exists
-        // 2009 - check where I actually am!!
-        // 2009 - could it be a sync issue??? use a promise???
         const objectList = await listS3Objects({
             Bucket: bucket,
             Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
@@ -56617,19 +56613,14 @@ async function runDownload() {
             if (item.includes(name)) {
                 console.log(`I am getPathToItem: ${getPathToItem(item, name)}`);
                 console.log(`I am getItemPath: ${getItemPath(getPathToItem(item, name))}`);
-                const newFilename = downloadPath.concat('/', getItemName(item));
+                const newFilename = external_path_.join(downloadPath, getItemName(item));
                 console.log(`I am newFilename: ${newFilename}`);
-                const updatedFolderName = downloadPath.concat('/', getItemPath(getPathToItem(item, name)));
-                const updatedFileName = updatedFolderName.concat('/', getItemName(item));
+                const updatedFolderName = external_path_.join(downloadPath, getItemPath(getPathToItem(item, name)));
+                const updatedFileName = external_path_.join(updatedFolderName, getItemName(item));
                 console.log(`I am trying to create a new directory at ${updatedFileName}...`);
+                // create a folder to hold the downloaded objects
+                // add { recursive: true } to continue without error if the folder already exists
                 external_node_fs_default().mkdirSync(updatedFolderName, { recursive: true });
-                // du bash command recursively
-                // at the download path folder
-                // or go into pipeline and look in docker image???
-                // check structure of updated folder name (absolute path? relative?)
-                // console.log(`Checking for access to ${updatedFolderName}`)
-                // fs.access(updatedFolderName)
-                // fs.chmod(updatedFolderName,fs.constants.S_IWOTH)
                 console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`);
                 external_node_fs_default().writeFileSync(updatedFileName, '');
                 console.log('I have written to updated file name');
@@ -56640,19 +56631,18 @@ async function runDownload() {
         }
         console.log(`I have completed all steps in for const item of itemlist`);
         const mapper = async (artifactPath) => {
+            const downloadLocation = external_path_.join(downloadPath, getItemPath(getPathToItem(artifactPath, name)), getItemName(artifactPath));
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, 
-            // downloadPath.concat('/', getItemName(artifactPath))
-            downloadPath.concat('/', getItemPath(getPathToItem(artifactPath, name)), '/', getItemName(artifactPath)));
+            }, downloadLocation);
             console.log(
             // `Item downloaded: ${artifactPath} downloaded to 
             //   ${downloadPath.concat(
             //   '/',
             //   getItemName(artifactPath)
             // )}`
-            `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemPath(getPathToItem(artifactPath, name)), '/', getItemName(artifactPath))}`);
+            `Item downloaded: ${artifactPath} downloaded to ${downloadLocation}`);
             return getFiles;
         };
         // 2009 - issue is here, it doesn't seem to be able to find the file (even though it has already been created above)
@@ -56695,8 +56685,6 @@ async function runDownload() {
 var artifact_client = __nccwpck_require__(52605);
 // EXTERNAL MODULE: ./node_modules/@actions/glob/lib/glob.js
 var glob = __nccwpck_require__(28090);
-// EXTERNAL MODULE: external "path"
-var external_path_ = __nccwpck_require__(71017);
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(57147);
 // EXTERNAL MODULE: external "util"

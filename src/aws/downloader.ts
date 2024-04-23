@@ -1,10 +1,9 @@
 import * as core from '@actions/core';
-// import fs from 'node:fs/promises';
 import fs from 'node:fs'
 import { getInputs } from '../input-helper';
 import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
-import { PathLike } from 'node:fs';
+import * as path from 'path';
 
 // used for getting the name of the item, which is the last part of the file path
 function getItemName(str: string) {
@@ -13,16 +12,15 @@ function getItemName(str: string) {
   return splitString[splitString.length - 1];
 }
 
+// used for getting the entire path, including the file name and zip ending
 function getPathToItem(str:string, name:string){
   const splitToGetPath = str.substring(str.indexOf(name)+name.length+1)
   console.log(`I am splitToGetPath in getPathToItem: ${splitToGetPath}`)
   return splitToGetPath
 }
 
+// used for getting the path, excluding the file itself
 function getItemPath(path: string) {
-  // const getPath = path.replace(file,'')
-  // console.log(`I am getPath in getItemPath: ${getPath}`)
-  // return getPath as PathLike
   const pathWithoutZipAtEnd = path.slice(0,path.lastIndexOf('/'))
   console.log(`I am pathWithoutZipAtEnd in getItemPath: ${pathWithoutZipAtEnd}`)
   return pathWithoutZipAtEnd
@@ -52,15 +50,8 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
-    // 2009 - use path concatenation???
     const downloadPath = inputs.searchPath;
     const folderName = inputs.folderName
-
-    // create a folder to hold the downloaded objects
-    // add { recursive: true } to continue without error if the folder already exists
-
-    // 2009 - check where I actually am!!
-    // 2009 - could it be a sync issue??? use a promise???
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -81,21 +72,15 @@ export async function runDownload(): Promise<any> {
 
         console.log(`I am getItemPath: ${getItemPath(getPathToItem(item,name))}`)
   
-        const newFilename = downloadPath.concat('/', getItemName(item));
+        const newFilename = path.join(downloadPath,getItemName(item))
   
         console.log(`I am newFilename: ${newFilename}`)
-
-        const updatedFolderName = downloadPath.concat('/',getItemPath(getPathToItem(item,name)))
-        const updatedFileName = updatedFolderName.concat('/',getItemName(item))
+        const updatedFolderName = path.join(downloadPath,getItemPath(getPathToItem(item,name)))
+        const updatedFileName = path.join(updatedFolderName,getItemName(item))
         console.log(`I am trying to create a new directory at ${updatedFileName}...`)
+        // create a folder to hold the downloaded objects
+        // add { recursive: true } to continue without error if the folder already exists
         fs.mkdirSync(updatedFolderName, {recursive:true})
-        // du bash command recursively
-        // at the download path folder
-        // or go into pipeline and look in docker image???
-        // check structure of updated folder name (absolute path? relative?)
-        // console.log(`Checking for access to ${updatedFolderName}`)
-        // fs.access(updatedFolderName)
-        // fs.chmod(updatedFolderName,fs.constants.S_IWOTH)
         console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`)
         fs.writeFileSync(updatedFileName,'')
         console.log('I have written to updated file name')
@@ -108,13 +93,13 @@ export async function runDownload(): Promise<any> {
     console.log(`I have completed all steps in for const item of itemlist`)
 
     const mapper = async (artifactPath: string) => {
+      const downloadLocation = path.join(downloadPath,getItemPath(getPathToItem(artifactPath,name)),getItemName(artifactPath))
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
           Key: artifactPath,
         },
-        // downloadPath.concat('/', getItemName(artifactPath))
-        downloadPath.concat('/',getItemPath(getPathToItem(artifactPath,name)),'/',getItemName(artifactPath))
+        downloadLocation
       );
       console.log(
         // `Item downloaded: ${artifactPath} downloaded to 
@@ -122,7 +107,7 @@ export async function runDownload(): Promise<any> {
         //   '/',
         //   getItemName(artifactPath)
         // )}`
-        `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/',getItemPath(getPathToItem(artifactPath,name)),'/',getItemName(artifactPath))}`
+        `Item downloaded: ${artifactPath} downloaded to ${downloadLocation}`
       );
       return getFiles;
     };
