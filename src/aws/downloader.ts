@@ -8,16 +8,19 @@ import { PathLike } from 'node:fs';
 // used for getting the name of the item, which is the last part of the file path
 function getItemName(str: string) {
   const splitString = str.split('/');
+  console.log(`I am getItemName: ${getItemName}`)
   return splitString[splitString.length - 1];
 }
 
 function getPathToItem(str:string, name:string){
   const splitToGetPath = str.substring(str.indexOf(name)+name.length+1)
+  console.log(`I am getPathToItem: ${getPathToItem}`)
   return splitToGetPath
 }
 
 function getItemPath(str: string, name:string) {
   const getPath = str.replace(name,'')
+  console.log(`I am getItemPath: ${getItemPath}`)
   return getPath as PathLike
 }
 
@@ -67,9 +70,9 @@ export async function runDownload(): Promise<any> {
     for (const item of objectList) {
       const newFilename = downloadPath.concat('/', getItemName(item));
 
-      // getPathToItem(item,name)
+      getPathToItem(item,name)
 
-      // getItemPath(item,getItemName(item))
+      getItemPath(item,getItemName(item))
 
       // if (item.includes(name)) {
       //   console.log(`I am creating a new drive...`)
@@ -98,30 +101,47 @@ export async function runDownload(): Promise<any> {
 
     console.log(`I have completed all steps in for const item of itemlist`)
 
-    // 2009 - issue is here, it doesn't seem to be able to find the file (even though it has already been created above)
     const mapper = async (artifactPath: string) => {
-      const starterFileLocation = getItemName(artifactPath)
-      const newFileLocation = downloadPath.concat('/', getPathToItem(artifactPath,name))
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
           Key: artifactPath,
         },
-        starterFileLocation
+        downloadPath.concat('/', getItemName(artifactPath))
       );
-      console.log(`I am newFileLocation: ${newFileLocation}`)
-      fs.writeFile(newFileLocation, '');
       console.log(
-        `Item downloaded: ${artifactPath} downloaded to ${starterFileLocation}`
+        `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat(
+          '/',
+          getItemName(artifactPath)
+        )}`
       );
-      console.log(`I am checking I have access...`)
-      fs.access(starterFileLocation)
-      fs.access(newFileLocation)
-      console.log(`I am trying to move the file to its final location...`)
-      fs.copyFile(starterFileLocation,newFileLocation)
-      console.log(`File successfully moved to newFileLocation, ${newFileLocation}`)
       return getFiles;
     };
+
+    // 2009 - issue is here, it doesn't seem to be able to find the file (even though it has already been created above)
+    // const mapper = async (artifactPath: string) => {
+    //   const starterFileLocation = getItemName(artifactPath)
+    //   const newFileLocation = downloadPath.concat('/', getPathToItem(artifactPath,name))
+    //   const getFiles = await writeS3ObjectToFile(
+    //     {
+    //       Bucket: bucket,
+    //       Key: artifactPath,
+    //     },
+    //     starterFileLocation
+    //   );
+    //   console.log(`I am newFileLocation: ${newFileLocation}`)
+    //   fs.writeFile(newFileLocation, '');
+    //   console.log(
+    //     `Item downloaded: ${artifactPath} downloaded to ${starterFileLocation}`
+    //   );
+    //   console.log(`I am checking I have access...`)
+    //   fs.access(starterFileLocation)
+    //   fs.access(newFileLocation)
+    //   console.log(`I am trying to move the file to its final location...`)
+    //   fs.copyFile(starterFileLocation,newFileLocation)
+    //   console.log(`File successfully moved to newFileLocation, ${newFileLocation}`)
+    //   return getFiles;
+    // };
 
     const result = await pMap(newObjectList, mapper, {
       concurrency: concurrency,
