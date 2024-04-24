@@ -56562,22 +56562,14 @@ var external_path_ = __nccwpck_require__(71017);
 
 
 
-// used for getting the name of the item, which is the last part of the file path
-function getItemName(str) {
-    const splitString = str.split('/');
-    console.log(`I am splitString[splitString.length - 1] for getItemName: ${splitString[splitString.length - 1]}`);
-    return splitString[splitString.length - 1];
-}
 // used for getting the entire path, including the file name and zip ending
 function getPathToItem(str, name) {
     const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
-    console.log(`I am splitToGetPath in getPathToItem: ${splitToGetPath}`);
     return splitToGetPath;
 }
 // used for getting the path, excluding the file itself
-function getItemPath(path) {
+function getFolderForItem(path) {
     const pathWithoutZipAtEnd = path.slice(0, path.lastIndexOf('/'));
-    console.log(`I am pathWithoutZipAtEnd in getItemPath: ${pathWithoutZipAtEnd}`);
     return pathWithoutZipAtEnd;
 }
 function logDownloadInformation(begin, downloads) {
@@ -56611,68 +56603,24 @@ async function runDownload() {
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             if (item.includes(name)) {
-                // console.log(`I am getPathToItem: ${getPathToItem(item,name)}`)
-                // console.log(`I am getItemPath: ${getItemPath(getPathToItem(item,name))}`)
-                // const newFilename = path.join(downloadPath,getItemName(item))
-                // console.log(`I am newFilename: ${newFilename}`)
-                const updatedFolderName = external_path_.join(downloadPath, getItemPath(getPathToItem(item, name)));
-                const updatedFileName = external_path_.join(updatedFolderName, getItemName(item));
+                const fileName = external_path_.join(downloadPath, getPathToItem(item, name));
+                const folderName = getFolderForItem(fileName);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
-                external_node_fs_default().mkdirSync(updatedFolderName, { recursive: true });
-                console.log(`New directory created at ${updatedFolderName}.  Trying to write to file at ${updatedFileName}...`);
-                external_node_fs_default().writeFileSync(updatedFileName, '');
-                console.log('I have written to updated file name');
+                external_node_fs_default().mkdirSync(folderName, { recursive: true });
+                external_node_fs_default().writeFileSync(fileName, '');
                 newObjectList.push(item);
-                // fs.writeFileSync(newFilename, '');
-                // console.log(`I have written file to newFilename, ${newFilename}`)
             }
         }
-        console.log(`I have completed all steps in for const item of itemlist`);
         const mapper = async (artifactPath) => {
-            const downloadLocation = external_path_.join(downloadPath, getItemPath(getPathToItem(artifactPath, name)), getItemName(artifactPath));
-            console.log(`I am downloadLocation: ${downloadLocation}`);
-            const alternativeDownloadLocation = external_path_.join(downloadPath, getPathToItem(artifactPath, name));
-            console.log(`I am alternativeDownloadLocation: ${alternativeDownloadLocation}`);
+            const downloadLocation = external_path_.join(downloadPath, getPathToItem(artifactPath, name));
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, 
-            // downloadLocation
-            alternativeDownloadLocation);
-            console.log(
-            // `Item downloaded: ${artifactPath} downloaded to 
-            //   ${downloadPath.concat(
-            //   '/',
-            //   getItemName(artifactPath)
-            // )}`
-            `Item downloaded: ${artifactPath} downloaded to ${downloadLocation}`);
+            }, downloadLocation);
+            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadLocation}`);
             return getFiles;
         };
-        // 2009 - issue is here, it doesn't seem to be able to find the file (even though it has already been created above)
-        // const mapper = async (artifactPath: string) => {
-        //   const starterFileLocation = getItemName(artifactPath)
-        //   const newFileLocation = downloadPath.concat('/', getPathToItem(artifactPath,name))
-        //   const getFiles = await writeS3ObjectToFile(
-        //     {
-        //       Bucket: bucket,
-        //       Key: artifactPath,
-        //     },
-        //     starterFileLocation
-        //   );
-        //   console.log(`I am newFileLocation: ${newFileLocation}`)
-        //   fs.writeFile(newFileLocation, '');
-        //   console.log(
-        //     `Item downloaded: ${artifactPath} downloaded to ${starterFileLocation}`
-        //   );
-        //   console.log(`I am checking I have access...`)
-        //   fs.access(starterFileLocation)
-        //   fs.access(newFileLocation)
-        //   console.log(`I am trying to move the file to its final location...`)
-        //   fs.copyFile(starterFileLocation,newFileLocation)
-        //   console.log(`File successfully moved to newFileLocation, ${newFileLocation}`)
-        //   return getFiles;
-        // };
         const result = await p_map_default()(newObjectList, mapper, {
             concurrency: concurrency,
         });
