@@ -56617,7 +56617,6 @@ async function runDownload() {
                 // console.log(`I am newFilename: ${newFilename}`)
                 const updatedFolderName = external_path_.join(downloadPath, getItemPath(getPathToItem(item, name)));
                 const updatedFileName = external_path_.join(updatedFolderName, getItemName(item));
-                console.log(`I am trying to create a new directory at ${updatedFileName}...`);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
                 external_node_fs_default().mkdirSync(updatedFolderName, { recursive: true });
@@ -56632,10 +56631,15 @@ async function runDownload() {
         console.log(`I have completed all steps in for const item of itemlist`);
         const mapper = async (artifactPath) => {
             const downloadLocation = external_path_.join(downloadPath, getItemPath(getPathToItem(artifactPath, name)), getItemName(artifactPath));
+            console.log(`I am downloadLocation: ${downloadLocation}`);
+            const alternativeDownloadLocation = external_path_.join(downloadPath, getPathToItem(artifactPath, name));
+            console.log(`I am alternativeDownloadLocation: ${alternativeDownloadLocation}`);
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, downloadLocation);
+            }, 
+            // downloadLocation
+            alternativeDownloadLocation);
             console.log(
             // `Item downloaded: ${artifactPath} downloaded to 
             //   ${downloadPath.concat(

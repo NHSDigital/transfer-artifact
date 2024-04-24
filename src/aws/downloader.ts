@@ -77,7 +77,6 @@ export async function runDownload(): Promise<any> {
         // console.log(`I am newFilename: ${newFilename}`)
         const updatedFolderName = path.join(downloadPath,getItemPath(getPathToItem(item,name)))
         const updatedFileName = path.join(updatedFolderName,getItemName(item))
-        console.log(`I am trying to create a new directory at ${updatedFileName}...`)
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         fs.mkdirSync(updatedFolderName, {recursive:true})
@@ -94,12 +93,16 @@ export async function runDownload(): Promise<any> {
 
     const mapper = async (artifactPath: string) => {
       const downloadLocation = path.join(downloadPath,getItemPath(getPathToItem(artifactPath,name)),getItemName(artifactPath))
+      console.log(`I am downloadLocation: ${downloadLocation}`)
+      const alternativeDownloadLocation = path.join(downloadPath,getPathToItem(artifactPath,name))
+      console.log(`I am alternativeDownloadLocation: ${alternativeDownloadLocation}`)
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
           Key: artifactPath,
         },
-        downloadLocation
+        // downloadLocation
+        alternativeDownloadLocation
       );
       console.log(
         // `Item downloaded: ${artifactPath} downloaded to 
