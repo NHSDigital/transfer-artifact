@@ -68,13 +68,13 @@ export async function runDownload(): Promise<any> {
     for (const item of objectList) {
 
       if (item.includes(name)) {
-        console.log(`I am getPathToItem: ${getPathToItem(item,name)}`)
+        // console.log(`I am getPathToItem: ${getPathToItem(item,name)}`)
 
-        console.log(`I am getItemPath: ${getItemPath(getPathToItem(item,name))}`)
+        // console.log(`I am getItemPath: ${getItemPath(getPathToItem(item,name))}`)
   
-        const newFilename = path.join(downloadPath,getItemName(item))
+        // const newFilename = path.join(downloadPath,getItemName(item))
   
-        console.log(`I am newFilename: ${newFilename}`)
+        // console.log(`I am newFilename: ${newFilename}`)
         const updatedFolderName = path.join(downloadPath,getItemPath(getPathToItem(item,name)))
         const updatedFileName = path.join(updatedFolderName,getItemName(item))
         console.log(`I am trying to create a new directory at ${updatedFileName}...`)
@@ -85,8 +85,8 @@ export async function runDownload(): Promise<any> {
         fs.writeFileSync(updatedFileName,'')
         console.log('I have written to updated file name')
         newObjectList.push(item);
-        fs.writeFileSync(newFilename, '');
-        console.log(`I have written file to newFilename, ${newFilename}`)
+        // fs.writeFileSync(newFilename, '');
+        // console.log(`I have written file to newFilename, ${newFilename}`)
       }
     }
 

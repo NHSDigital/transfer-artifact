@@ -56611,10 +56611,10 @@ async function runDownload() {
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             if (item.includes(name)) {
-                console.log(`I am getPathToItem: ${getPathToItem(item, name)}`);
-                console.log(`I am getItemPath: ${getItemPath(getPathToItem(item, name))}`);
-                const newFilename = external_path_.join(downloadPath, getItemName(item));
-                console.log(`I am newFilename: ${newFilename}`);
+                // console.log(`I am getPathToItem: ${getPathToItem(item,name)}`)
+                // console.log(`I am getItemPath: ${getItemPath(getPathToItem(item,name))}`)
+                // const newFilename = path.join(downloadPath,getItemName(item))
+                // console.log(`I am newFilename: ${newFilename}`)
                 const updatedFolderName = external_path_.join(downloadPath, getItemPath(getPathToItem(item, name)));
                 const updatedFileName = external_path_.join(updatedFolderName, getItemName(item));
                 console.log(`I am trying to create a new directory at ${updatedFileName}...`);
@@ -56625,8 +56625,8 @@ async function runDownload() {
                 external_node_fs_default().writeFileSync(updatedFileName, '');
                 console.log('I have written to updated file name');
                 newObjectList.push(item);
-                external_node_fs_default().writeFileSync(newFilename, '');
-                console.log(`I have written file to newFilename, ${newFilename}`);
+                // fs.writeFileSync(newFilename, '');
+                // console.log(`I have written file to newFilename, ${newFilename}`)
             }
         }
         console.log(`I have completed all steps in for const item of itemlist`);
