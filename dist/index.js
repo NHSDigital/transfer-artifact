@@ -56482,9 +56482,15 @@ async function streamToString(Body) {
  * Stream to file, and return number of bytes saved to the file
  */
 async function writeToFile(inputStream, filePath) {
-    const counter = new StreamCounter();
-    await pipelineP(inputStream, counter, external_node_fs_default().createWriteStream(filePath));
-    return counter.totalBytesTransfered();
+    const writeStream = external_node_fs_default().createWriteStream(filePath);
+    try {
+        const counter = new StreamCounter();
+        await pipelineP(inputStream, counter, writeStream);
+        return counter.totalBytesTransfered();
+    }
+    finally {
+        writeStream.close();
+    }
 }
 async function getS3ObjectStream({ Bucket, Key, }) {
     const parameters = {
@@ -56598,7 +56604,6 @@ async function runDownload() {
             Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
         });
         let newObjectList = [];
-        console.log(`I am objectList: ${objectList}`);
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {

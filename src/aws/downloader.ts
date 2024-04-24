@@ -51,8 +51,6 @@ export async function runDownload(): Promise<any> {
 
     let newObjectList: string[] = [];
 
-    console.log(`I am objectList: ${objectList}`)
-
     // listS3Objects brings back everything in the S3 bucket
     // use an if statement to find only files relevant to this pipeline
 
