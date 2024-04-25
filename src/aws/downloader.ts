@@ -5,10 +5,11 @@ import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
 import * as path from 'path';
 
-/* get the path to the file, including the file name and ending */
-function getPathToItem(str: string, name: string) {
-  const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
-  return splitToGetPath;
+/* Get the path to the file, including the filename and ending.
+  Exclude the prefix which has been used to find the item in S3 */
+
+export function getPathToItem(fullName: string, prefix: string) {
+  return fullName.slice(prefix.length+1);
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -35,8 +36,8 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
-    const downloadPath = inputs.searchPath;
-    const folderName = inputs.folderName
+    const downloadFolder = inputs.searchPath;
+    const folderName = inputs.folderName;
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -50,9 +51,8 @@ export async function runDownload(): Promise<any> {
 
     for (const item of objectList) {
       if (item.includes(name)) {
-        const fileName = path.join(downloadPath, getPathToItem(item, name));
+        const fileName = path.join(downloadFolder, getPathToItem(item, name));
         const folderName = path.dirname(fileName);
-        console.log(`I am path.dirname(fileName): ${path.dirname(fileName)}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         await fs.mkdir(folderName, { recursive: true });
@@ -62,7 +62,7 @@ export async function runDownload(): Promise<any> {
 
     const mapper = async (artifactPath: string) => {
       const downloadLocation = path.join(
-        downloadPath,
+        downloadFolder,
         getPathToItem(artifactPath, name)
       );
       const getFiles = await writeS3ObjectToFile(

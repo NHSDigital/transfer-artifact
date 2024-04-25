@@ -56571,10 +56571,10 @@ var external_path_ = __nccwpck_require__(71017);
 
 
 
-/* get the path to the file, including the file name and ending */
-function getPathToItem(str, name) {
-    const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
-    return splitToGetPath;
+/* Get the path to the file, including the filename and ending.
+  Exclude the prefix which has been used to find the item in S3 */
+function getPathToItem(fullName, prefix) {
+    return fullName.slice(prefix.length + 1);
 }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
@@ -56595,7 +56595,7 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
-        const downloadPath = inputs.searchPath;
+        const downloadFolder = inputs.searchPath;
         const folderName = inputs.folderName;
         const objectList = await listS3Objects({
             Bucket: bucket,
@@ -56606,9 +56606,8 @@ async function runDownload() {
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
             if (item.includes(name)) {
-                const fileName = external_path_.join(downloadPath, getPathToItem(item, name));
+                const fileName = external_path_.join(downloadFolder, getPathToItem(item, name));
                 const folderName = external_path_.dirname(fileName);
-                console.log(`I am path.dirname(fileName): ${external_path_.dirname(fileName)}`);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
                 await promises_default().mkdir(folderName, { recursive: true });
@@ -56616,7 +56615,7 @@ async function runDownload() {
             }
         }
         const mapper = async (artifactPath) => {
-            const downloadLocation = external_path_.join(downloadPath, getPathToItem(artifactPath, name));
+            const downloadLocation = external_path_.join(downloadFolder, getPathToItem(artifactPath, name));
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
