@@ -44,7 +44,7 @@ async function writeToFile(
     await pipelineP(inputStream, counter, writeStream);
     return counter.totalBytesTransfered();
   } finally {
-    writeStream.close()
+    writeStream.close();
   }
 }
 

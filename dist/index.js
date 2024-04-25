@@ -56571,7 +56571,7 @@ var external_path_ = __nccwpck_require__(71017);
 
 
 
-// used for getting the entire path, including the file name and zip ending
+/* get the path to the file, including the file name and ending */
 function getPathToItem(str, name) {
     const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
     return splitToGetPath;

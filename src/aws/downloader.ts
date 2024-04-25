@@ -5,10 +5,10 @@ import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
 import * as path from 'path';
 
-// used for getting the entire path, including the file name and zip ending
-function getPathToItem(str:string, name:string){
-  const splitToGetPath = str.substring(str.indexOf(name)+name.length+1)
-  return splitToGetPath
+/* get the path to the file, including the file name and ending */
+function getPathToItem(str: string, name: string) {
+  const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
+  return splitToGetPath;
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -49,11 +49,10 @@ export async function runDownload(): Promise<any> {
     // use an if statement to find only files relevant to this pipeline
 
     for (const item of objectList) {
-
       if (item.includes(name)) {
-        const fileName = path.join(downloadPath,getPathToItem(item,name))
-        const folderName = path.dirname(fileName)
-        console.log(`I am path.dirname(fileName): ${path.dirname(fileName)}`)
+        const fileName = path.join(downloadPath, getPathToItem(item, name));
+        const folderName = path.dirname(fileName);
+        console.log(`I am path.dirname(fileName): ${path.dirname(fileName)}`);
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         await fs.mkdir(folderName, { recursive: true });
@@ -62,7 +61,10 @@ export async function runDownload(): Promise<any> {
     }
 
     const mapper = async (artifactPath: string) => {
-      const downloadLocation = path.join(downloadPath,getPathToItem(artifactPath,name))
+      const downloadLocation = path.join(
+        downloadPath,
+        getPathToItem(artifactPath, name)
+      );
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
