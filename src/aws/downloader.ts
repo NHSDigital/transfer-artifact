@@ -67,9 +67,11 @@ export async function runDownload(): Promise<any> {
         // fs.mkdirSync(folderName, {recursive:true})
         // fs.writeFileSync(fileName,'')
 
-        await fs.mkdir(downloadPath, { recursive: true });
+        console.log('I am awaiting fs.mkdir...')
+        await fs.mkdir(folderName, { recursive: true });
+        console.log('I am awaiting fs.writeFile...')
         await fs.writeFile(fileName,'')
-        
+
         newObjectList.push(item);
       }
     }

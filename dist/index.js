@@ -56618,7 +56618,9 @@ async function runDownload() {
                 // add { recursive: true } to continue without error if the folder already exists
                 // fs.mkdirSync(folderName, {recursive:true})
                 // fs.writeFileSync(fileName,'')
-                await promises_default().mkdir(downloadPath, { recursive: true });
+                console.log('I am awaiting fs.mkdir...');
+                await promises_default().mkdir(folderName, { recursive: true });
+                console.log('I am awaiting fs.writeFile...');
                 await promises_default().writeFile(fileName, '');
                 newObjectList.push(item);
             }
