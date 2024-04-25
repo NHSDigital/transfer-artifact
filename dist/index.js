@@ -56579,6 +56579,7 @@ function getPathToItem(str, name) {
 // used for getting the path, excluding the file itself
 function getFolderForItem(path) {
     const pathWithoutZipAtEnd = path.slice(0, path.lastIndexOf('/'));
+    console.log(`I am ${pathWithoutZipAtEnd}`);
     return pathWithoutZipAtEnd;
 }
 function logDownloadInformation(begin, downloads) {
@@ -56613,12 +56614,11 @@ async function runDownload() {
             if (item.includes(name)) {
                 const fileName = external_path_.join(downloadPath, getPathToItem(item, name));
                 const folderName = getFolderForItem(fileName);
+                console.log(`I am path.dirname(fileName): ${external_path_.dirname(fileName)}`);
+                console.log(`I am path.dirname(folderName): ${external_path_.dirname(folderName)}`);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
-                console.log('I am awaiting fs.mkdir...');
                 await promises_default().mkdir(folderName, { recursive: true });
-                // console.log('I am awaiting fs.writeFile...')
-                // await fs.writeFile(fileName,'')
                 newObjectList.push(item);
             }
         }
