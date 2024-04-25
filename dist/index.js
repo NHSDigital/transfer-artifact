@@ -56566,7 +56566,6 @@ var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
 var external_path_ = __nccwpck_require__(71017);
 ;// CONCATENATED MODULE: ./src/aws/downloader.ts
 
-// import fs from 'node:fs'
 
 
 
@@ -56616,12 +56615,10 @@ async function runDownload() {
                 const folderName = getFolderForItem(fileName);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
-                // fs.mkdirSync(folderName, {recursive:true})
-                // fs.writeFileSync(fileName,'')
                 console.log('I am awaiting fs.mkdir...');
                 await promises_default().mkdir(folderName, { recursive: true });
-                console.log('I am awaiting fs.writeFile...');
-                await promises_default().writeFile(fileName, '');
+                // console.log('I am awaiting fs.writeFile...')
+                // await fs.writeFile(fileName,'')
                 newObjectList.push(item);
             }
         }
