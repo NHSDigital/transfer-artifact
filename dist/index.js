@@ -56576,12 +56576,6 @@ function getPathToItem(str, name) {
     const splitToGetPath = str.substring(str.indexOf(name) + name.length + 1);
     return splitToGetPath;
 }
-// used for getting the path, excluding the file itself
-function getFolderForItem(path) {
-    const pathWithoutZipAtEnd = path.slice(0, path.lastIndexOf('/'));
-    console.log(`I am ${pathWithoutZipAtEnd}`);
-    return pathWithoutZipAtEnd;
-}
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
     let fileCount = 0;
@@ -56613,9 +56607,8 @@ async function runDownload() {
         for (const item of objectList) {
             if (item.includes(name)) {
                 const fileName = external_path_.join(downloadPath, getPathToItem(item, name));
-                const folderName = getFolderForItem(fileName);
+                const folderName = external_path_.dirname(fileName);
                 console.log(`I am path.dirname(fileName): ${external_path_.dirname(fileName)}`);
-                console.log(`I am path.dirname(folderName): ${external_path_.dirname(folderName)}`);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
                 await promises_default().mkdir(folderName, { recursive: true });
