@@ -56343,9 +56343,9 @@ __nccwpck_require__.r(__webpack_exports__);
 
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(42186);
-;// CONCATENATED MODULE: external "node:fs"
-const external_node_fs_namespaceObject = require("node:fs");
-var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
+;// CONCATENATED MODULE: external "node:fs/promises"
+const promises_namespaceObject = require("node:fs/promises");
+var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_namespaceObject);
 ;// CONCATENATED MODULE: ./src/constants.ts
 /* eslint-disable no-unused-vars */
 const Inputs = {
@@ -56406,6 +56406,9 @@ function getInputs() {
 
 ;// CONCATENATED MODULE: external "node:buffer"
 const external_node_buffer_namespaceObject = require("node:buffer");
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
 ;// CONCATENATED MODULE: external "node:util"
 const external_node_util_namespaceObject = require("node:util");
 ;// CONCATENATED MODULE: external "node:stream"
@@ -56563,6 +56566,7 @@ var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
 var external_path_ = __nccwpck_require__(71017);
 ;// CONCATENATED MODULE: ./src/aws/downloader.ts
 
+// import fs from 'node:fs'
 
 
 
@@ -56612,8 +56616,10 @@ async function runDownload() {
                 const folderName = getFolderForItem(fileName);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
-                external_node_fs_default().mkdirSync(folderName, { recursive: true });
-                external_node_fs_default().writeFileSync(fileName, '');
+                // fs.mkdirSync(folderName, {recursive:true})
+                // fs.writeFileSync(fileName,'')
+                await promises_default().mkdir(downloadPath, { recursive: true });
+                await promises_default().writeFile(fileName, '');
                 newObjectList.push(item);
             }
         }

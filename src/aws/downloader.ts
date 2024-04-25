@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
-import fs from 'node:fs'
+// import fs from 'node:fs'
+import fs from 'node:fs/promises';
 import { getInputs } from '../input-helper';
 import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
@@ -61,8 +62,14 @@ export async function runDownload(): Promise<any> {
         const folderName = getFolderForItem(fileName)
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
-        fs.mkdirSync(folderName, {recursive:true})
-        fs.writeFileSync(fileName,'')
+
+
+        // fs.mkdirSync(folderName, {recursive:true})
+        // fs.writeFileSync(fileName,'')
+
+        await fs.mkdir(downloadPath, { recursive: true });
+        await fs.writeFile(fileName,'')
+        
         newObjectList.push(item);
       }
     }
