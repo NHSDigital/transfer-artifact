@@ -56485,9 +56485,15 @@ async function streamToString(Body) {
  * Stream to file, and return number of bytes saved to the file
  */
 async function writeToFile(inputStream, filePath) {
-    const counter = new StreamCounter();
-    await pipelineP(inputStream, counter, external_node_fs_default().createWriteStream(filePath));
-    return counter.totalBytesTransfered();
+    const writeStream = external_node_fs_default().createWriteStream(filePath);
+    try {
+        const counter = new StreamCounter();
+        await pipelineP(inputStream, counter, writeStream);
+        return counter.totalBytesTransfered();
+    }
+    finally {
+        writeStream.close();
+    }
 }
 async function getS3ObjectStream({ Bucket, Key, }) {
     const parameters = {
@@ -56536,11 +56542,11 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Prefix }) {
+async function listS3Objects({ Bucket, Prefix, }) {
     try {
         const parameters = {
             Bucket,
-            Prefix
+            Prefix,
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56556,16 +56562,19 @@ async function listS3Objects({ Bucket, Prefix }) {
 // EXTERNAL MODULE: ./node_modules/p-map/index.js
 var p_map = __nccwpck_require__(91855);
 var p_map_default = /*#__PURE__*/__nccwpck_require__.n(p_map);
+// EXTERNAL MODULE: external "path"
+var external_path_ = __nccwpck_require__(71017);
 ;// CONCATENATED MODULE: ./src/aws/downloader.ts
 
 
 
 
 
-// used for getting the name of the item, which is the last part of the file path
-function getItemName(str) {
-    const splitString = str.split('/');
-    return splitString[splitString.length - 1];
+
+/* Get the path to the file, including the filename and ending.
+  Exclude the prefix which has been used to find the item in S3 */
+function getPathToItem(fullName, prefix) {
+    return fullName.slice(prefix.length + 1);
 }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
@@ -56586,31 +56595,32 @@ async function runDownload() {
         const bucket = inputs.artifactBucket;
         const name = inputs.artifactName;
         const concurrency = inputs.concurrency;
-        const downloadPath = inputs.searchPath;
+        const downloadFolder = inputs.searchPath;
         const folderName = inputs.folderName;
-        // create a folder to hold the downloaded objects
-        // add { recursive: true } to continue without error if the folder already exists
-        promises_default().mkdir(downloadPath, { recursive: true });
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
         });
         let newObjectList = [];
         // listS3Objects brings back everything in the S3 bucket
         // use an if statement to find only files relevant to this pipeline
         for (const item of objectList) {
-            const newFilename = downloadPath.concat('/', getItemName(item));
             if (item.includes(name)) {
+                const fileName = external_path_.join(downloadFolder, getPathToItem(item, name));
+                const folderName = external_path_.dirname(fileName);
+                // create a folder to hold the downloaded objects
+                // add { recursive: true } to continue without error if the folder already exists
+                await promises_default().mkdir(folderName, { recursive: true });
                 newObjectList.push(item);
-                promises_default().writeFile(newFilename, '');
             }
         }
         const mapper = async (artifactPath) => {
+            const downloadLocation = external_path_.join(downloadFolder, getPathToItem(artifactPath, name));
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
-            }, downloadPath.concat('/', getItemName(artifactPath)));
-            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat('/', getItemName(artifactPath))}`);
+            }, downloadLocation);
+            console.log(`Item downloaded: ${artifactPath} downloaded to ${downloadLocation}`);
             return getFiles;
         };
         const result = await p_map_default()(newObjectList, mapper, {
@@ -56629,8 +56639,6 @@ async function runDownload() {
 var artifact_client = __nccwpck_require__(52605);
 // EXTERNAL MODULE: ./node_modules/@actions/glob/lib/glob.js
 var glob = __nccwpck_require__(28090);
-// EXTERNAL MODULE: external "path"
-var external_path_ = __nccwpck_require__(71017);
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(57147);
 // EXTERNAL MODULE: external "util"

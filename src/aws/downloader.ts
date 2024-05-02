@@ -3,11 +3,13 @@ import fs from 'node:fs/promises';
 import { getInputs } from '../input-helper';
 import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 import pMap from 'p-map';
+import * as path from 'path';
 
-// used for getting the name of the item, which is the last part of the file path
-function getItemName(str: string) {
-  const splitString = str.split('/');
-  return splitString[splitString.length - 1];
+/* Get the path to the file, including the filename and ending.
+  Exclude the prefix which has been used to find the item in S3 */
+
+export function getPathToItem(fullName: string, prefix: string) {
+  return fullName.slice(prefix.length+1);
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -34,12 +36,8 @@ export async function runDownload(): Promise<any> {
     const bucket = inputs.artifactBucket;
     const name = inputs.artifactName;
     const concurrency = inputs.concurrency;
-    const downloadPath = inputs.searchPath;
-    const folderName = inputs.folderName
-
-    // create a folder to hold the downloaded objects
-    // add { recursive: true } to continue without error if the folder already exists
-    fs.mkdir(downloadPath, { recursive: true });
+    const downloadFolder = inputs.searchPath;
+    const folderName = inputs.folderName;
 
     const objectList = await listS3Objects({
       Bucket: bucket,
@@ -52,27 +50,30 @@ export async function runDownload(): Promise<any> {
     // use an if statement to find only files relevant to this pipeline
 
     for (const item of objectList) {
-      const newFilename = downloadPath.concat('/', getItemName(item));
-
       if (item.includes(name)) {
+        const fileName = path.join(downloadFolder, getPathToItem(item, name));
+        const folderName = path.dirname(fileName);
+        // create a folder to hold the downloaded objects
+        // add { recursive: true } to continue without error if the folder already exists
+        await fs.mkdir(folderName, { recursive: true });
         newObjectList.push(item);
-        fs.writeFile(newFilename, '');
       }
     }
 
     const mapper = async (artifactPath: string) => {
+      const downloadLocation = path.join(
+        downloadFolder,
+        getPathToItem(artifactPath, name)
+      );
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
           Key: artifactPath,
         },
-        downloadPath.concat('/', getItemName(artifactPath))
+        downloadLocation
       );
       console.log(
-        `Item downloaded: ${artifactPath} downloaded to ${downloadPath.concat(
-          '/',
-          getItemName(artifactPath)
-        )}`
+        `Item downloaded: ${artifactPath} downloaded to ${downloadLocation}`
       );
       return getFiles;
     };

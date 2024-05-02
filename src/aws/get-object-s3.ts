@@ -33,13 +33,19 @@ export async function streamToString(Body: Readable) {
 /**
  * Stream to file, and return number of bytes saved to the file
  */
+
 async function writeToFile(
   inputStream: Readable,
   filePath: string
 ): Promise<number> {
-  const counter = new StreamCounter();
-  await pipelineP(inputStream, counter, fs.createWriteStream(filePath));
-  return counter.totalBytesTransfered();
+  const writeStream = fs.createWriteStream(filePath);
+  try {
+    const counter = new StreamCounter();
+    await pipelineP(inputStream, counter, writeStream);
+    return counter.totalBytesTransfered();
+  } finally {
+    writeStream.close();
+  }
 }
 
 export async function getS3ObjectStream({
