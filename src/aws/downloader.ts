@@ -9,7 +9,19 @@ import * as path from 'path';
   Exclude the prefix which has been used to find the item in S3 */
 
 export function getPathToItem(fullName: string, prefix: string) {
-  return fullName.split(prefix+'/')[1]
+  // return fullName.split(prefix+'/')[1]
+  // console.log(`I am fullName.indexOf(prefix) + prefix.length: ${fullName.indexOf(prefix) + prefix.length}`)
+  // return fullName.indexOf(prefix) + prefix.length
+  const lastCharacterOfPrefix=fullName.indexOf(prefix) + prefix.length
+  console.log(`I am lastCharacterOfPrefix: ${lastCharacterOfPrefix}`)
+  var nameAfterPrefix=fullName.substring(lastCharacterOfPrefix)
+  console.log(`I am nameAfterPrefix 1: ${nameAfterPrefix}`)
+  // if there is a / at the beginning of the name, clip it off
+  if(nameAfterPrefix.charAt(0)=='/'){
+    nameAfterPrefix=nameAfterPrefix.substring(1)
+  }
+  console.log(`I am nameAfterPrefix 2: ${nameAfterPrefix}`)
+  return nameAfterPrefix
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
