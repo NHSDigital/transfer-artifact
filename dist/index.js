@@ -56576,7 +56576,9 @@ var external_path_ = __nccwpck_require__(71017);
 function getPathToItem(fullName, prefix) {
     console.log(`I am getPathToItem fullName: ${fullName}, prefix: ${prefix}`);
     console.log(`I am getPathToItem fullName.slice(prefix.length+1): ${fullName.slice(prefix.length + 1)}`);
-    return fullName.slice(prefix.length + 1);
+    // return fullName.slice(prefix.length+1);
+    console.log(`I am fullName.split(prefix+'/')[1]: ${fullName.split(prefix + '/')[1]}`);
+    return fullName.split(prefix + '/')[1];
 }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
