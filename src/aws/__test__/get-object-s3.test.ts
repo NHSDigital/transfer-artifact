@@ -107,9 +107,9 @@ describe('getPathToItem',() =>{
 
   it('Should extract the expected text, when the prefix includes a slash at the beginning and end', () =>{
         
-    const prefix_3 = `/packages/alert-response/`
+    const prefix_3 = `/${folderName}/${name}/`
     const result_3 = getPathToItem(fullPathToItem,prefix_3)
-    expect(result_3).toEqual('target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+    expect(result_3).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
 
 })
