@@ -56574,10 +56574,6 @@ var external_path_ = __nccwpck_require__(71017);
 /* Get the path to the file, including the filename and ending.
   Exclude the prefix which has been used to find the item in S3 */
 function getPathToItem(fullName, prefix) {
-    console.log(`I am getPathToItem fullName: ${fullName}, prefix: ${prefix}`);
-    console.log(`I am getPathToItem fullName.slice(prefix.length+1): ${fullName.slice(prefix.length + 1)}`);
-    // return fullName.slice(prefix.length+1);
-    console.log(`I am fullName.split(prefix+'/')[1]: ${fullName.split(prefix + '/')[1]}`);
     return fullName.split(prefix + '/')[1];
 }
 function logDownloadInformation(begin, downloads) {
@@ -56611,9 +56607,7 @@ async function runDownload() {
         for (const item of objectList) {
             if (item.includes(name)) {
                 const fileName = external_path_.join(downloadFolder, getPathToItem(item, name));
-                console.log(`I am fileName: ${fileName}`);
                 const folderName = external_path_.dirname(fileName);
-                console.log(`I am folderName: ${folderName}`);
                 // create a folder to hold the downloaded objects
                 // add { recursive: true } to continue without error if the folder already exists
                 await promises_default().mkdir(folderName, { recursive: true });
@@ -56622,8 +56616,6 @@ async function runDownload() {
         }
         const mapper = async (artifactPath) => {
             const downloadLocation = external_path_.join(downloadFolder, getPathToItem(artifactPath, name));
-            console.log(`I am artifactPath: ${artifactPath}`);
-            console.log(`I am downloadLocation: ${downloadLocation}`);
             const getFiles = await writeS3ObjectToFile({
                 Bucket: bucket,
                 Key: artifactPath,
