@@ -86,14 +86,32 @@ describe('getS3Object', () => {
 });
 
 describe('getPathToItem',() =>{
-  it('Should extract the correct name for the download folder', () =>{
-    const folderName = 'artifacts-platform'
-    const name = '15491-artifacts-platform'
-    const prefix = `ci-pipeline-upload-artifacts/${folderName}/${name}`
-    const fullPathToItem = `ci-pipeline-upload-artifacts/${folderName}/${name}/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip`
-    const result = getPathToItem(fullPathToItem,prefix)
-    expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+
+  const folderName = 'artifacts-platform'
+  const name = '15490-artifacts-platform'
+  const fullPathToItem = `ci-pipeline-upload-artifacts/${folderName}/${name}/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip`
+
+  it('Should extract the expected text, when the prefix is the beginning of the filename', () =>{
+    
+    const prefix_1 = `ci-pipeline-upload-artifacts/${folderName}/${name}`
+    const result_1 = getPathToItem(fullPathToItem,prefix_1)
+    expect(result_1).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
+
+  it('Should extract the expected text, when the prefix is in the middle of the filename', () =>{
+    
+    const prefix_2 = name
+    const result_2 = getPathToItem(fullPathToItem,prefix_2)
+    expect(result_2).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+  })
+
+  it('Should extract the expected text, when the prefix includes a slash at the beginning and end', () =>{
+        
+    const prefix_3 = `/packages/alert-response/`
+    const result_3 = getPathToItem(fullPathToItem,prefix_3)
+    expect(result_3).toEqual('target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+  })
+
 })
 
 describe('listS3Objects', () => {
