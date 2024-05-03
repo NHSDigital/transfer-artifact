@@ -9,6 +9,8 @@ import * as path from 'path';
   Exclude the prefix which has been used to find the item in S3 */
 
 export function getPathToItem(fullName: string, prefix: string) {
+  console.log(`I am getPathToItem fullName: ${fullName}, prefix: ${prefix}`)
+  console.log(`I am getPathToItem fullName.slice(prefix.length+1): ${fullName.slice(prefix.length+1)}`)
   return fullName.slice(prefix.length+1);
 }
 
@@ -52,7 +54,9 @@ export async function runDownload(): Promise<any> {
     for (const item of objectList) {
       if (item.includes(name)) {
         const fileName = path.join(downloadFolder, getPathToItem(item, name));
+        console.log(`I am fileName: ${fileName}`)
         const folderName = path.dirname(fileName);
+        console.log(`I am folderName: ${folderName}`)
         // create a folder to hold the downloaded objects
         // add { recursive: true } to continue without error if the folder already exists
         await fs.mkdir(folderName, { recursive: true });
@@ -65,6 +69,8 @@ export async function runDownload(): Promise<any> {
         downloadFolder,
         getPathToItem(artifactPath, name)
       );
+      console.log(`I am artifactPath: ${artifactPath}`)
+      console.log(`I am downloadLocation: ${downloadLocation}`)
       const getFiles = await writeS3ObjectToFile(
         {
           Bucket: bucket,
