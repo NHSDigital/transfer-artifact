@@ -56542,11 +56542,11 @@ async function writeS3ObjectToFile(location, filename) {
         }
     }
 }
-async function listS3Objects({ Bucket, Prefix }) {
+async function listS3Objects({ Bucket, Prefix, }) {
     try {
         const parameters = {
             Bucket,
-            Prefix
+            Prefix,
         };
         const data = await s3_client_getS3Client().send(new dist_cjs.ListObjectsV2Command(parameters));
         return data.Contents?.map((element) => element.Key ?? '') ?? [];
@@ -56575,7 +56575,7 @@ var external_path_ = __nccwpck_require__(71017);
   Exclude the prefix or folder name which has been used to find the item in S3 */
 function getPathToItem(fullName, folderName) {
     const lastCharacterOfFolderName = fullName.indexOf(folderName) + folderName.length;
-    var nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
+    let nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
     if (nameExcludingFolder.charAt(0) == '/') {
         nameExcludingFolder = nameExcludingFolder.substring(1);
     }
@@ -56604,7 +56604,7 @@ async function runDownload() {
         const folderName = inputs.folderName;
         const objectList = await listS3Objects({
             Bucket: bucket,
-            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
+            Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
         });
         let newObjectList = [];
         /* listS3Objects brings back everything in the S3 bucket

@@ -9,15 +9,15 @@ import * as path from 'path';
   Exclude the prefix or folder name which has been used to find the item in S3 */
 
 export function getPathToItem(fullName: string, folderName: string) {
+  const lastCharacterOfFolderName =
+    fullName.indexOf(folderName) + folderName.length;
+  let nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
 
-  const lastCharacterOfFolderName=fullName.indexOf(folderName) + folderName.length
-  var nameExcludingFolder=fullName.substring(lastCharacterOfFolderName)
-
-  if(nameExcludingFolder.charAt(0)=='/'){
-    nameExcludingFolder=nameExcludingFolder.substring(1)
+  if (nameExcludingFolder.charAt(0) == '/') {
+    nameExcludingFolder = nameExcludingFolder.substring(1);
   }
 
-  return nameExcludingFolder
+  return nameExcludingFolder;
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -49,7 +49,7 @@ export async function runDownload(): Promise<any> {
 
     const objectList = await listS3Objects({
       Bucket: bucket,
-      Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
+      Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
     });
 
     let newObjectList: string[] = [];
