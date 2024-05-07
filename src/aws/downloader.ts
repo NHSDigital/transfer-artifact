@@ -11,11 +11,11 @@ import * as path from 'path';
 export function getPathToItem(fullName: string, folderName: string) {
   const lastCharacterOfFolderName =
     fullName.indexOf(folderName) + folderName.length;
-  let nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
+  const nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
 
-  if (nameExcludingFolder.startsWith('/')) {
-    nameExcludingFolder = nameExcludingFolder.substring(1);
-  }
+  // if (nameExcludingFolder.startsWith('/')) {
+  //   nameExcludingFolder = nameExcludingFolder.substring(1);
+  // }
 
   return nameExcludingFolder;
 }
