@@ -8,16 +8,16 @@ import * as path from 'path';
 /* Get the path to the file, including the filename and ending.
   Exclude the prefix or folder name which has been used to find the item in S3 */
 
-export function getPathToItem(fullName: string, s3Location: string) {
+export function getPathToItem(fullName: string, folderName: string) {
 
-  const lastCharacterOfS3Location=fullName.indexOf(s3Location) + s3Location.length
-  var nameAfterS3Location=fullName.substring(lastCharacterOfS3Location)
+  const lastCharacterOfFolderName=fullName.indexOf(folderName) + folder.length
+  var nameExcludingFolder=fullName.substring(lastCharacterOfFolderName)
 
-  if(nameAfterS3Location.charAt(0)=='/'){
-    nameAfterS3Location=nameAfterS3Location.substring(1)
+  if(nameExcludingFolder.charAt(0)=='/'){
+    nameExcludingFolder=nameExcludingFolder.substring(1)
   }
 
-  return nameAfterS3Location
+  return nameExcludingFolder
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
