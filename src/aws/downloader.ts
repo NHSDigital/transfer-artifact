@@ -6,18 +6,18 @@ import pMap from 'p-map';
 import * as path from 'path';
 
 /* Get the path to the file, including the filename and ending.
-  Exclude the prefix which has been used to find the item in S3 */
+  Exclude the prefix or folder name which has been used to find the item in S3 */
 
-export function getPathToItem(fullName: string, prefix: string) {
+export function getPathToItem(fullName: string, s3Location: string) {
 
-  const lastCharacterOfPrefix=fullName.indexOf(prefix) + prefix.length
-  var nameAfterPrefix=fullName.substring(lastCharacterOfPrefix)
+  const lastCharacterOfS3Location=fullName.indexOf(s3Location) + s3Location.length
+  var nameAfterS3Location=fullName.substring(lastCharacterOfS3Location)
 
-  if(nameAfterPrefix.charAt(0)=='/'){
-    nameAfterPrefix=nameAfterPrefix.substring(1)
+  if(nameAfterS3Location.charAt(0)=='/'){
+    nameAfterS3Location=nameAfterS3Location.substring(1)
   }
 
-  return nameAfterPrefix
+  return nameAfterS3Location
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -54,8 +54,8 @@ export async function runDownload(): Promise<any> {
 
     let newObjectList: string[] = [];
 
-    // listS3Objects brings back everything in the S3 bucket
-    // use an if statement to find only files relevant to this pipeline
+    /* listS3Objects brings back everything in the S3 bucket
+    Use an if statement to find only files relevant to this pipeline */
 
     for (const item of objectList) {
       if (item.includes(name)) {

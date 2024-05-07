@@ -91,25 +91,25 @@ describe('getPathToItem',() =>{
   const name = '15490-artifacts-platform'
   const fullPathToItem = `ci-pipeline-upload-artifacts/${folderName}/${name}/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip`
 
-  it('Should extract the expected text, when the prefix is the beginning of the filename', () =>{
+  it('Should extract the expected text when given a full path to the S3 location', () =>{
     
-    const prefix_1 = `ci-pipeline-upload-artifacts/${folderName}/${name}`
-    const result_1 = getPathToItem(fullPathToItem,prefix_1)
-    expect(result_1).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+    const fullNameOfFolder = `ci-pipeline-upload-artifacts/${folderName}/${name}`
+    const result = getPathToItem(fullPathToItem,fullNameOfFolder)
+    expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
 
-  it('Should extract the expected text, when the prefix is in the middle of the filename', () =>{
+  it('Should extract the expected text when given only the name of a subfolder in S3', () =>{
     
-    const prefix_2 = name
-    const result_2 = getPathToItem(fullPathToItem,prefix_2)
-    expect(result_2).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+    const nameOfSubfolder = name
+    const result = getPathToItem(fullPathToItem,nameOfSubfolder)
+    expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
 
-  it('Should extract the expected text, when the prefix includes a slash at the beginning and end', () =>{
+  it('Should extract the expected text when the subfolder name includes slashes at beginning and end', () =>{
         
-    const prefix_3 = `/${folderName}/${name}/`
-    const result_3 = getPathToItem(fullPathToItem,prefix_3)
-    expect(result_3).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
+    const nameWithSlashes = `/${folderName}/${name}/`
+    const result = getPathToItem(fullPathToItem,nameWithSlashes)
+    expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
 
 })
