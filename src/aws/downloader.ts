@@ -10,7 +10,7 @@ import * as path from 'path';
 
 export function getPathToItem(fullName: string, folderName: string) {
 
-  const lastCharacterOfFolderName=fullName.indexOf(folderName) + folder.length
+  const lastCharacterOfFolderName=fullName.indexOf(folderName) + folderName.length
   var nameExcludingFolder=fullName.substring(lastCharacterOfFolderName)
 
   if(nameExcludingFolder.charAt(0)=='/'){

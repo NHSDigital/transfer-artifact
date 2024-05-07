@@ -56573,13 +56573,13 @@ var external_path_ = __nccwpck_require__(71017);
 
 /* Get the path to the file, including the filename and ending.
   Exclude the prefix or folder name which has been used to find the item in S3 */
-function getPathToItem(fullName, s3Location) {
-    const lastCharacterOfS3Location = fullName.indexOf(s3Location) + s3Location.length;
-    var nameAfterS3Location = fullName.substring(lastCharacterOfS3Location);
-    if (nameAfterS3Location.charAt(0) == '/') {
-        nameAfterS3Location = nameAfterS3Location.substring(1);
+function getPathToItem(fullName, folderName) {
+    const lastCharacterOfFolderName = fullName.indexOf(folderName) + folderName.length;
+    var nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
+    if (nameExcludingFolder.charAt(0) == '/') {
+        nameExcludingFolder = nameExcludingFolder.substring(1);
     }
-    return nameAfterS3Location;
+    return nameExcludingFolder;
 }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();

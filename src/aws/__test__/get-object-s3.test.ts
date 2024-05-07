@@ -91,21 +91,21 @@ describe('getPathToItem',() =>{
   const name = '15490-artifacts-platform'
   const fullPathToItem = `ci-pipeline-upload-artifacts/${folderName}/${name}/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip`
 
-  it('Should extract the expected text when given a full path to the S3 location', () =>{
+  it('Should extract the expected text when given a full folder path', () =>{
     
     const fullNameOfFolder = `ci-pipeline-upload-artifacts/${folderName}/${name}`
     const result = getPathToItem(fullPathToItem,fullNameOfFolder)
     expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
 
-  it('Should extract the expected text when given only the name of a subfolder in S3', () =>{
+  it('Should extract the expected text name when given the name of a subfolder', () =>{
     
     const nameOfSubfolder = name
     const result = getPathToItem(fullPathToItem,nameOfSubfolder)
     expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
   })
 
-  it('Should extract the expected text when the subfolder name includes slashes at beginning and end', () =>{
+  it('Should extract the expected text when the folder name includes slashes at beginning and end', () =>{
         
     const nameWithSlashes = `/${folderName}/${name}/`
     const result = getPathToItem(fullPathToItem,nameWithSlashes)
