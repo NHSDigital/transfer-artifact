@@ -13,10 +13,6 @@ export function getPathToItem(fullName: string, folderName: string) {
     fullName.indexOf(folderName) + folderName.length;
   const nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
 
-  // if (nameExcludingFolder.startsWith('/')) {
-  //   nameExcludingFolder = nameExcludingFolder.substring(1);
-  // }
-
   return nameExcludingFolder;
 }
 

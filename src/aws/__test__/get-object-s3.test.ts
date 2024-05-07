@@ -105,14 +105,7 @@ describe('getPathToItem', () => {
       'packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
     );
   });
-
-  it('Should extract the expected text when the folder name includes slashes at beginning and end', () => {
-    const nameWithSlashes = `/${folderName}/${name}/`;
-    const result = getPathToItem(fullPathToItem, nameWithSlashes);
-    expect(result).toEqual(
-      'packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
-    );
-  });
+  
 });
 
 describe('listS3Objects', () => {

@@ -56576,9 +56576,6 @@ var external_path_ = __nccwpck_require__(71017);
 function getPathToItem(fullName, folderName) {
     const lastCharacterOfFolderName = fullName.indexOf(folderName) + folderName.length;
     const nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
-    // if (nameExcludingFolder.startsWith('/')) {
-    //   nameExcludingFolder = nameExcludingFolder.substring(1);
-    // }
     return nameExcludingFolder;
 }
 function logDownloadInformation(begin, downloads) {
