@@ -56572,9 +56572,11 @@ var external_path_ = __nccwpck_require__(71017);
 
 
 /* Get the path to the file, including the filename and ending.
-  Exclude the prefix which has been used to find the item in S3 */
-function getPathToItem(fullName, prefix) {
-    return fullName.slice(prefix.length + 1);
+  Exclude the prefix or folder name which has been used to find the item in S3 */
+function getPathToItem(fullName, folderName) {
+    const lastCharacterOfFolderName = fullName.indexOf(folderName) + folderName.length;
+    const nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
+    return nameExcludingFolder;
 }
 function logDownloadInformation(begin, downloads) {
     const finish = Date.now();
@@ -56602,8 +56604,8 @@ async function runDownload() {
             Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
         });
         let newObjectList = [];
-        // listS3Objects brings back everything in the S3 bucket
-        // use an if statement to find only files relevant to this pipeline
+        /* listS3Objects brings back everything in the S3 bucket
+        Use an if statement to find only files relevant to this pipeline */
         for (const item of objectList) {
             if (item.includes(name)) {
                 const fileName = external_path_.join(downloadFolder, getPathToItem(item, name));

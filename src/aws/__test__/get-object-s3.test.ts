@@ -7,7 +7,7 @@ import {
   listS3Objects,
   writeS3ObjectToFile,
 } from '../get-object-s3';
-import { getPathToItem } from '../downloader'
+import { getPathToItem } from '../downloader';
 
 const mockSend = jest.fn();
 jest.mock('../s3-client', () => ({
@@ -85,16 +85,28 @@ describe('getS3Object', () => {
   });
 });
 
-describe('getPathToItem',() =>{
-  it('Should extract the correct name for the download folder', () =>{
-    const folderName = 'artifacts-platform'
-    const name = '15491-artifacts-platform'
-    const prefix = `ci-pipeline-upload-artifacts/${folderName}/${name}`
-    const fullPathToItem = `ci-pipeline-upload-artifacts/${folderName}/${name}/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip`
-    const result = getPathToItem(fullPathToItem,prefix)
-    expect(result).toEqual('packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip')
-  })
-})
+describe('getPathToItem', () => {
+  const folderName = 'artifacts-platform';
+  const name = '15490-artifacts-platform';
+  const fullPathToItem = `ci-pipeline-upload-artifacts/${folderName}/${name}/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip`;
+
+  it('Should extract the expected text when given a full folder path', () => {
+    const fullNameOfFolder = `ci-pipeline-upload-artifacts/${folderName}/${name}`;
+    const result = getPathToItem(fullPathToItem, fullNameOfFolder);
+    expect(result).toEqual(
+      'packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
+    );
+  });
+
+  it('Should extract the expected text name when given the name of a subfolder', () => {
+    const nameOfSubfolder = name;
+    const result = getPathToItem(fullPathToItem, nameOfSubfolder);
+    expect(result).toEqual(
+      'packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
+    );
+  });
+  
+});
 
 describe('listS3Objects', () => {
   it('Should throw an error if invalid key', async () => {

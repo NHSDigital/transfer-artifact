@@ -6,10 +6,14 @@ import pMap from 'p-map';
 import * as path from 'path';
 
 /* Get the path to the file, including the filename and ending.
-  Exclude the prefix which has been used to find the item in S3 */
+  Exclude the prefix or folder name which has been used to find the item in S3 */
 
-export function getPathToItem(fullName: string, prefix: string) {
-  return fullName.slice(prefix.length+1);
+export function getPathToItem(fullName: string, folderName: string) {
+  const lastCharacterOfFolderName =
+    fullName.indexOf(folderName) + folderName.length;
+  const nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
+
+  return nameExcludingFolder;
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -41,13 +45,13 @@ export async function runDownload(): Promise<any> {
 
     const objectList = await listS3Objects({
       Bucket: bucket,
-      Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`
+      Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
     });
 
     let newObjectList: string[] = [];
 
-    // listS3Objects brings back everything in the S3 bucket
-    // use an if statement to find only files relevant to this pipeline
+    /* listS3Objects brings back everything in the S3 bucket
+    Use an if statement to find only files relevant to this pipeline */
 
     for (const item of objectList) {
       if (item.includes(name)) {
