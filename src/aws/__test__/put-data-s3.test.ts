@@ -58,7 +58,7 @@ describe('uploadObjectToS3', () => {
         mockLog
       )
     ).rejects.toThrowError(
-      'Upload to bucket-name/config.test.json failed, error: No file found'
+      'No file found'
     );
   });
 

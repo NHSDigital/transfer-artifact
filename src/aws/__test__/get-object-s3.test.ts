@@ -94,7 +94,7 @@ describe('getPathToItem', () => {
     const fullNameOfFolder = `ci-pipeline-upload-artifacts/${folderName}/${name}`;
     const result = getPathToItem(fullPathToItem, fullNameOfFolder);
     expect(result).toEqual(
-      'packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
+      '/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
     );
   });
 
@@ -102,10 +102,9 @@ describe('getPathToItem', () => {
     const nameOfSubfolder = name;
     const result = getPathToItem(fullPathToItem, nameOfSubfolder);
     expect(result).toEqual(
-      'packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
+      '/packages/alert-response/target/dist/NHSD.caas-platform.alertresponse-1.0.0.15490.zip'
     );
   });
-  
 });
 
 describe('listS3Objects', () => {
