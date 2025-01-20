@@ -1,6 +1,6 @@
 {
   "name": "@caas/transfer-artifact",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Upload or download a build artifact that can be used by subsequent workflow steps",
   "main": "dist/index.js",
   "scripts": {

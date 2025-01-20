@@ -51,3 +51,4 @@ jobs:
         with:
           name: index.js
           path: dist/index.js
+          overwrite: true
