@@ -87,10 +87,11 @@ jobs:
 
       # Download Artifact #1 and verify the correctness of the content
       - name: 'Download artifact #1'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: 'Artifact-A'
           path: some/new/path
+          pattern: Artifact-A*
+          merge-multiple: true
 
       - name: 'Verify Artifact #1'
         run: |
@@ -107,10 +108,11 @@ jobs:
 
       # Download Artifact #2 and verify the correctness of the content
       - name: 'Download artifact #2'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: 'artifact'
           path: some/other/path
+          pattern: artifact*
+          merge-multiple: true
 
       - name: 'Verify Artifact #2'
         run: |
@@ -128,10 +130,10 @@ jobs:
 
       # Download Artifact #3 and verify the correctness of the content
       - name: 'Download artifact #3'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: 'GZip-Artifact'
           path: gzip/artifact/path
+          pattern: GZip-Artifact*
 
       # Because a directory was used as input during the upload the parent directories, path/to/dir-3/, should not be included in the uploaded artifact
       - name: 'Verify Artifact #3'
@@ -148,10 +150,11 @@ jobs:
         shell: pwsh
 
       - name: 'Download artifact #4'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: 'Multi-Path-Artifact'
           path: multi/artifact
+          pattern: Multi-Path-Artifact*
+          merge-multiple: true
 
       - name: 'Verify Artifact #4'
         run: |
