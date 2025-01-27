@@ -17,6 +17,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Gitleaks secret detection
+  secret_detection:
+    name: Gitleaks secret detection
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Detect leaks
+        run: |
+          docker run --rm \
+            -v $(pwd):/repo \
+            zricethezav/gitleaks:latest detect \
+            --source="/repo" \
+            --verbose \
+            --redact
+
   check-dist:
     runs-on: ubuntu-latest
 
