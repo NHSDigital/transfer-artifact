@@ -18,9 +18,7 @@ function logUploadInformation(begin: number, uploads: void[]) {
   }
   const duration = finish - begin;
   console.log(
-    `Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(
-      3
-    )} seconds.`
+    `Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`
   );
 }
 
@@ -32,34 +30,64 @@ export async function uploadArtifact(
   bucket: string,
   folderName: string,
   concurrency: number
-  // the p-map does all the work and then returns a null array
 ): Promise<any> {
   const startTime = Date.now();
 
-  const uploadSpec: UploadSpecification[] = getUploadSpecification(
-    artifactName,
-    rootDirectory,
-    filesToUpload
-  );
+  try {
+    const uploadSpec: UploadSpecification[] = getUploadSpecification(
+      artifactName,
+      rootDirectory,
+      filesToUpload
+    );
 
-  const mapper = async (fileSpec: UploadSpecification) => {
-    try {
-      await uploadObjectToS3(
-        {
-          Body: fs.createReadStream(fileSpec.absoluteFilePath),
-          Bucket: bucket,
-          Key: `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`, // TODO: fix path
-        },
-        core
-      );
-    } catch {
-      core.setFailed(`An error was encountered when uploading ${artifactName}`);
-    }
-  };
+    const mapper = async (fileSpec: UploadSpecification) => {
+      try {
+        // Check if bucket exists before upload
+        const { S3Client, HeadBucketCommand } = await import('@aws-sdk/client-s3');
+        const s3Client = new S3Client({
+          forcePathStyle: true,
+          endpoint: process.env.AWS_ENDPOINT_URL || 'http://localhost:4566',
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
+          },
+          region: process.env.AWS_REGION || 'us-east-1'
+        });
 
-  const result = await pMap(uploadSpec, mapper, { concurrency: concurrency });
+        // Verify bucket exists
+        try {
+          await s3Client.send(new HeadBucketCommand({ Bucket: bucket }));
+        } catch (error) {
+          core.error(`Bucket verification failed: ${bucket}`);
+          throw error;
+        }
 
-  logUploadInformation(startTime, result);
+        // URL encode the Key but maintain path structure
+        const keyParts = `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`.split('/');
+        const encodedKey = keyParts.map(part => encodeURIComponent(part)).join('/');
 
-  return result;
+        await uploadObjectToS3(
+          {
+            Body: fs.createReadStream(fileSpec.absoluteFilePath),
+            Bucket: bucket,
+            Key: encodedKey,
+          },
+          core
+        );
+
+        core.debug(`Successfully uploaded ${fileSpec.uploadFilePath}`);
+      } catch (error) {
+        core.error(`Error uploading ${fileSpec.uploadFilePath}: ${error}`);
+        throw error;
+      }
+    };
+
+    const result = await pMap(uploadSpec, mapper, { concurrency });
+    logUploadInformation(startTime, result);
+    return result;
+
+  } catch (error) {
+    core.setFailed(`An error was encountered when uploading ${artifactName}: ${error}`);
+    throw error;
+  }
 }
