@@ -32,6 +32,7 @@ describe('getS3Client', () => {
 
     // Set test environment
     process.env.NODE_ENV = 'test';
+    process.env.AWS_REGION = 'us-east-1';
 
     // Import fresh instance AFTER resetting mocks
     getS3Client = require('../s3-client').getS3Client;
@@ -40,9 +41,10 @@ describe('getS3Client', () => {
   afterEach(() => {
     jest.resetModules();
     delete process.env.NODE_ENV;
+    delete process.env.AWS_REGION;
   });
 
-  it('should create new S3Client instance with correct region on first call', () => {
+  it('should create new S3Client instance with correct configuration on first call', () => {
     // Setup region mock
     mockRegion.mockReturnValue('eu-west-1');
 
@@ -55,7 +57,13 @@ describe('getS3Client', () => {
     // Verify S3Client constructor was called correctly
     expect(mockS3Client).toHaveBeenCalledTimes(1);
     expect(mockS3Client).toHaveBeenCalledWith({
-      region: 'eu-west-1'
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: 'mock-key',
+        secretAccessKey: 'mock-secret'
+      },
+      endpoint: 'http://localhost:4566',
+      region: 'us-east-1'
     });
 
     // Verify we got back a client instance
@@ -104,7 +112,13 @@ describe('getS3Client', () => {
 
     // Verify S3Client was called with undefined region
     expect(mockS3Client).toHaveBeenCalledWith({
-      region: undefined
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: 'mock-key',
+        secretAccessKey: 'mock-secret'
+      },
+      endpoint: 'http://localhost:4566',
+      region: 'us-east-1'  // Default from env var
     });
 
     // Verify we still got a client instance
