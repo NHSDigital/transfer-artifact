@@ -35,10 +35,9 @@ jobs:
           --health-timeout 5s
           --health-retries 3
           --health-start-period 10s
-        volumes:
-          - /tmp/data:/data
-        command: server --console-address ":9001" /data
-
+          --name minio-server
+          -v /tmp/data:/data
+          server --console-address ":9001" /data
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
       AWS_ACCESS_KEY_ID: minioadmin
