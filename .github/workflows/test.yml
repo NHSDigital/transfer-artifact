@@ -100,11 +100,6 @@ jobs:
 
           echo "Bucket setup completed successfully"
 
-         
-          # Clear test files
-          awslocal s3 rm s3://mock-bucket/test.txt
-          rm test.txt test-download.txt
-          
           echo "Bucket setup and verification completed successfully"
 
       - name: Setup Node
