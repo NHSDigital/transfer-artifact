@@ -20,33 +20,6 @@ jobs:
 
     runs-on: ${{ matrix.runs-on }}
 
-    services:
-      minio:
-        image: minio/minio:latest
-        ports:
-          - 9000:9000
-          - 9001:9001
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        volumes:
-          - /tmp/data:/data
-        command: server --console-address ":9001" /data
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
-          --health-start-period 10s
-
-    env:
-      ARTIFACTS_S3_BUCKET: mock-bucket
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_REGION: us-east-1
-      AWS_ENDPOINT_URL: http://localhost:9000
-      DEBUG: "1"
-
     steps:
       - uses: actions/checkout@v4
 
@@ -54,73 +27,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-
-      - name: Install MinIO Client
-        run: |
-          pip install awscli
-          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
-            --create-dirs \
-            -o /usr/local/bin/mc
-          chmod +x /usr/local/bin/mc
-          mc alias set minio http://localhost:9000 minioadmin minioadmin
-
-      - name: Wait for MinIO
-        run: |
-          timeout=90
-          echo "Waiting for MinIO API..."
-          while ! curl -s http://localhost:9000/minio/health/live; do
-            if [ $timeout -le 0 ]; then
-              echo "MinIO failed to start"
-              exit 1
-            fi
-            echo "Waiting... ($timeout seconds remaining)"
-            sleep 2
-            timeout=$((timeout - 2))
-          done
-          echo "MinIO is ready"
-
-      - name: Create and verify S3 bucket
-        run: |
-          MAX_RETRIES=5
-          RETRY_DELAY=5
-
-          for i in $(seq 1 $MAX_RETRIES); do
-            if aws --endpoint-url http://localhost:9000 s3 mb s3://mock-bucket; then
-              echo "Bucket created successfully"
-              break
-            fi
-            
-            if [ $i -lt $MAX_RETRIES ]; then
-              echo "Attempt $i failed, retrying in $RETRY_DELAY seconds..."
-              sleep $RETRY_DELAY
-            else
-              echo "Failed to create bucket after $MAX_RETRIES attempts"
-              exit 1
-            fi
-          done
-
-          # Verify bucket exists and is accessible
-          for i in $(seq 1 $MAX_RETRIES); do
-            if aws --endpoint-url http://localhost:9000 s3api head-bucket --bucket mock-bucket; then
-              echo "Bucket verification successful"
-              
-              # Test bucket access with a small file
-              echo "test" > /tmp/test.txt
-              if aws --endpoint-url http://localhost:9000 s3 cp /tmp/test.txt s3://mock-bucket/test.txt; then
-                echo "Bucket access test successful"
-                aws --endpoint-url http://localhost:9000 s3 rm s3://mock-bucket/test.txt
-                break
-              fi
-            fi
-            
-            if [ $i -lt $MAX_RETRIES ]; then
-              echo "Bucket verification attempt $i failed, retrying in $RETRY_DELAY seconds..."
-              sleep $RETRY_DELAY
-            else
-              echo "Failed to verify bucket after $MAX_RETRIES attempts"
-              exit 1
-            fi
-          done
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -153,46 +59,25 @@ jobs:
       - name: Create empty directory
         run: mkdir -p path/to/empty-dir
 
-      - name: Test empty directory upload
-        uses: ./
+      - name: Upload empty directory as artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'Empty-Dir-Test'
+          name: empty-dir-test
           path: path/to/empty-dir
           if-no-files-found: warn
-          artifact-bucket: mock-bucket
 
       # Test special character handling
       - name: Create files with special characters
         run: |
-          # First verify bucket still exists
-          echo "Verifying bucket exists before upload..."
-          if ! aws --endpoint-url http://localhost:9000 s3api head-bucket --bucket mock-bucket; then
-            echo "Bucket not found, recreating..."
-            aws --endpoint-url http://localhost:9000 s3 mb s3://mock-bucket
-          fi
-          
-          # Create test directory and files
           mkdir -p "path/to/special chars"
           echo "File with spaces" > "path/to/special chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
-          
-          # Test direct upload to verify bucket access
-          echo "Testing direct upload..."
-          aws --endpoint-url http://localhost:9000 s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
-          if [ $? -eq 0 ]; then
-            echo "Direct upload test successful"
-            aws --endpoint-url http://localhost:9000 s3 rm "s3://mock-bucket/test-upload.txt"
-          else
-            echo "Direct upload test failed"
-            exit 1
-          fi
 
-      - name: Test special character upload
-        uses: ./
+      - name: Upload special characters files as artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'Special-Chars-Test'
+          name: special-chars-test
           path: "path/to/special chars/**"
-          artifact-bucket: mock-bucket
 
       # Test large number of files
       - name: Create many small files
@@ -203,12 +88,11 @@ jobs:
           done
         shell: bash
 
-      - name: Test many files upload
-        uses: ./
+      - name: Upload many files as artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'Many-Files-Test'
+          name: many-files-test
           path: path/to/many-files/*
-          artifact-bucket: mock-bucket
 
       # Test different file types
       - name: Create different file types
@@ -221,12 +105,11 @@ jobs:
           chmod +x path/to/file-types/test.sh
         shell: bash
 
-      - name: Test different file types upload
-        uses: ./
+      - name: Upload different file types as artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'File-Types-Test'
+          name: file-types-test
           path: path/to/file-types/*
-          artifact-bucket: mock-bucket
 
       # Test regular artifact upload/download functionality
       - name: Create test files
@@ -238,188 +121,180 @@ jobs:
           echo "Hello world from file #2" > path/to/dir-2/file2.txt
           echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt
 
-      - name: Test single file artifact upload
-        uses: ./
+      - name: Upload single file as artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'Artifact-A'
+          name: artifact-a
           path: path/to/dir-1/file1.txt
-          artifact-bucket: mock-bucket
 
-      - name: Test wildcard pattern upload
-        uses: ./
+      - name: Upload wildcard pattern as artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: wildcard-artifact
           path: path/**/dir*/
-          artifact-bucket: mock-bucket
 
-      - name: Test GZip artifact upload
-        uses: ./
+      - name: Upload GZip artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'GZip-Artifact'
+          name: gzip-artifact
           path: path/to/dir-3/
-          artifact-bucket: mock-bucket
 
-      - name: Test multi-path artifact upload
-        uses: ./
+      - name: Upload multi-path artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: 'Multi-Path-Artifact'
+          name: multi-path-artifact
           path: |
             path/to/dir-1/*
             path/to/dir-[23]/*
             !path/to/dir-3/*.txt
-          artifact-bucket: mock-bucket
 
       # Download artifacts and verify
       - name: Download and verify single file artifact
         uses: actions/download-artifact@v4
         with:
+          name: artifact-a
           path: some/new/path
-          pattern: Artifact-A*
-          merge-multiple: true
 
       - name: Verify single file artifact
         run: |
-          $file = "some/new/path/file1.txt"
-          if(!(Test-Path -path $file))
-          {
-              Write-Error "Expected file does not exist"
-          }
-          if(!((Get-Content $file) -ceq "Lorem ipsum dolor sit amet"))
-          {
-              Write-Error "File contents of downloaded artifact are incorrect"
-          }
-        shell: pwsh
+          file="some/new/path/file1.txt"
+          if [ ! -f "$file" ]; then
+              echo "Expected file does not exist"
+              exit 1
+          fi
+          if [ "$(cat "$file")" != "Lorem ipsum dolor sit amet" ]; then
+              echo "File contents of downloaded artifact are incorrect"
+              exit 1
+          fi
+        shell: bash
 
       # Verify empty directory test
       - name: Download empty directory artifact
         uses: actions/download-artifact@v4
         with:
-          name: 'Empty-Dir-Test'
+          name: empty-dir-test
           path: empty-dir-test
 
       # Verify special characters test
       - name: Download special characters artifact
         uses: actions/download-artifact@v4
         with:
-          name: 'Special-Chars-Test'
+          name: special-chars-test
           path: special-chars-test
 
       - name: Verify special characters files
         run: |
-          if(!(Test-Path -path "special-chars-test/file with spaces.txt"))
-          {
-              Write-Error "File with spaces not found"
-          }
-          if(!(Test-Path -path "special-chars-test/file-with-@#`$symbols.txt"))
-          {
-              Write-Error "File with symbols not found"
-          }
-        shell: pwsh
+          if [ ! -f "special-chars-test/file with spaces.txt" ]; then
+              echo "File with spaces not found"
+              exit 1
+          fi
+          if [ ! -f "special-chars-test/file-with-@#\$symbols.txt" ]; then
+              echo "File with symbols not found"
+              exit 1
+          fi
+        shell: bash
 
       # Verify many files test
       - name: Download many files artifact
         uses: actions/download-artifact@v4
         with:
-          name: 'Many-Files-Test'
+          name: many-files-test
           path: many-files-test
 
       - name: Verify many files
         run: |
-          $fileCount = (Get-ChildItem -Path "many-files-test" -File).Count
-          if($fileCount -ne 100)
-          {
-              Write-Error "Expected 100 files, found $fileCount"
-          }
-        shell: pwsh
+          fileCount=$(find many-files-test -type f | wc -l)
+          if [ "$fileCount" -ne 100 ]; then
+              echo "Expected 100 files, found $fileCount"
+              exit 1
+          fi
+        shell: bash
 
       # Verify different file types test
       - name: Download file types artifact
         uses: actions/download-artifact@v4
         with:
-          name: 'File-Types-Test'
+          name: file-types-test
           path: file-types-test
 
       - name: Verify file types
         run: |
-          $files = @("test.json", "test.xml", "test.bin", "test.sh")
-          foreach ($file in $files) {
-              if(!(Test-Path -path "file-types-test/$file"))
-              {
-                  Write-Error "File $file not found"
-              }
-          }
+          files=("test.json" "test.xml" "test.bin" "test.sh")
+          for file in "${files[@]}"; do
+              if [ ! -f "file-types-test/$file" ]; then
+                  echo "File $file not found"
+                  exit 1
+              fi
+          done
           
           # Verify JSON content
-          $jsonContent = Get-Content "file-types-test/test.json" | ConvertFrom-Json
-          if($jsonContent.key -ne "value")
-          {
-              Write-Error "JSON content is incorrect"
-          }
+          if [ "$(jq -r '.key' file-types-test/test.json)" != "value" ]; then
+              echo "JSON content is incorrect"
+              exit 1
+          fi
           
           # Verify XML content
-          $xmlContent = Get-Content "file-types-test/test.xml"
-          if(!($xmlContent -match "<root>test</root>"))
-          {
-              Write-Error "XML content is incorrect"
-          }
-        shell: pwsh
+          if ! grep -q "<root>test</root>" file-types-test/test.xml; then
+              echo "XML content is incorrect"
+              exit 1
+          fi
+        shell: bash
 
       - name: Download and verify wildcard pattern artifact
         uses: actions/download-artifact@v4
         with:
+          name: wildcard-artifact
           path: some/other/path
-          pattern: artifact*
-          merge-multiple: true
 
       - name: Verify wildcard pattern artifact
         run: |
-          $file1 = "some/other/path/to/dir-1/file1.txt"
-          $file2 = "some/other/path/to/dir-2/file2.txt"
-          if(!(Test-Path -path $file1) -or !(Test-Path -path $file2))
-          {
-              Write-Error "Expected files do not exist"
-          }
-          if(!((Get-Content $file1) -ceq "Lorem ipsum dolor sit amet") -or !((Get-Content $file2) -ceq "Hello world from file #2"))
-          {
-              Write-Error "File contents of downloaded artifacts are incorrect"
-          }
-        shell: pwsh
+          file1="some/other/path/to/dir-1/file1.txt"
+          file2="some/other/path/to/dir-2/file2.txt"
+          if [ ! -f "$file1" ] || [ ! -f "$file2" ]; then
+              echo "Expected files do not exist"
+              exit 1
+          fi
+          if [ "$(cat "$file1")" != "Lorem ipsum dolor sit amet" ] || [ "$(cat "$file2")" != "Hello world from file #2" ]; then
+              echo "File contents of downloaded artifacts are incorrect"
+              exit 1
+          fi
+        shell: bash
 
       - name: Download and verify GZip artifact
         uses: actions/download-artifact@v4
         with:
+          name: gzip-artifact
           path: gzip/artifact/path
-          pattern: GZip-Artifact*
 
       - name: Verify GZip artifact
         run: |
-          $gzipFile = "gzip/artifact/path/gzip.txt"
-          if(!(Test-Path -path $gzipFile))
-          {
-              Write-Error "Expected file does not exist"
-          }
-          if(!((Get-Content $gzipFile) -match "compressed with GZip"))
-          {
-              Write-Error "File contents of downloaded artifact is incorrect"
-          }
-        shell: pwsh
+          gzipFile="gzip/artifact/path/gzip.txt"
+          if [ ! -f "$gzipFile" ]; then
+              echo "Expected file does not exist"
+              exit 1
+          fi
+          if ! grep -q "compressed with GZip" "$gzipFile"; then
+              echo "File contents of downloaded artifact is incorrect"
+              exit 1
+          fi
+        shell: bash
 
       - name: Download and verify multi-path artifact
         uses: actions/download-artifact@v4
         with:
+          name: multi-path-artifact
           path: multi/artifact
-          pattern: Multi-Path-Artifact*
-          merge-multiple: true
 
       - name: Verify multi-path artifact
         run: |
-          $file1 = "multi/artifact/dir-1/file1.txt"
-          $file2 = "multi/artifact/dir-2/file2.txt"
-          if(!(Test-Path -path $file1) -or !(Test-Path -path $file2))
-          {
-              Write-Error "Expected files do not exist"
-          }
-          if(!((Get-Content $file1) -ceq "Lorem ipsum dolor sit amet") -or !((Get-Content $file2) -ceq "Hello world from file #2"))
-          {
-              Write-Error "File contents of downloaded artifacts are incorrect"
-          }
-        shell: pwsh
+          file1="multi/artifact/dir-1/file1.txt"
+          file2="multi/artifact/dir-2/file2.txt"
+          if [ ! -f "$file1" ] || [ ! -f "$file2" ]; then
+              echo "Expected files do not exist"
+              exit 1
+          fi
+          if [ "$(cat "$file1")" != "Lorem ipsum dolor sit amet" ] || [ "$(cat "$file2")" != "Hello world from file #2" ]; then
+              echo "File contents of downloaded artifacts are incorrect"
+              exit 1
+          fi
+        shell: bash
