@@ -26,20 +26,49 @@ jobs:
         env:
           SERVICES: s3
           DEFAULT_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: mock-key
-          AWS_SECRET_ACCESS_KEY: mock-secret
         ports:
           - 4566:4566
+        options: >-
+          --health-cmd "awslocal s3 ls"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
       AWS_ACCESS_KEY_ID: mock-key
       AWS_SECRET_ACCESS_KEY: mock-secret
       AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localhost:4566
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install LocalStack CLI
+        run: pip install awscli-local[ver1]
+
+      - name: Wait for LocalStack
+        run: |
+          timeout=30
+          while ! nc -z localhost 4566; do
+            sleep 1
+            timeout=$((timeout - 1))
+            if [ $timeout -le 0 ]; then
+              echo "LocalStack failed to start"
+              exit 1
+            fi
+          done
+          echo "LocalStack is ready"
+
+      - name: Create test bucket
+        run: |
+          awslocal s3 mb s3://mock-bucket
+          awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
 
       - name: Setup Node
         uses: actions/setup-node@v4
