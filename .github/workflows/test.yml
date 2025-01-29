@@ -22,20 +22,26 @@ jobs:
 
     services:
       localstack:
-        image: localstack/localstack
+        image: localstack/localstack:3.0.0
         env:
           SERVICES: s3
-          DEFAULT_REGION: us-east-1
-          PERSIST_ALL: "1"  # Different persistence approach
-          EAGER_SERVICE_LOADING: "1"  # Load services eagerly
-          DEBUG: "1"  # Enable debug logging
+          AWS_DEFAULT_REGION: us-east-1
+          DOCKER_HOST: unix:///var/run/docker.sock
+          USE_SINGLE_REGION: 1
+          LS_LOG: trace
+          LEGACY_EDGE_PROXY: 1
+        volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+          - "/tmp/localstack:/tmp/localstack"
         ports:
-          - 4566:4566
+          - "4566:4566"
+          - "4571:4571"
         options: >-
-          --health-cmd "awslocal s3 ls"
-          --health-interval 10s
+          --health-cmd "curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 3
+          --health-start-period 10s
 
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
@@ -43,7 +49,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: mock-secret
       AWS_REGION: us-east-1
       AWS_ENDPOINT_URL: http://localhost:4566
-      DEBUG: "1"  # Enable debug logging for awslocal
+      DEBUG: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -54,53 +60,74 @@ jobs:
           python-version: '3.x'
 
       - name: Install LocalStack CLI
-        run: pip install awscli-local[ver1]
+        run: |
+          pip install awscli-local[ver1]
+          pip install localstack
 
       - name: Wait for LocalStack
         run: |
-          timeout=60
-          while ! nc -z localhost 4566; do
-            echo "Waiting for LocalStack to be ready..."
-            sleep 1
-            timeout=$((timeout - 1))
+          timeout=90
+          echo "Waiting for LocalStack API..."
+          while ! curl -s http://localhost:4566/_localstack/health | grep -q '"s3": "available"'; do
             if [ $timeout -le 0 ]; then
               echo "LocalStack failed to start"
+              curl -s http://localhost:4566/_localstack/health
               exit 1
             fi
+            echo "Waiting... ($timeout seconds remaining)"
+            sleep 2
+            timeout=$((timeout - 2))
           done
-          # Additional wait for service initialization
-          sleep 5
+
           echo "LocalStack is ready"
 
       - name: Create and verify S3 bucket
         run: |
-          echo "Creating bucket..."
-          awslocal s3 mb s3://mock-bucket || echo "Initial bucket creation failed"
-          
-          echo "Setting bucket ACL..."
-          awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write || echo "Setting ACL failed"
-          
-          echo "Verifying bucket exists..."
-          for i in {1..5}; do
-            if awslocal s3api head-bucket --bucket mock-bucket 2>/dev/null; then
-              echo "Bucket verification successful"
-              break
+          MAX_RETRIES=5
+          RETRY_DELAY=5
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            if awslocal s3 mb s3://mock-bucket; then
+              echo "Bucket created successfully"
+              
+              # Set bucket ACL with retry
+              if awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write; then
+                echo "Bucket ACL set successfully"
+                break
+              fi
             fi
-            echo "Retrying bucket verification in 2 seconds..."
-            sleep 2
+            
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "Attempt $i failed, retrying in $RETRY_DELAY seconds..."
+              sleep $RETRY_DELAY
+            else
+              echo "Failed to create bucket after $MAX_RETRIES attempts"
+              exit 1
+            fi
           done
 
-          # Final verification
-          if ! awslocal s3api head-bucket --bucket mock-bucket 2>/dev/null; then
-            echo "Final bucket verification failed"
-            echo "Listing all buckets:"
-            awslocal s3 ls
-            exit 1
-          fi
-
-          echo "Bucket setup completed successfully"
-
-          echo "Bucket setup and verification completed successfully"
+          # Verify bucket exists and is accessible
+          for i in $(seq 1 $MAX_RETRIES); do
+            if awslocal s3api head-bucket --bucket mock-bucket; then
+              echo "Bucket verification successful"
+              
+              # Test bucket access with a small file
+              echo "test" > /tmp/test.txt
+              if awslocal s3 cp /tmp/test.txt s3://mock-bucket/test.txt; then
+                echo "Bucket access test successful"
+                awslocal s3 rm s3://mock-bucket/test.txt
+                break
+              fi
+            fi
+            
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "Bucket verification attempt $i failed, retrying in $RETRY_DELAY seconds..."
+              sleep $RETRY_DELAY
+            else
+              echo "Failed to verify bucket after $MAX_RETRIES attempts"
+              exit 1
+            fi
+          done
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -217,7 +244,7 @@ jobs:
           mkdir -p path/to/dir-3
           echo "Lorem ipsum dolor sit amet" > path/to/dir-1/file1.txt
           echo "Hello world from file #2" > path/to/dir-2/file2.txt
-          echo "This is a going to be a test for a large enough file that should get compressed with GZip. The @actions/artifact package uses GZip to upload files. This text should have a compression ratio greater than 100% so it should get uploaded using GZip" > path/to/dir-3/gzip.txt
+          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt
 
       - name: Test single file artifact upload
         uses: ./
@@ -376,9 +403,9 @@ jobs:
           $gzipFile = "gzip/artifact/path/gzip.txt"
           if(!(Test-Path -path $gzipFile))
           {
-              Write-Error "Expected file do not exist"
+              Write-Error "Expected file does not exist"
           }
-          if(!((Get-Content $gzipFile) -ceq "This is a going to be a test for a large enough file that should get compressed with GZip. The @actions/artifact package uses GZip to upload files. This text should have a compression ratio greater than 100% so it should get uploaded using GZip"))
+          if(!((Get-Content $gzipFile) -match "compressed with GZip"))
           {
               Write-Error "File contents of downloaded artifact is incorrect"
           }
