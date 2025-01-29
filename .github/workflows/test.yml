@@ -22,22 +22,23 @@ jobs:
 
     services:
       minio:
-        image: minio/minio
+        image: minio/minio:latest
         ports:
           - 9000:9000
           - 9001:9001
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
+        volumes:
+          - /tmp/data:/data
+        command: server --console-address ":9001" /data
         options: >-
           --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
           --health-start-period 10s
-          --name minio-server
-          -v /tmp/data:/data
-          server --console-address ":9001" /data
+
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
       AWS_ACCESS_KEY_ID: minioadmin
