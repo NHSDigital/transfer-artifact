@@ -26,8 +26,12 @@ jobs:
         env:
           SERVICES: s3
           DEFAULT_REGION: us-east-1
+          PERSISTENCE: 1
+          DATA_DIR: /tmp/localstack/data
         ports:
           - 4566:4566
+        volumes:
+          - /tmp/localstack:/tmp/localstack
         options: >-
           --health-cmd "awslocal s3 ls"
           --health-interval 10s
@@ -66,34 +70,38 @@ jobs:
           done
           echo "LocalStack is ready"
 
-      - name: Create and verify test bucket
+      - name: Create and verify S3 bucket
         run: |
-          # Create bucket with awslocal
-          awslocal s3 mb s3://mock-bucket || echo "Bucket creation failed with awslocal"
+          # Create bucket
+          awslocal s3 mb s3://mock-bucket
           
-          # Set bucket ACL
-          awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write || echo "Setting ACL failed"
+          # Set bucket ACL and policies
+          awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
           
-          # Create bucket with AWS CLI as backup
-          aws --endpoint-url=http://localhost:4566 s3 mb s3://mock-bucket || echo "Bucket creation failed with AWS CLI"
+          # Write a test file to ensure bucket is working
+          echo "test" > test.txt
+          awslocal s3 cp test.txt s3://mock-bucket/test.txt
           
-          # Verify bucket exists
-          if ! aws --endpoint-url=http://localhost:4566 s3api head-bucket --bucket mock-bucket 2>/dev/null; then
+          # Verify bucket and file
+          awslocal s3api head-bucket --bucket mock-bucket || {
             echo "Bucket verification failed"
-            echo "Listing all buckets:"
-            aws --endpoint-url=http://localhost:4566 s3 ls
-            echo "Attempting bucket recreation:"
-            aws --endpoint-url=http://localhost:4566 s3 mb s3://mock-bucket --force
-            if ! aws --endpoint-url=http://localhost:4566 s3api head-bucket --bucket mock-bucket 2>/dev/null; then
-              echo "Final bucket verification failed"
-              exit 1
-            fi
+            exit 1
+          }
+          
+          # Download test file to verify
+          awslocal s3 cp s3://mock-bucket/test.txt test-download.txt
+          
+          # Compare files
+          if ! cmp -s test.txt test-download.txt; then
+            echo "Bucket read/write verification failed"
+            exit 1
           fi
-          echo "Bucket exists and is accessible"
-
-          # List bucket contents for verification
-          echo "Current bucket contents:"
-          aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket || echo "Failed to list bucket contents"
+          
+          # Clear test files
+          awslocal s3 rm s3://mock-bucket/test.txt
+          rm test.txt test-download.txt
+          
+          echo "Bucket setup and verification completed successfully"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -137,10 +145,29 @@ jobs:
       # Test special character handling
       - name: Create files with special characters
         run: |
+          # First verify bucket still exists
+          echo "Verifying bucket exists before upload..."
+          if ! awslocal s3api head-bucket --bucket mock-bucket; then
+            echo "Bucket not found, recreating..."
+            awslocal s3 mb s3://mock-bucket
+            awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
+          fi
+          
+          # Create test directory and files
           mkdir -p "path/to/special chars"
           echo "File with spaces" > "path/to/special chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
-        shell: bash
+          
+          # Test direct upload to verify bucket access
+          echo "Testing direct upload with awslocal..."
+          awslocal s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
+          if [ $? -eq 0 ]; then
+            echo "Direct upload test successful"
+            awslocal s3 rm "s3://mock-bucket/test-upload.txt"
+          else
+            echo "Direct upload test failed"
+            exit 1
+          fi
 
       - name: Test special character upload
         uses: ./
