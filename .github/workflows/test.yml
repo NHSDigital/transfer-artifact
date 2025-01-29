@@ -20,6 +20,9 @@ jobs:
 
     runs-on: ${{ matrix.runs-on }}
 
+    env:
+      ARTIFACTS_S3_BUCKET: mock-bucket # Add mock bucket for tests
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +48,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          if [ "${{ matrix.runs-on }}" = "windows-latest" ]; then
             npm run test
           else
             NODE_OPTIONS=--experimental-vm-modules npm run test
@@ -61,6 +64,7 @@ jobs:
           name: 'Empty-Dir-Test'
           path: path/to/empty-dir
           if-no-files-found: warn
+          artifact-bucket: mock-bucket # Add bucket parameter
 
       # Test special character handling
       - name: Create files with special characters
@@ -75,6 +79,7 @@ jobs:
         with:
           name: 'Special-Chars-Test'
           path: "path/to/special chars/**"
+          artifact-bucket: mock-bucket
 
       # Test large number of files
       - name: Create many small files
@@ -90,6 +95,7 @@ jobs:
         with:
           name: 'Many-Files-Test'
           path: path/to/many-files/*
+          artifact-bucket: mock-bucket
 
       # Test different file types
       - name: Create different file types
@@ -107,6 +113,7 @@ jobs:
         with:
           name: 'File-Types-Test'
           path: path/to/file-types/*
+          artifact-bucket: mock-bucket
 
       # Test regular artifact upload/download functionality
       - name: Create test files
@@ -123,17 +130,20 @@ jobs:
         with:
           name: 'Artifact-A'
           path: path/to/dir-1/file1.txt
+          artifact-bucket: mock-bucket
 
       - name: Test wildcard pattern upload
         uses: ./
         with:
           path: path/**/dir*/
+          artifact-bucket: mock-bucket
 
       - name: Test GZip artifact upload
         uses: ./
         with:
           name: 'GZip-Artifact'
           path: path/to/dir-3/
+          artifact-bucket: mock-bucket
 
       - name: Test multi-path artifact upload
         uses: ./
@@ -143,7 +153,9 @@ jobs:
             path/to/dir-1/*
             path/to/dir-[23]/*
             !path/to/dir-3/*.txt
+          artifact-bucket: mock-bucket
 
+      # Download artifacts and verify
       - name: Download and verify single file artifact
         uses: actions/download-artifact@v4
         with:
