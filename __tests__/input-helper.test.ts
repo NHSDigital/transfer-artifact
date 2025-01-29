@@ -32,11 +32,13 @@ describe('getInputs', () => {
       [Inputs.Direction]: 'upload',
       [Inputs.IfNoFilesFound]: 'warn',
       [Inputs.RetentionDays]: '',
-      [Inputs.Concurrency]: ''
+      [Inputs.Concurrency]: '',
     };
 
     // Mock the core.getInput function to return our test values
-    (core.getInput as jest.Mock).mockImplementation((name) => mockInputs[name] || '');
+    (core.getInput as jest.Mock).mockImplementation(
+      (name) => mockInputs[name] || ''
+    );
 
     // Execute the function
     const result = getInputs();
@@ -48,7 +50,7 @@ describe('getInputs', () => {
       searchPath: '/test/path',
       direction: 'upload',
       folderName: 'test-folder',
-      ifNoFilesFound: 'warn'
+      ifNoFilesFound: 'warn',
     });
 
     // Verify that required inputs were checked
@@ -66,10 +68,12 @@ describe('getInputs', () => {
       [Inputs.Path]: '/test/path',
       [Inputs.ArtifactBucket]: '', // Empty bucket input
       [Inputs.Direction]: 'upload',
-      [Inputs.IfNoFilesFound]: 'warn'
+      [Inputs.IfNoFilesFound]: 'warn',
     };
 
-    (core.getInput as jest.Mock).mockImplementation((name) => mockInputs[name] || '');
+    (core.getInput as jest.Mock).mockImplementation(
+      (name) => mockInputs[name] || ''
+    );
 
     const result = getInputs();
 
@@ -85,10 +89,12 @@ describe('getInputs', () => {
       [Inputs.Path]: '/test/path',
       [Inputs.ArtifactBucket]: '', // Empty bucket input
       [Inputs.Direction]: 'upload',
-      [Inputs.IfNoFilesFound]: 'warn'
+      [Inputs.IfNoFilesFound]: 'warn',
     };
 
-    (core.getInput as jest.Mock).mockImplementation((name) => mockInputs[name] || '');
+    (core.getInput as jest.Mock).mockImplementation(
+      (name) => mockInputs[name] || ''
+    );
 
     // Verify that the function throws with the expected error message
     expect(() => getInputs()).toThrow('no artifact-bucket supplied');
@@ -103,10 +109,12 @@ describe('getInputs', () => {
       [Inputs.ArtifactBucket]: 'test-bucket',
       [Inputs.Direction]: 'upload',
       [Inputs.IfNoFilesFound]: 'warn',
-      [Inputs.RetentionDays]: '90'
+      [Inputs.RetentionDays]: '90',
     };
 
-    (core.getInput as jest.Mock).mockImplementation((name) => mockInputs[name] || '');
+    (core.getInput as jest.Mock).mockImplementation(
+      (name) => mockInputs[name] || ''
+    );
 
     const result = getInputs();
 
@@ -123,10 +131,12 @@ describe('getInputs', () => {
       [Inputs.ArtifactBucket]: 'test-bucket',
       [Inputs.Direction]: 'upload',
       [Inputs.IfNoFilesFound]: 'warn',
-      [Inputs.RetentionDays]: 'invalid' // Non-numeric value
+      [Inputs.RetentionDays]: 'invalid', // Non-numeric value
     };
 
-    (core.getInput as jest.Mock).mockImplementation((name) => mockInputs[name] || '');
+    (core.getInput as jest.Mock).mockImplementation(
+      (name) => mockInputs[name] || ''
+    );
     const setFailedMock = core.setFailed as jest.Mock;
 
     // Execute function with invalid retention days
@@ -144,10 +154,12 @@ describe('getInputs', () => {
       [Inputs.Path]: '/test/path',
       [Inputs.ArtifactBucket]: 'test-bucket',
       [Inputs.Direction]: 'upload',
-      [Inputs.IfNoFilesFound]: '' // Invalid empty value
+      [Inputs.IfNoFilesFound]: '', // Invalid empty value
     };
 
-    (core.getInput as jest.Mock).mockImplementation((name) => mockInputs[name] || '');
+    (core.getInput as jest.Mock).mockImplementation(
+      (name) => mockInputs[name] || ''
+    );
     const setFailedMock = core.setFailed as jest.Mock;
 
     // Execute function with invalid ifNoFilesFound
