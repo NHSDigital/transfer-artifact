@@ -38,6 +38,9 @@ inputs:
   run-number:
     description: 'Github run number used to identify artifacts'
     default: ${{ github.run_number }}
+  artifact-bucket:
+    description: 'S3 bucket to store artifacts'
+    required: false
 runs:
   using: node20
   main: 'dist/index.js'
