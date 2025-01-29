@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { type UploadOptions } from '@actions/artifact';
 import { uploadObjectToS3 } from './put-data-s3';
 import fs from 'node:fs';
@@ -8,17 +7,44 @@ import {
   UploadSpecification,
 } from '../upload-specification';
 import pMap from 'p-map';
-import { Inputs } from '../constants';
 
-function logUploadInformation(begin: number, uploads: void[]) {
-  const finish = Date.now();
-  let fileCount = 0;
-  for (const item of uploads) {
-    fileCount += 1;
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function retryUpload(
+  uploadFn: () => Promise<any>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<any> {
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await uploadFn();
+    } catch (error) {
+      lastError = error;
+      if (error instanceof Error && error.message.includes('bucket does not exist')) {
+        const delay = initialDelay * Math.pow(2, attempt); // Exponential backoff
+        core.info(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+      throw error; // Throw immediately for other types of errors
+    }
   }
+  throw lastError;
+}
+
+function logUploadInformation(begin: number, successfulUploads: boolean[]) {
+  const finish = Date.now();
+  const successCount = successfulUploads.filter(success => success).length;
+  const failureCount = successfulUploads.length - successCount;
   const duration = finish - begin;
-  console.log(
-    `Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(3)} seconds.`
+
+  if (failureCount > 0) {
+    core.error(`Failed to upload ${failureCount} files`);
+  }
+
+  core.info(
+    `Successfully uploaded ${successCount} files in ${(duration / 1000).toFixed(3)} seconds.`
   );
 }
 
@@ -40,7 +66,10 @@ export async function uploadArtifact(
       filesToUpload
     );
 
-    const mapper = async (fileSpec: UploadSpecification) => {
+    // Initial delay before starting uploads
+    await sleep(2000); // Wait 2 seconds for bucket to be fully ready
+
+    const mapper = async (fileSpec: UploadSpecification): Promise<boolean> => {
       try {
         // Check if bucket exists before upload
         const { S3Client, HeadBucketCommand } = await import('@aws-sdk/client-s3');
@@ -66,28 +95,37 @@ export async function uploadArtifact(
         const keyParts = `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`.split('/');
         const encodedKey = keyParts.map(part => encodeURIComponent(part)).join('/');
 
-        await uploadObjectToS3(
+        await retryUpload(() => uploadObjectToS3(
           {
             Body: fs.createReadStream(fileSpec.absoluteFilePath),
             Bucket: bucket,
             Key: encodedKey,
           },
           core
-        );
-
-        core.debug(`Successfully uploaded ${fileSpec.uploadFilePath}`);
+        ));
+        return true; // Upload succeeded
       } catch (error) {
-        core.error(`Error uploading ${fileSpec.uploadFilePath}: ${error}`);
-        throw error;
+        core.error(`Failed to upload ${fileSpec.uploadFilePath}: ${error}`);
+        return false; // Upload failed
       }
     };
 
-    const result = await pMap(uploadSpec, mapper, { concurrency });
-    logUploadInformation(startTime, result);
-    return result;
+    const results = await pMap(uploadSpec, mapper, {
+      concurrency,
+      stopOnError: false
+    });
 
+    const hasFailures = results.some(success => !success);
+    logUploadInformation(startTime, results);
+
+    if (hasFailures) {
+      core.setFailed(`Some files failed to upload for ${artifactName}`);
+      return false;
+    }
+
+    return true;
   } catch (error) {
-    core.setFailed(`An error was encountered when uploading ${artifactName}: ${error}`);
-    throw error;
+    core.setFailed((error as Error).message);
+    return false;
   }
 }
