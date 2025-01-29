@@ -3,7 +3,7 @@
     "target": "es2022",
     "module": "es2022",
     "outDir": "./lib",
-    "rootDir": "./src",
+    "rootDir": ".",  // Changed from ./src to . to include tests
     "strict": true,
     "noImplicitAny": false,
     "moduleResolution": "node",
@@ -13,5 +13,6 @@
     "sourceMap": true,
     "lib": ["ES2022"]
   },
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "include": ["src/**/*", "__tests__/**/*"],  // Added __tests__
+  "exclude": ["node_modules", "lib", "dist"]
 }
