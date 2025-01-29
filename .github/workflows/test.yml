@@ -21,33 +21,30 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     services:
-      localstack:
-        image: localstack/localstack:3.0.0
-        env:
-          SERVICES: s3
-          AWS_DEFAULT_REGION: us-east-1
-          DOCKER_HOST: unix:///var/run/docker.sock
-          USE_SINGLE_REGION: "1"
-          LS_LOG: trace
-          PERSIST: "0"
-        volumes:
-          - "/var/run/docker.sock:/var/run/docker.sock"
+      minio:
+        image: minio/minio
         ports:
-          - 4566:4566
-          - 4571:4571
+          - 9000:9000
+          - 9001:9001
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
         options: >-
-          --health-cmd "curl -s http://localhost:4566/_localstack/health | grep -q '\"s3\": \"running\"' || exit 1"
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-          --health-start-period 20s
+          --health-retries 3
+          --health-start-period 10s
+        volumes:
+          - /tmp/data:/data
+        command: server --console-address ":9001" /data
 
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
-      AWS_ACCESS_KEY_ID: mock-key
-      AWS_SECRET_ACCESS_KEY: mock-secret
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_REGION: us-east-1
-      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_ENDPOINT_URL: http://localhost:9000
       DEBUG: "1"
 
     steps:
@@ -58,27 +55,29 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install LocalStack CLI
+      - name: Install MinIO Client
         run: |
-          pip install awscli-local[ver1]
-          pip install localstack
+          pip install awscli
+          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+            --create-dirs \
+            -o /usr/local/bin/mc
+          chmod +x /usr/local/bin/mc
+          mc alias set minio http://localhost:9000 minioadmin minioadmin
 
-      - name: Wait for LocalStack
+      - name: Wait for MinIO
         run: |
           timeout=90
-          echo "Waiting for LocalStack API..."
-          while ! curl -s http://localhost:4566/_localstack/health | grep -q '"s3": "running"'; do
+          echo "Waiting for MinIO API..."
+          while ! curl -s http://localhost:9000/minio/health/live; do
             if [ $timeout -le 0 ]; then
-              echo "LocalStack failed to start"
-              curl -s http://localhost:4566/_localstack/health
+              echo "MinIO failed to start"
               exit 1
             fi
             echo "Waiting... ($timeout seconds remaining)"
             sleep 2
             timeout=$((timeout - 2))
           done
-
-          echo "LocalStack is ready"
+          echo "MinIO is ready"
 
       - name: Create and verify S3 bucket
         run: |
@@ -86,14 +85,9 @@ jobs:
           RETRY_DELAY=5
 
           for i in $(seq 1 $MAX_RETRIES); do
-            if awslocal s3 mb s3://mock-bucket; then
+            if aws --endpoint-url http://localhost:9000 s3 mb s3://mock-bucket; then
               echo "Bucket created successfully"
-              
-              # Set bucket ACL with retry
-              if awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write; then
-                echo "Bucket ACL set successfully"
-                break
-              fi
+              break
             fi
             
             if [ $i -lt $MAX_RETRIES ]; then
@@ -107,14 +101,14 @@ jobs:
 
           # Verify bucket exists and is accessible
           for i in $(seq 1 $MAX_RETRIES); do
-            if awslocal s3api head-bucket --bucket mock-bucket; then
+            if aws --endpoint-url http://localhost:9000 s3api head-bucket --bucket mock-bucket; then
               echo "Bucket verification successful"
               
               # Test bucket access with a small file
               echo "test" > /tmp/test.txt
-              if awslocal s3 cp /tmp/test.txt s3://mock-bucket/test.txt; then
+              if aws --endpoint-url http://localhost:9000 s3 cp /tmp/test.txt s3://mock-bucket/test.txt; then
                 echo "Bucket access test successful"
-                awslocal s3 rm s3://mock-bucket/test.txt
+                aws --endpoint-url http://localhost:9000 s3 rm s3://mock-bucket/test.txt
                 break
               fi
             fi
@@ -172,10 +166,9 @@ jobs:
         run: |
           # First verify bucket still exists
           echo "Verifying bucket exists before upload..."
-          if ! awslocal s3api head-bucket --bucket mock-bucket; then
+          if ! aws --endpoint-url http://localhost:9000 s3api head-bucket --bucket mock-bucket; then
             echo "Bucket not found, recreating..."
-            awslocal s3 mb s3://mock-bucket
-            awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
+            aws --endpoint-url http://localhost:9000 s3 mb s3://mock-bucket
           fi
           
           # Create test directory and files
@@ -184,11 +177,11 @@ jobs:
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
           
           # Test direct upload to verify bucket access
-          echo "Testing direct upload with awslocal..."
-          awslocal s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
+          echo "Testing direct upload..."
+          aws --endpoint-url http://localhost:9000 s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
           if [ $? -eq 0 ]; then
             echo "Direct upload test successful"
-            awslocal s3 rm "s3://mock-bucket/test-upload.txt"
+            aws --endpoint-url http://localhost:9000 s3 rm "s3://mock-bucket/test-upload.txt"
           else
             echo "Direct upload test failed"
             exit 1
