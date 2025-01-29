@@ -24,24 +24,23 @@ jobs:
       localstack:
         image: localstack/localstack:3.0.0
         env:
-          SERVICES: s3
-          AWS_DEFAULT_REGION: us-east-1
-          DOCKER_HOST: unix:///var/run/docker.sock
-          USE_SINGLE_REGION: 1
-          LS_LOG: trace
-          LEGACY_EDGE_PROXY: 1
+          - SERVICES=s3
+          - AWS_DEFAULT_REGION=us-east-1
+          - DOCKER_HOST=unix:///var/run/docker.sock
+          - USE_SINGLE_REGION=1
+          - LS_LOG=trace
+          - PERSIST=0  # Disable persistence to avoid volume conflicts
         volumes:
           - "/var/run/docker.sock:/var/run/docker.sock"
-          - "/tmp/localstack:/tmp/localstack"
         ports:
           - "4566:4566"
           - "4571:4571"
         options: >-
-          --health-cmd "curl -f http://localhost:4566/_localstack/health || exit 1"
-          --health-interval 5s
+          --health-cmd "curl -s http://localhost:4566/_localstack/health | grep -q '\"s3\": \"running\"' || exit 1"
+          --health-interval 10s
           --health-timeout 5s
-          --health-retries 3
-          --health-start-period 10s
+          --health-retries 5
+          --health-start-period 20s
 
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
