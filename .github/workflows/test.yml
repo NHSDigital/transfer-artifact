@@ -21,7 +21,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     env:
-      ARTIFACTS_S3_BUCKET: mock-bucket # Add mock bucket for tests
+      ARTIFACTS_S3_BUCKET: mock-bucket
+      AWS_ACCESS_KEY_ID: mock-key
+      AWS_SECRET_ACCESS_KEY: mock-secret
+      AWS_REGION: us-east-1
 
     steps:
       - name: Checkout
