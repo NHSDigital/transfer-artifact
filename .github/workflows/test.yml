@@ -24,17 +24,17 @@ jobs:
       localstack:
         image: localstack/localstack:3.0.0
         env:
-          - SERVICES=s3
-          - AWS_DEFAULT_REGION=us-east-1
-          - DOCKER_HOST=unix:///var/run/docker.sock
-          - USE_SINGLE_REGION=1
-          - LS_LOG=trace
-          - PERSIST=0  # Disable persistence to avoid volume conflicts
+          SERVICES: s3
+          AWS_DEFAULT_REGION: us-east-1
+          DOCKER_HOST: unix:///var/run/docker.sock
+          USE_SINGLE_REGION: "1"
+          LS_LOG: trace
+          PERSIST: "0"
         volumes:
           - "/var/run/docker.sock:/var/run/docker.sock"
         ports:
-          - "4566:4566"
-          - "4571:4571"
+          - 4566:4566
+          - 4571:4571
         options: >-
           --health-cmd "curl -s http://localhost:4566/_localstack/health | grep -q '\"s3\": \"running\"' || exit 1"
           --health-interval 10s
@@ -67,7 +67,7 @@ jobs:
         run: |
           timeout=90
           echo "Waiting for LocalStack API..."
-          while ! curl -s http://localhost:4566/_localstack/health | grep -q '"s3": "available"'; do
+          while ! curl -s http://localhost:4566/_localstack/health | grep -q '"s3": "running"'; do
             if [ $timeout -le 0 ]; then
               echo "LocalStack failed to start"
               curl -s http://localhost:4566/_localstack/health
