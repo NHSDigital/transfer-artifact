@@ -30,12 +30,16 @@ describe('getS3Client', () => {
     mockS3Client.mockClear();
     mockRegion.mockReset();
 
+    // Set test environment
+    process.env.NODE_ENV = 'test';
+
     // Import fresh instance AFTER resetting mocks
     getS3Client = require('../s3-client').getS3Client;
   });
 
   afterEach(() => {
     jest.resetModules();
+    delete process.env.NODE_ENV;
   });
 
   it('should create new S3Client instance with correct region on first call', () => {

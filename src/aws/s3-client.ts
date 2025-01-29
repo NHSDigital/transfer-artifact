@@ -7,18 +7,24 @@ let s3Client: S3ClientConstructor | null = null;
 
 export function getS3Client(): S3ClientConstructor {
   if (!s3Client) {
-    const options: any = {
-      region: region(),
-      // For testing, if we detect mock credentials, use a mock endpoint
-      ...(process.env.AWS_ACCESS_KEY_ID === 'mock-key' && {
-        forcePathStyle: true,
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
-        },
-        endpoint: 'http://localhost:4566' // LocalStack compatible endpoint
-      })
+    const baseOptions = {
+      region: region()
     };
+
+    const options = process.env.NODE_ENV === 'test' ?
+      baseOptions :
+      {
+        ...baseOptions,
+              // For testing, if we detect mock credentials, use a mock endpoint
+        ...(process.env.AWS_ACCESS_KEY_ID === 'mock-key' && {
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
+          },
+        endpoint: 'http://localhost:4566' // LocalStack compatible endpoint
+        })
+      };
 
     s3Client = new S3ClientConstructor(options);
   }
