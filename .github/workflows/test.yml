@@ -60,11 +60,12 @@ jobs:
         run: mkdir -p path/to/empty-dir
 
       - name: Upload empty directory as artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: empty-dir-test
           path: path/to/empty-dir
-          if-no-files-found: warn
+          direction: 'upload'
+          name: 'empty-dir-test'
+          if-no-files-found: 'warn'
 
       # Test special character handling
       - name: Create files with special characters
@@ -74,10 +75,11 @@ jobs:
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
 
       - name: Upload special characters files as artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: special-chars-test
           path: "path/to/special chars/**"
+          direction: 'upload'
+          name: 'special-chars-test'
 
       # Test large number of files
       - name: Create many small files
@@ -89,10 +91,11 @@ jobs:
         shell: bash
 
       - name: Upload many files as artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: many-files-test
           path: path/to/many-files/*
+          direction: 'upload'
+          name: 'many-files-test'
 
       # Test different file types
       - name: Create different file types
@@ -106,10 +109,11 @@ jobs:
         shell: bash
 
       - name: Upload different file types as artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: file-types-test
           path: path/to/file-types/*
+          direction: 'upload'
+          name: 'file-types-test'
 
       # Test regular artifact upload/download functionality
       - name: Create test files
@@ -122,38 +126,43 @@ jobs:
           echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt
 
       - name: Upload single file as artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: artifact-a
           path: path/to/dir-1/file1.txt
+          direction: 'upload'
+          name: 'artifact-a'
 
       - name: Upload wildcard pattern as artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: wildcard-artifact
           path: path/**/dir*/
+          direction: 'upload'
+          name: 'wildcard-artifact'
 
       - name: Upload GZip artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: gzip-artifact
           path: path/to/dir-3/
+          direction: 'upload'
+          name: 'gzip-artifact'
 
       - name: Upload multi-path artifact
-        uses: actions/upload-artifact@v4
+        uses: ./
         with:
-          name: multi-path-artifact
           path: |
             path/to/dir-1/*
             path/to/dir-[23]/*
             !path/to/dir-3/*.txt
+          direction: 'upload'
+          name: 'multi-path-artifact'
 
       # Download artifacts and verify
       - name: Download and verify single file artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: artifact-a
           path: some/new/path
+          direction: 'download'
+          name: 'artifact-a'
 
       - name: Verify single file artifact
         run: |
@@ -170,17 +179,19 @@ jobs:
 
       # Verify empty directory test
       - name: Download empty directory artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: empty-dir-test
           path: empty-dir-test
+          direction: 'download'
+          name: 'empty-dir-test'
 
       # Verify special characters test
       - name: Download special characters artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: special-chars-test
           path: special-chars-test
+          direction: 'download'
+          name: 'special-chars-test'
 
       - name: Verify special characters files
         run: |
@@ -196,10 +207,11 @@ jobs:
 
       # Verify many files test
       - name: Download many files artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: many-files-test
           path: many-files-test
+          direction: 'download'
+          name: 'many-files-test'
 
       - name: Verify many files
         run: |
@@ -212,10 +224,11 @@ jobs:
 
       # Verify different file types test
       - name: Download file types artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: file-types-test
           path: file-types-test
+          direction: 'download'
+          name: 'file-types-test'
 
       - name: Verify file types
         run: |
@@ -241,10 +254,11 @@ jobs:
         shell: bash
 
       - name: Download and verify wildcard pattern artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: wildcard-artifact
           path: some/other/path
+          direction: 'download'
+          name: 'wildcard-artifact'
 
       - name: Verify wildcard pattern artifact
         run: |
@@ -261,10 +275,11 @@ jobs:
         shell: bash
 
       - name: Download and verify GZip artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: gzip-artifact
           path: gzip/artifact/path
+          direction: 'download'
+          name: 'gzip-artifact'
 
       - name: Verify GZip artifact
         run: |
@@ -280,10 +295,11 @@ jobs:
         shell: bash
 
       - name: Download and verify multi-path artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
-          name: multi-path-artifact
           path: multi/artifact
+          direction: 'download'
+          name: 'multi-path-artifact'
 
       - name: Verify multi-path artifact
         run: |
