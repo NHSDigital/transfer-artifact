@@ -40,7 +40,7 @@ function logDownloadInformation(begin: number, downloads: number[]) {
   );
 }
 
-export async function runDownload(): Promise<any> {
+export async function runDownload(): Promise<number[]> {
   try {
     const startTime = Date.now();
     const inputs = getInputs();
@@ -55,7 +55,7 @@ export async function runDownload(): Promise<any> {
       Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
     });
 
-    let newObjectList: string[] = [];
+    const newObjectList: string[] = [];
 
     /* listS3Objects brings back everything in the S3 bucket
     Use an if statement to find only files relevant to this pipeline */
@@ -100,5 +100,6 @@ export async function runDownload(): Promise<any> {
     return result;
   } catch (error) {
     core.setFailed((error as Error).message);
+    return [];
   }
 }

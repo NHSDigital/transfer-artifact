@@ -2,18 +2,18 @@ import { S3Client } from '@aws-sdk/client-s3';
 
 // Create mock for S3Client
 const mockS3Client = jest.fn().mockImplementation(() => ({
-  send: jest.fn()
+  send: jest.fn(),
 }));
 
 // Mock the AWS SDK S3 Client
 jest.mock('@aws-sdk/client-s3', () => ({
-  S3Client: mockS3Client
+  S3Client: mockS3Client,
 }));
 
 // Mock the locations module with a mock function we can control
 const mockRegion = jest.fn();
 jest.mock('../locations', () => ({
-  region: mockRegion
+  region: mockRegion,
 }));
 
 describe('getS3Client', () => {
@@ -51,7 +51,7 @@ describe('getS3Client', () => {
     // Verify S3Client constructor was called correctly
     expect(mockS3Client).toHaveBeenCalledTimes(1);
     expect(mockS3Client).toHaveBeenCalledWith({
-      region: 'eu-west-1'
+      region: 'eu-west-1',
     });
 
     // Verify we got back a client instance
@@ -100,7 +100,7 @@ describe('getS3Client', () => {
 
     // Verify S3Client was called with undefined region
     expect(mockS3Client).toHaveBeenCalledWith({
-      region: undefined
+      region: undefined,
     });
 
     // Verify we still got a client instance
