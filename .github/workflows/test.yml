@@ -20,32 +20,14 @@ jobs:
 
     runs-on: ${{ matrix.runs-on }}
 
-    services:
-      minio:
-        image: minio/minio:latest
-        ports:
-          - 9000:9000
-          - 9001:9001
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        volumes:
-          - /tmp/data:/data
-        command: server --console-address ":9001" /data
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
-          --health-start-period 10s
-
     env:
       ARTIFACTS_S3_BUCKET: mock-bucket
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_ACCESS_KEY_ID: mock-key
+      AWS_SECRET_ACCESS_KEY: mock-secret
       AWS_REGION: us-east-1
       AWS_ENDPOINT_URL: http://localhost:9000
       DEBUG: "1"
+      MOCK_AWS_S3: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -55,73 +37,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install MinIO Client
-        run: |
-          pip install awscli
-          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
-            --create-dirs \
-            -o /usr/local/bin/mc
-          chmod +x /usr/local/bin/mc
-          mc alias set minio http://localhost:9000 minioadmin minioadmin
-
-      - name: Wait for MinIO
-        run: |
-          timeout=90
-          echo "Waiting for MinIO API..."
-          while ! curl -s http://localhost:9000/minio/health/live; do
-            if [ $timeout -le 0 ]; then
-              echo "MinIO failed to start"
-              exit 1
-            fi
-            echo "Waiting... ($timeout seconds remaining)"
-            sleep 2
-            timeout=$((timeout - 2))
-          done
-          echo "MinIO is ready"
-
-      - name: Create and verify S3 bucket
-        run: |
-          MAX_RETRIES=5
-          RETRY_DELAY=5
-
-          for i in $(seq 1 $MAX_RETRIES); do
-            if aws --endpoint-url http://localhost:9000 s3 mb s3://mock-bucket; then
-              echo "Bucket created successfully"
-              break
-            fi
-            
-            if [ $i -lt $MAX_RETRIES ]; then
-              echo "Attempt $i failed, retrying in $RETRY_DELAY seconds..."
-              sleep $RETRY_DELAY
-            else
-              echo "Failed to create bucket after $MAX_RETRIES attempts"
-              exit 1
-            fi
-          done
-
-          # Verify bucket exists and is accessible
-          for i in $(seq 1 $MAX_RETRIES); do
-            if aws --endpoint-url http://localhost:9000 s3api head-bucket --bucket mock-bucket; then
-              echo "Bucket verification successful"
-              
-              # Test bucket access with a small file
-              echo "test" > /tmp/test.txt
-              if aws --endpoint-url http://localhost:9000 s3 cp /tmp/test.txt s3://mock-bucket/test.txt; then
-                echo "Bucket access test successful"
-                aws --endpoint-url http://localhost:9000 s3 rm s3://mock-bucket/test.txt
-                break
-              fi
-            fi
-            
-            if [ $i -lt $MAX_RETRIES ]; then
-              echo "Bucket verification attempt $i failed, retrying in $RETRY_DELAY seconds..."
-              sleep $RETRY_DELAY
-            else
-              echo "Failed to verify bucket after $MAX_RETRIES attempts"
-              exit 1
-            fi
-          done
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -129,7 +44,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm install mock-aws-s3 --save-dev
 
       - name: Compile
         run: npm run build
@@ -164,28 +81,9 @@ jobs:
       # Test special character handling
       - name: Create files with special characters
         run: |
-          # First verify bucket still exists
-          echo "Verifying bucket exists before upload..."
-          if ! aws --endpoint-url http://localhost:9000 s3api head-bucket --bucket mock-bucket; then
-            echo "Bucket not found, recreating..."
-            aws --endpoint-url http://localhost:9000 s3 mb s3://mock-bucket
-          fi
-          
-          # Create test directory and files
           mkdir -p "path/to/special chars"
           echo "File with spaces" > "path/to/special chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
-          
-          # Test direct upload to verify bucket access
-          echo "Testing direct upload..."
-          aws --endpoint-url http://localhost:9000 s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
-          if [ $? -eq 0 ]; then
-            echo "Direct upload test successful"
-            aws --endpoint-url http://localhost:9000 s3 rm "s3://mock-bucket/test-upload.txt"
-          else
-            echo "Direct upload test failed"
-            exit 1
-          fi
 
       - name: Test special character upload
         uses: ./
