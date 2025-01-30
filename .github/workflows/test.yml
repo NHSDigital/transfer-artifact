@@ -198,7 +198,6 @@ jobs:
         with:
           path: some/new/path
           pattern: Artifact-A*
-          merge-multiple: true
           name: 'artifact-a'
           artifact-bucket: mock-bucket
 
@@ -303,7 +302,6 @@ jobs:
         with:
           path: some/other/path
           pattern: artifact*
-          merge-multiple: true
           artifact-bucket: mock-bucket
         continue-on-error: true
 
@@ -352,7 +350,7 @@ jobs:
           merge-multiple: true
           artifact-bucket: mock-bucket
         continue-on-error: true
-        
+
       - name: Verify multi-path artifact
         run: |
           $file1 = "multi/artifact/dir-1/file1.txt"
