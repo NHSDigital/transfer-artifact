@@ -53,6 +53,9 @@ jobs:
       - name: Compile
         run: npm run build
 
+      - name: Add execution permissions
+        run: chmod +x dist/index.js
+
       - name: Lint
         run: npm run lint
 
@@ -73,14 +76,14 @@ jobs:
       - name: Test artifact uploads
         run: |
           # Test empty directory
-          ./dist/index.js \
+          node ./dist/index.js \
             --name "Empty-Dir-Test" \
             --path "test-files/empty-dir" \
             --if-no-files-found warn \
             --artifact-bucket mock-bucket
 
           # Test special characters
-          ./dist/index.js \
+          node ./dist/index.js \
             --name "Special-Chars-Test" \
             --path "test-files/special chars/**" \
             --artifact-bucket mock-bucket
