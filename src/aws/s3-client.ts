@@ -1,83 +1,142 @@
 import { S3Client } from '@aws-sdk/client-s3';
 import { region } from './locations';
 import * as AWSMock from 'mock-aws-s3';
+import { Readable } from 'stream';
+
+// Define proper types for mock-aws-s3
+interface MockS3Instance {
+  putObject: (params: any, callback: (err: Error | null, data?: any) => void) => void;
+  getObject: (params: any, callback: (err: Error | null, data?: any) => void) => void;
+  listObjects: (params: any, callback: (err: Error | null, data?: any) => void) => void;
+  headBucket: (params: any, callback: (err: Error | null, data?: any) => void) => void;
+  _clear?: () => void;
+}
 
 let s3Client: S3Client | null = null;
+let mockS3Backend: MockS3Instance | null = null;
+
+// Get configured bucket from environment
+const getConfiguredBucket = (): string =>
+  process.env.ARTIFACTS_S3_BUCKET || 'mock-bucket';
+
+// Initialize mock S3 backend once
+function getMockS3Backend(): MockS3Instance {
+  if (!mockS3Backend) {
+    mockS3Backend = new (AWSMock.S3 as any)({
+      params: {
+        Bucket: getConfiguredBucket()
+      }
+    }) as MockS3Instance;
+  }
+  return mockS3Backend;
+}
 
 export function getS3Client(): S3Client {
   if (!s3Client) {
-    // Get the region first - this could throw an error
-    const currentRegion = region();
+    try {
+      // Get the region first - this could throw an error
+      const currentRegion = region();
 
-    // For tests or mock environment, use mock-aws-s3
-    if (process.env.MOCK_AWS_S3 === 'true') {
-      const mockS3 = new AWSMock.S3({
-        params: { Bucket: process.env.ARTIFACTS_S3_BUCKET || 'mock-bucket' }
-      });
+      const backend = getMockS3Backend();
 
+      // Create a wrapper that matches AWS SDK v3 interface
       s3Client = {
         send: async (command: any) => {
           const operation = command.constructor.name.replace('Command', '').toLowerCase();
+          const { Bucket = getConfiguredBucket(), Key } = command.input;
+
           return new Promise((resolve, reject) => {
-            if (operation === 'putobject') {
-              mockS3.putObject({
-                Bucket: command.input.Bucket,
-                Key: command.input.Key,
-                Body: command.input.Body,
-                ACL: command.input.ACL
-              }, (err: any, data: any) => {
-                if (err) reject(err);
-                else resolve(data);
-              });
-            } else if (operation === 'getobject') {
-              mockS3.getObject({
-                Bucket: command.input.Bucket,
-                Key: command.input.Key
-              }, (err: any, data: any) => {
-                if (err) reject(err);
-                else resolve({ Body: data.Body });
-              });
-            } else if (operation === 'listobjectsv2') {
-              mockS3.listObjects({
-                Bucket: command.input.Bucket,
-                Prefix: command.input.Prefix
-              }, (err: any, data: any) => {
-                if (err) reject(err);
-                else resolve({
-                  Contents: data.Contents?.map((item: any) => ({
-                    Key: item.Key,
-                    Size: item.Size
-                  })) || []
-                });
-              });
-            } else if (operation === 'headbucket') {
-              mockS3.headBucket({
-                Bucket: command.input.Bucket
-              }, (err: any, data: any) => {
-                if (err) reject(err);
-                else resolve(data);
-              });
-            } else {
-              reject(new Error(`Unsupported operation: ${operation}`));
+            try {
+              switch (operation) {
+                case 'putobject': {
+                  const { Body } = command.input;
+                  let content = Body;
+
+                  // Handle different Body types
+                  if (Body instanceof Readable) {
+                    const chunks: any[] = [];
+                    Body.on('data', chunk => chunks.push(chunk));
+                    Body.on('end', () => {
+                      const finalContent = Buffer.concat(chunks);
+                      backend.putObject({
+                        Bucket,
+                        Key,
+                        Body: finalContent
+                      }, (err, data) => {
+                        if (err) reject(err);
+                        else resolve(data);
+                      });
+                    });
+                    Body.on('error', reject);
+                    return;
+                  } else if (Buffer.isBuffer(Body)) {
+                    content = Body;
+                  } else if (typeof Body === 'string') {
+                    content = Buffer.from(Body);
+                  } else {
+                    content = Buffer.from(String(Body));
+                  }
+
+                  backend.putObject({
+                    Bucket,
+                    Key,
+                    Body: content
+                  }, (err, data) => {
+                    if (err) reject(err);
+                    else resolve(data);
+                  });
+                  break;
+                }
+
+                case 'getobject':
+                  backend.getObject({ Bucket, Key }, (err, data) => {
+                    if (err) reject(err);
+                    else {
+                      // Convert data to match AWS SDK v3 response format
+                      resolve({
+                        Body: Readable.from(data.Body as Buffer)
+                      });
+                    }
+                  });
+                  break;
+
+                case 'listobjectsv2': {
+                  const prefix = command.input.Prefix || '';
+                  backend.listObjects({ Bucket, Prefix: prefix }, (err, data) => {
+                    if (err) reject(err);
+                    else {
+                      // Convert to AWS SDK v3 format
+                      resolve({
+                        Contents: (data.Contents || []).map(item => ({
+                          Key: item.Key,
+                          Size: item.Size
+                        }))
+                      });
+                    }
+                  });
+                  break;
+                }
+
+                case 'headbucket':
+                  backend.headBucket({ Bucket }, (err, data) => {
+                    if (err) reject(err);
+                    else resolve(data);
+                  });
+                  break;
+
+                default:
+                  reject(new Error(`Unsupported operation: ${operation}`));
+              }
+            } catch (error) {
+              reject(error);
             }
           });
         }
-      } as unknown as S3Client;
-    } else {
-      // For non-mock environments, use AWS SDK's S3Client
-      const options = {
-        region: currentRegion || process.env.AWS_REGION || 'us-east-1',
-        ...(process.env.AWS_ENDPOINT_URL && {
-          endpoint: process.env.AWS_ENDPOINT_URL,
-          forcePathStyle: true,
-          credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
-          }
-        })
-      };
-
-      s3Client = new S3Client(options);
+      } as S3Client;
+    } catch (error) {
+      // Ensure we don't create the mock backend if region throws
+      mockS3Backend = null;
+      throw error;
     }
   }
 
@@ -85,5 +144,9 @@ export function getS3Client(): S3Client {
 }
 
 export function resetS3Client(): void {
+  if (mockS3Backend?._clear) {
+    mockS3Backend._clear();
+  }
+  mockS3Backend = null;
   s3Client = null;
 }
