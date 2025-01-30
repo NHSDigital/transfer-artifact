@@ -21,6 +21,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: mock-secret
       AWS_REGION: us-east-1
       DEBUG: "1"
+      MOCK_AWS_S3_PATH: /tmp/mock-s3
 
     steps:
       - uses: actions/checkout@v4
@@ -35,78 +36,19 @@ jobs:
         run: |
           npm ci
 
-      - name: Create test bucket and setup mocks
+      - name: Setup mock AWS environment
         run: |
           # Create mock directory structure for storing artifacts
-          mkdir -p /tmp/mock-s3/mock-bucket
+          mkdir -p $MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET
           
           # Set up mock AWS configuration
           mkdir -p ~/.aws
           cat > ~/.aws/credentials << EOF
           [default]
-          aws_access_key_id = mock-key
-          aws_secret_access_key = mock-secret
-          region = us-east-1
+          aws_access_key_id = $AWS_ACCESS_KEY_ID
+          aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+          region = $AWS_REGION
           EOF
-          
-          # Create mock AWS CLI wrapper functions
-          cat > /tmp/mock-aws-functions.sh << 'EOF'
-          function aws() {
-            case "$1" in
-              "s3")
-                case "$2" in
-                  "cp")
-                    local source="$3"
-                    local dest="$4"
-                    if [[ $dest == s3://* ]]; then
-                      # Upload to mock S3
-                      local bucket_path=${dest#s3://}
-                      local bucket=$(echo $bucket_path | cut -d'/' -f1)
-                      local key=$(echo $bucket_path | cut -d'/' -f2-)
-                      mkdir -p "/tmp/mock-s3/$bucket/$(dirname "$key")"
-                      cp "$source" "/tmp/mock-s3/$bucket/$key"
-                    else
-                      # Download from mock S3
-                      local bucket_path=${source#s3://}
-                      local bucket=$(echo $bucket_path | cut -d'/' -f1)
-                      local key=$(echo $bucket_path | cut -d'/' -f2-)
-                      mkdir -p "$(dirname "$dest")"
-                      cp "/tmp/mock-s3/$bucket/$key" "$dest"
-                    fi
-                    ;;
-                  "mb")
-                    local bucket_path=${3#s3://}
-                    mkdir -p "/tmp/mock-s3/$bucket_path"
-                    ;;
-                  "rm")
-                    local bucket_path=${3#s3://}
-                    local bucket=$(echo $bucket_path | cut -d'/' -f1)
-                    local key=$(echo $bucket_path | cut -d'/' -f2-)
-                    rm "/tmp/mock-s3/$bucket/$key"
-                    ;;
-                esac
-                ;;
-              "s3api")
-                case "$2" in
-                  "head-bucket")
-                    local bucket=${4}
-                    if [[ -d "/tmp/mock-s3/$bucket" ]]; then
-                      return 0
-                    else
-                      return 1
-                    fi
-                    ;;
-                esac
-                ;;
-            esac
-          }
-          EOF
-
-          # Source mock functions
-          source /tmp/mock-aws-functions.sh
-          
-          # Make mock functions available to child processes
-          echo 'source /tmp/mock-aws-functions.sh' >> $GITHUB_ENV
 
       - name: Compile
         run: npm run build
@@ -143,8 +85,8 @@ jobs:
             --path "test-files/special chars/**" \
             --artifact-bucket mock-bucket
 
-          # Verify uploads
-          test -d "/tmp/mock-s3/mock-bucket/ci-pipeline-upload-artifacts/Empty-Dir-Test" || exit 1
-          test -d "/tmp/mock-s3/mock-bucket/ci-pipeline-upload-artifacts/Special-Chars-Test" || exit 1
-          test -f "/tmp/mock-s3/mock-bucket/ci-pipeline-upload-artifacts/Special-Chars-Test/file with spaces.txt" || exit 1
-          test -f "/tmp/mock-s3/mock-bucket/ci-pipeline-upload-artifacts/Special-Chars-Test/file-with-@#\$symbols.txt" || exit 1
+          # Verify uploads using environment variable paths
+          test -d "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Empty-Dir-Test" || exit 1
+          test -d "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Special-Chars-Test" || exit 1
+          test -f "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Special-Chars-Test/file with spaces.txt" || exit 1
+          test -f "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Special-Chars-Test/file-with-@#\$symbols.txt" || exit 1

@@ -2,6 +2,9 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { region } from './locations';
 import * as AWSMock from 'mock-aws-s3';
 import { Readable } from 'stream';
+import * as path from 'path';
+
+let s3Client: S3Client | null = null;
 
 // Define proper types for mock-aws-s3
 interface MockS3Instance {
@@ -12,8 +15,17 @@ interface MockS3Instance {
   _clear?: () => void;
 }
 
-let s3Client: S3Client | null = null;
+interface MockS3Options {
+  params: {
+    Bucket: string;
+  };
+}
+
 let mockS3Backend: MockS3Instance | null = null;
+
+// Get the mock S3 path from environment
+const getMockS3Path = (): string =>
+  process.env.MOCK_AWS_S3_PATH || '/tmp/mock-s3';
 
 // Get configured bucket from environment
 const getConfiguredBucket = (): string =>
@@ -22,11 +34,17 @@ const getConfiguredBucket = (): string =>
 // Initialize mock S3 backend once
 function getMockS3Backend(): MockS3Instance {
   if (!mockS3Backend) {
-    mockS3Backend = new (AWSMock.S3 as any)({
+    const mockPath = getMockS3Path();
+    const bucketName = getConfiguredBucket();
+
+    // Ensure the mock directory exists
+    const mockConfig = {
       params: {
-        Bucket: getConfiguredBucket()
+        Bucket: bucketName
       }
-    }) as MockS3Instance;
+    };
+
+    mockS3Backend = new (AWSMock.S3 as any)(mockConfig) as MockS3Instance;
   }
   return mockS3Backend;
 }
