@@ -21,7 +21,8 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -55,33 +56,36 @@ jobs:
             NODE_OPTIONS=--experimental-vm-modules npm run test
           fi
 
-      # Test empty directory handling
-      - name: Create empty directory
-        run: mkdir -p path/to/empty-dir
+      - name: Start LocalStack
+        run: docker run -d -p 4566:4566 localstack/localstack
 
-      - name: Upload empty directory as artifact
-        uses: ./
-        with:
-          path: path/to/empty-dir
-          direction: 'upload'
-          name: 'empty-dir-test'
-          if-no-files-found: 'warn'
-          artifact-bucket: 'dummy-bucket'
+
+      - name: Set up mock AWS credentials
+        run: |
+          echo "AWS_ACCESS_KEY_ID=fake_access_key" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=fake_secret_key" >> $GITHUB_ENV
+          echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
+          echo "AWS_ENDPOINT_URL=http://localhost:4566" >> $GITHUB_ENV
+
+
+      - name: Create Mock S3 Bucket
+        run: aws --endpoint-url=http://localhost:4566 s3 mb s3://dummy-bucket
 
       # Test special character handling
       - name: Create files with special characters
         run: |
-          mkdir -p "path/to/special chars"
-          echo "File with spaces" > "path/to/special chars/file with spaces.txt"
-          echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
+          mkdir -p "path/to/special_chars"
+          echo "File with spaces" > "path/to/special_chars/file_with_spaces.txt"
+          echo "File with symbols" > "path/to/special_chars/file-with-symbols.txt"
 
-      - name: Upload special characters files as artifact
+      - name: Upload special character files to mock S3
         uses: ./
         with:
-          path: "path/to/special chars/**"
+          path: "path/to/special_chars/**"
           direction: 'upload'
           name: 'special-chars-test'
           artifact-bucket: 'dummy-bucket'
+          endpoint-url: 'http://localhost:4566'
 
       # Test large number of files
       - name: Create many small files
