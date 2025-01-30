@@ -7,40 +7,40 @@ function raiseError(errorMessage: string): never {
 }
 
 /**
+ * Gets input with proper precedence: core.getInput -> ENV -> default
+ */
+function getActionInput(name: string, defaultValue: string = ''): string {
+  const inputName = name.replace(/-/g, '_').toUpperCase();
+  return (
+    core.getInput(name) || process.env[`INPUT_${inputName}`] || defaultValue
+  );
+}
+
+/**
  * Helper to get all the inputs for the action
  */
 export function getInputs(): UploadInputs {
   // Get required inputs with defaults matching action.yml
-  const path = core.getInput(Inputs.Path, { required: true }) || './';
+  const path = getActionInput(Inputs.Path) || './';
 
-  // Get other inputs with their defaults
-  const name =
-    core.getInput(Inputs.FolderName) ||
-    process.env.INPUT_NAME ||
-    'upload-artifacts';
-
+  // Get the bucket with special env var handling
   const bucket =
-    core.getInput(Inputs.ArtifactBucket) ||
+    getActionInput(Inputs.ArtifactBucket) ||
     process.env.ARTIFACTS_S3_BUCKET ||
-    process.env.INPUT_ARTIFACT_BUCKET ||
     raiseError('no artifact-bucket supplied');
 
-  const direction =
-    core.getInput(Inputs.Direction) || process.env.INPUT_DIRECTION || 'upload';
-
+  const name = getActionInput(Inputs.FolderName, 'upload-artifacts');
+  const direction = getActionInput(Inputs.Direction, 'upload');
   const runNumber =
-    core.getInput(Inputs.RunNumber) || process.env.GITHUB_RUN_NUMBER || '';
-
-  const concurrency = parseInt(core.getInput(Inputs.Concurrency) || '8');
+    getActionInput(Inputs.RunNumber) || process.env.GITHUB_RUN_NUMBER || '';
+  const concurrency = parseInt(getActionInput(Inputs.Concurrency, '8'));
 
   // Handle if-no-files-found setting with validation
-  const ifNoFilesFound =
-    core.getInput(Inputs.IfNoFilesFound) ||
-    process.env.INPUT_IF_NO_FILES_FOUND ||
-    'warn';
+  const ifNoFilesFound = getActionInput(Inputs.IfNoFilesFound, 'warn');
+  const validOptions = ['warn', 'error', 'ignore'];
 
-  if (!['warn', 'error', 'ignore'].includes(ifNoFilesFound)) {
-    core.setFailed(
+  if (!validOptions.includes(ifNoFilesFound)) {
+    throw new Error(
       `Unrecognized if-no-files-found input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`
     );
   }
@@ -59,8 +59,7 @@ export function getInputs(): UploadInputs {
   };
 
   // Handle retention days if specified
-  const retentionDaysStr =
-    core.getInput(Inputs.RetentionDays) || process.env.INPUT_RETENTION_DAYS;
+  const retentionDaysStr = getActionInput(Inputs.RetentionDays);
   if (retentionDaysStr) {
     const retentionDays = parseInt(retentionDaysStr);
     if (isNaN(retentionDays)) {
