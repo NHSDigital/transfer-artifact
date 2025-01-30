@@ -13,7 +13,7 @@ export function getS3Client(): S3Client {
     // For CI/LocalStack environments (either in test or actual CI)
     if (process.env.AWS_ENDPOINT_URL || process.env.NODE_ENV === 'test' || process.env.GITHUB_ACTIONS) {
       s3Client = new S3Client({
-        forcePathStyle: true, // Required for LocalStack
+        s3ForcePathStyle: true, // Required for LocalStack
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
