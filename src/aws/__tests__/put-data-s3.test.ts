@@ -11,7 +11,7 @@ const testData = { some: 'JSON', data: 'here' };
 const testContent = 'Hello world';
 const mockLogger = {
   info: jest.fn(),
-  error: jest.fn()
+  error: jest.fn(),
 };
 
 describe('putDataS3', () => {
@@ -59,7 +59,7 @@ describe('putDataS3', () => {
           Bucket: 'bucket-name',
           Key: 'config.test.json',
           Body: JSON.stringify(testData, null, 2), // Verify proper JSON formatting
-        }
+        },
       })
     );
 
@@ -75,10 +75,14 @@ describe('putDataS3', () => {
     mockSend.mockResolvedValueOnce(expectedResponse);
 
     // Upload empty object
-    const result = await putDataS3({}, { // empty here
-      Bucket: 'bucket-name',
-      Key: 'empty.json',
-    });
+    const result = await putDataS3(
+      {},
+      {
+        // empty here
+        Bucket: 'bucket-name',
+        Key: 'empty.json',
+      }
+    );
 
     // Verify empty object was properly stringified
     expect(mockSend).toHaveBeenCalledWith(
@@ -87,7 +91,7 @@ describe('putDataS3', () => {
           Bucket: 'bucket-name',
           Key: 'empty.json',
           Body: '{}', // Verify empty object JSON
-        }
+        },
       })
     );
   });
@@ -152,7 +156,7 @@ describe('uploadObjectToS3', () => {
           Body: testContent,
           Bucket: 'bucket-name',
           Key: 'config.test.json',
-        }
+        },
       })
     );
   });
@@ -162,7 +166,7 @@ describe('uploadObjectToS3', () => {
     const testCases = [
       { content: 'string content', type: 'string' },
       { content: Buffer.from('buffer content'), type: 'buffer' },
-      { content: new Uint8Array([1, 2, 3]), type: 'uint8array' }
+      { content: new Uint8Array([1, 2, 3]), type: 'uint8array' },
     ];
 
     for (const testCase of testCases) {
@@ -187,7 +191,7 @@ describe('uploadObjectToS3', () => {
             Body: testCase.content,
             Bucket: 'bucket-name',
             Key: `test.${testCase.type}`,
-          }
+          },
         })
       );
     }
@@ -232,7 +236,7 @@ describe('uploadObjectToS3', () => {
           Body: '',
           Bucket: 'bucket-name',
           Key: 'empty.txt',
-        }
+        },
       })
     );
   });

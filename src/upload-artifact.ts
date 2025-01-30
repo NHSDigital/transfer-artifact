@@ -1,80 +1,40 @@
 import * as core from '@actions/core';
-import { create, UploadOptions } from '@actions/artifact';
-import { findFilesToUpload } from './search';
 import { getInputs } from './input-helper';
+import { findFilesToUpload } from './search';
 import { uploadArtifact } from './aws/uploader';
 
 export async function runUpload(): Promise<void> {
+  const inputs = getInputs();
+  core.info(`Starting upload for ${inputs.artifactName}...`);
+
   try {
-    const inputs = getInputs();
     const searchResult = await findFilesToUpload(inputs.searchPath);
 
     if (searchResult.filesToUpload.length === 0) {
-      // No files were found, different use cases warrant different types of behavior if nothing is found
-      switch (inputs.ifNoFilesFound) {
-        case 'warn': {
-          core.warning(
-            `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
-          );
-          break;
-        }
-        case 'error': {
-          core.setFailed(
-            `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
-          );
-          break;
-        }
-        case 'ignore': {
-          core.info(
-            `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
-          );
-          break;
-        }
-      }
-    } else {
-      const s = searchResult.filesToUpload.length === 1 ? '' : 's';
-      core.info(
-        `With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`
-      );
-      core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
-
-      if (searchResult.filesToUpload.length > 10000) {
+      if (inputs.ifNoFilesFound === 'error') {
+        throw new Error(
+          `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
+        );
+      } else if (inputs.ifNoFilesFound === 'warn') {
         core.warning(
-          `There are over 10,000 files in this artifact, consider creating an archive before upload to improve the upload performance.`
+          `No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`
         );
       }
+      return;
+    }
 
-      const artifactClient = create();
-      const options: UploadOptions = {
-        continueOnError: false,
-      };
-      if (inputs.retentionDays) {
-        options.retentionDays = inputs.retentionDays;
-      }
+    const uploadResponse = await uploadArtifact(
+      inputs.artifactName,
+      searchResult.filesToUpload,
+      searchResult.rootDirectory,
+      {}, // Empty options object
+      inputs.artifactBucket,
+      inputs.folderName,
+      inputs.concurrency || 8 // Default to 8 if not specified
+    );
 
-      core.info(
-        `Trying to upload files into ${inputs.folderName}/${inputs.artifactName}...`
-      );
-
-      const useS3 = true;
-      if (useS3) {
-        await uploadArtifact(
-          inputs.artifactName,
-          searchResult.filesToUpload,
-          searchResult.rootDirectory,
-          options,
-          inputs.artifactBucket,
-          inputs.folderName,
-          inputs.concurrency
-        );
-      } else {
-        await artifactClient.uploadArtifact(
-          inputs.artifactName,
-          searchResult.filesToUpload,
-          searchResult.rootDirectory,
-          options
-        );
-      }
+    if (!uploadResponse) {
+      core.setFailed(`Failed to upload ${inputs.artifactName}`);
     }
   } catch (error) {
     core.setFailed((error as Error).message);

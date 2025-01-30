@@ -8,7 +8,7 @@ import {
 } from '../upload-specification';
 import pMap from 'p-map';
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function retryUpload(
   uploadFn: () => Promise<any>,
@@ -21,7 +21,10 @@ async function retryUpload(
       return await uploadFn();
     } catch (error) {
       lastError = error;
-      if (error instanceof Error && error.message.includes('bucket does not exist')) {
+      if (
+        error instanceof Error &&
+        error.message.includes('bucket does not exist')
+      ) {
         const delay = initialDelay * Math.pow(2, attempt); // Exponential backoff
         core.info(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
         await sleep(delay);
@@ -35,7 +38,7 @@ async function retryUpload(
 
 function logUploadInformation(begin: number, successfulUploads: boolean[]) {
   const finish = Date.now();
-  const successCount = successfulUploads.filter(success => success).length;
+  const successCount = successfulUploads.filter((success) => success).length;
   const failureCount = successfulUploads.length - successCount;
   const duration = finish - begin;
 
@@ -72,15 +75,17 @@ export async function uploadArtifact(
     const mapper = async (fileSpec: UploadSpecification): Promise<boolean> => {
       try {
         // Check if bucket exists before upload
-        const { S3Client, HeadBucketCommand } = await import('@aws-sdk/client-s3');
+        const { S3Client, HeadBucketCommand } = await import(
+          '@aws-sdk/client-s3'
+        );
         const s3Client = new S3Client({
           forcePathStyle: true,
           endpoint: process.env.AWS_ENDPOINT_URL || 'http://localhost:4566',
           credentials: {
             accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret',
           },
-          region: process.env.AWS_REGION || 'us-east-1'
+          region: process.env.AWS_REGION || 'us-east-1',
         });
 
         // Verify bucket exists
@@ -92,17 +97,24 @@ export async function uploadArtifact(
         }
 
         // URL encode the Key but maintain path structure
-        const keyParts = `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`.split('/');
-        const encodedKey = keyParts.map(part => encodeURIComponent(part)).join('/');
+        const keyParts =
+          `ci-pipeline-upload-artifacts/${folderName}/${fileSpec.uploadFilePath}`.split(
+            '/'
+          );
+        const encodedKey = keyParts
+          .map((part) => encodeURIComponent(part))
+          .join('/');
 
-        await retryUpload(() => uploadObjectToS3(
-          {
-            Body: fs.createReadStream(fileSpec.absoluteFilePath),
-            Bucket: bucket,
-            Key: encodedKey,
-          },
-          core
-        ));
+        await retryUpload(() =>
+          uploadObjectToS3(
+            {
+              Body: fs.createReadStream(fileSpec.absoluteFilePath),
+              Bucket: bucket,
+              Key: encodedKey,
+            },
+            core
+          )
+        );
         return true; // Upload succeeded
       } catch (error) {
         core.error(`Failed to upload ${fileSpec.uploadFilePath}: ${error}`);
@@ -112,10 +124,10 @@ export async function uploadArtifact(
 
     const results = await pMap(uploadSpec, mapper, {
       concurrency,
-      stopOnError: false
+      stopOnError: false,
     });
 
-    const hasFailures = results.some(success => !success);
+    const hasFailures = results.some((success) => !success);
     logUploadInformation(startTime, results);
 
     if (hasFailures) {

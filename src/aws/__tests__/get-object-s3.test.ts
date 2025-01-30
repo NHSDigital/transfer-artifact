@@ -146,7 +146,7 @@ describe('getS3ObjectStream', () => {
     // Get stream from S3 object
     const stream = await getS3ObjectStream({
       Bucket: 'bucket-name',
-      Key: 'test.txt'
+      Key: 'test.txt',
     });
 
     // Verify stream is returned
@@ -169,9 +169,11 @@ describe('getS3ObjectStream', () => {
     await expect(
       getS3ObjectStream({
         Bucket: 'bucket-name',
-        Key: 'test.txt'
+        Key: 'test.txt',
       })
-    ).rejects.toThrow("Could not read file from bucket. 's3://bucket-name/test.txt'");
+    ).rejects.toThrow(
+      "Could not read file from bucket. 's3://bucket-name/test.txt'"
+    );
   });
 
   it('should propagate S3 errors with detailed message', async () => {
@@ -182,8 +184,10 @@ describe('getS3ObjectStream', () => {
     await expect(
       getS3ObjectStream({
         Bucket: 'bucket-name',
-        Key: 'test.txt'
+        Key: 'test.txt',
       })
-    ).rejects.toThrow("Could not retrieve from bucket 's3://bucket-name/test.txt' from S3: Access denied");
+    ).rejects.toThrow(
+      "Could not retrieve from bucket 's3://bucket-name/test.txt' from S3: Access denied"
+    );
   });
 });

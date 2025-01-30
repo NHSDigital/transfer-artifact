@@ -102,9 +102,13 @@ export async function writeS3ObjectToFile(
     return await writeToFile(await getS3ObjectStream(location), filename);
   } catch (error) {
     // Extract the original error message without the S3 prefix
-    const originalMessage = error instanceof Error
-      ? error.message.replace(/^Could not retrieve from bucket '[^']*' from S3: /, '')
-      : String(error);
+    const originalMessage =
+      error instanceof Error
+        ? error.message.replace(
+            /^Could not retrieve from bucket '[^']*' from S3: /,
+            ''
+          )
+        : String(error);
 
     throw new Error(
       `Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${originalMessage}`

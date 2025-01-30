@@ -3,7 +3,7 @@ import * as AWSMock from 'mock-aws-s3';
 
 // Mock the AWS SDK S3 Client
 const mockS3Client = jest.fn().mockImplementation(() => ({
-  send: jest.fn()
+  send: jest.fn(),
 }));
 
 // Mock mock-aws-s3
@@ -11,19 +11,19 @@ const mockAwsS3Instance = {
   putObject: jest.fn(),
   getObject: jest.fn(),
   listObjects: jest.fn(),
-  headBucket: jest.fn()
+  headBucket: jest.fn(),
 };
 
 const mockAwsS3Constructor = jest.fn().mockReturnValue(mockAwsS3Instance);
 
 jest.mock('mock-aws-s3', () => ({
-  S3: mockAwsS3Constructor
+  S3: mockAwsS3Constructor,
 }));
 
 // Mock the locations module
 const mockRegion = jest.fn();
 jest.mock('../locations', () => ({
-  region: mockRegion
+  region: mockRegion,
 }));
 
 describe('getS3Client', () => {
@@ -62,8 +62,8 @@ describe('getS3Client', () => {
     expect(mockAwsS3Constructor).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({
-          Bucket: 'mock-bucket'
-        })
+          Bucket: 'mock-bucket',
+        }),
       })
     );
     expect(client).toBeDefined();
@@ -100,8 +100,8 @@ describe('getS3Client', () => {
     expect(mockAwsS3Constructor).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({
-          Bucket: 'mock-bucket'
-        })
+          Bucket: 'mock-bucket',
+        }),
       })
     );
     expect(client).toBeDefined();

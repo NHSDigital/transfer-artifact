@@ -51,6 +51,7 @@ describe('getInputs', () => {
       direction: 'upload',
       folderName: 'test-folder',
       ifNoFilesFound: 'warn',
+      concurrency: 8, // Default concurrency value
     });
 
     // Verify that required inputs were checked
@@ -154,7 +155,7 @@ describe('getInputs', () => {
       [Inputs.Path]: '/test/path',
       [Inputs.ArtifactBucket]: 'test-bucket',
       [Inputs.Direction]: 'upload',
-      [Inputs.IfNoFilesFound]: '', // Invalid empty value
+      [Inputs.IfNoFilesFound]: 'invalid', // Invalid value
     };
 
     (core.getInput as jest.Mock).mockImplementation(

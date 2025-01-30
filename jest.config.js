@@ -7,17 +7,20 @@ module.exports = {
   testMatch: [
     '**/__tests__/**/*.test.ts',
     '**/__test__/**/*.test.ts',
-    '**/src/**/*.test.ts'
+    '**/src/**/*.test.ts',
   ],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-      useESM: false
-    }]
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.json',
+        useESM: false,
+      },
+    ],
   },
   verbose: true,
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
-  moduleDirectories: ['node_modules', 'src']
+  moduleDirectories: ['node_modules', 'src'],
 };

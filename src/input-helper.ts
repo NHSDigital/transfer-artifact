@@ -10,46 +10,49 @@ function raiseError(errorMessage: string): never {
  * Helper to get all the inputs for the action
  */
 export function getInputs(): UploadInputs {
-  // generate a name for the artifact sub-folder which includes the github run number
-  const name = core
-    .getInput(Inputs.RunNumber)
-    .concat('-', core.getInput(Inputs.FolderName));
+  // Get required inputs
   const path = core.getInput(Inputs.Path, { required: true });
+
+  // Get other inputs
   const bucket =
     core.getInput(Inputs.ArtifactBucket) ||
     process.env.ARTIFACTS_S3_BUCKET ||
     raiseError('no artifact-bucket supplied');
-  const direction = core.getInput(Inputs.Direction);
 
-  const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
-  const noFileBehavior = ifNoFilesFound;
+  const runNumber = core.getInput(Inputs.RunNumber);
+  const folderName = core.getInput(Inputs.FolderName) || 'upload-artifacts';
+  const direction = core.getInput(Inputs.Direction) || 'upload';
 
-  // 2009 - rename to uploadFolderName
-  // also rename UploadInputs
-  const folderName = core.getInput(Inputs.FolderName);
-
-  const concurrency = core.getInput(Inputs.Concurrency);
-
-  if (!noFileBehavior) {
+  // Handle if-no-files-found setting with validation
+  const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound) || 'warn';
+  if (!['warn', 'error', 'ignore'].includes(ifNoFilesFound)) {
     core.setFailed(
-      `Unrecognized ${Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`
+      `Unrecognized if-no-files-found input. Provided: ${ifNoFilesFound}. Available options: warn, error, ignore.`
     );
+    // Allow execution to continue after setting failed status
   }
 
-  const inputs = {
+  // Generate artifact name
+  const name = runNumber ? `${runNumber}-${folderName}` : folderName;
+
+  const inputs: UploadInputs = {
     artifactName: name,
     artifactBucket: bucket,
     searchPath: path,
-    ifNoFilesFound: noFileBehavior,
+    ifNoFilesFound: ifNoFilesFound,
     direction: direction,
     folderName: folderName,
-  } as UploadInputs;
+    concurrency: 8, // Default concurrency
+  };
 
+  // Handle retention days if specified
   const retentionDaysStr = core.getInput(Inputs.RetentionDays);
   if (retentionDaysStr) {
-    inputs.retentionDays = parseInt(retentionDaysStr);
-    if (isNaN(inputs.retentionDays)) {
+    const retentionDays = parseInt(retentionDaysStr);
+    if (isNaN(retentionDays)) {
       core.setFailed('Invalid retention-days');
+    } else {
+      inputs.retentionDays = retentionDays;
     }
   }
 

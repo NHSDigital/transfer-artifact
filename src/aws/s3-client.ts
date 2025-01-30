@@ -8,10 +8,22 @@ let s3Client: S3Client | null = null;
 
 // Define proper types for mock-aws-s3
 interface MockS3Instance {
-  putObject: (params: any, callback: (err: Error | null, data?: any) => void) => void;
-  getObject: (params: any, callback: (err: Error | null, data?: any) => void) => void;
-  listObjects: (params: any, callback: (err: Error | null, data?: any) => void) => void;
-  headBucket: (params: any, callback: (err: Error | null, data?: any) => void) => void;
+  putObject: (
+    params: any,
+    callback: (err: Error | null, data?: any) => void
+  ) => void;
+  getObject: (
+    params: any,
+    callback: (err: Error | null, data?: any) => void
+  ) => void;
+  listObjects: (
+    params: any,
+    callback: (err: Error | null, data?: any) => void
+  ) => void;
+  headBucket: (
+    params: any,
+    callback: (err: Error | null, data?: any) => void
+  ) => void;
   _clear?: () => void;
 }
 
@@ -40,8 +52,8 @@ function getMockS3Backend(): MockS3Instance {
     // Ensure the mock directory exists
     const mockConfig = {
       params: {
-        Bucket: bucketName
-      }
+        Bucket: bucketName,
+      },
     };
 
     mockS3Backend = new (AWSMock.S3 as any)(mockConfig) as MockS3Instance;
@@ -60,7 +72,9 @@ export function getS3Client(): S3Client {
       // Create a wrapper that matches AWS SDK v3 interface
       s3Client = {
         send: async (command: any) => {
-          const operation = command.constructor.name.replace('Command', '').toLowerCase();
+          const operation = command.constructor.name
+            .replace('Command', '')
+            .toLowerCase();
           const { Bucket = getConfiguredBucket(), Key } = command.input;
 
           return new Promise((resolve, reject) => {
@@ -73,17 +87,20 @@ export function getS3Client(): S3Client {
                   // Handle different Body types
                   if (Body instanceof Readable) {
                     const chunks: any[] = [];
-                    Body.on('data', chunk => chunks.push(chunk));
+                    Body.on('data', (chunk) => chunks.push(chunk));
                     Body.on('end', () => {
                       const finalContent = Buffer.concat(chunks);
-                      backend.putObject({
-                        Bucket,
-                        Key,
-                        Body: finalContent
-                      }, (err, data) => {
-                        if (err) reject(err);
-                        else resolve(data);
-                      });
+                      backend.putObject(
+                        {
+                          Bucket,
+                          Key,
+                          Body: finalContent,
+                        },
+                        (err, data) => {
+                          if (err) reject(err);
+                          else resolve(data);
+                        }
+                      );
                     });
                     Body.on('error', reject);
                     return;
@@ -95,14 +112,17 @@ export function getS3Client(): S3Client {
                     content = Buffer.from(String(Body));
                   }
 
-                  backend.putObject({
-                    Bucket,
-                    Key,
-                    Body: content
-                  }, (err, data) => {
-                    if (err) reject(err);
-                    else resolve(data);
-                  });
+                  backend.putObject(
+                    {
+                      Bucket,
+                      Key,
+                      Body: content,
+                    },
+                    (err, data) => {
+                      if (err) reject(err);
+                      else resolve(data);
+                    }
+                  );
                   break;
                 }
 
@@ -112,7 +132,7 @@ export function getS3Client(): S3Client {
                     else {
                       // Convert data to match AWS SDK v3 response format
                       resolve({
-                        Body: Readable.from(data.Body as Buffer)
+                        Body: Readable.from(data.Body as Buffer),
                       });
                     }
                   });
@@ -120,18 +140,21 @@ export function getS3Client(): S3Client {
 
                 case 'listobjectsv2': {
                   const prefix = command.input.Prefix || '';
-                  backend.listObjects({ Bucket, Prefix: prefix }, (err, data) => {
-                    if (err) reject(err);
-                    else {
-                      // Convert to AWS SDK v3 format
-                      resolve({
-                        Contents: (data.Contents || []).map(item => ({
-                          Key: item.Key,
-                          Size: item.Size
-                        }))
-                      });
+                  backend.listObjects(
+                    { Bucket, Prefix: prefix },
+                    (err, data) => {
+                      if (err) reject(err);
+                      else {
+                        // Convert to AWS SDK v3 format
+                        resolve({
+                          Contents: (data.Contents || []).map((item) => ({
+                            Key: item.Key,
+                            Size: item.Size,
+                          })),
+                        });
+                      }
                     }
-                  });
+                  );
                   break;
                 }
 
@@ -149,7 +172,7 @@ export function getS3Client(): S3Client {
               reject(error);
             }
           });
-        }
+        },
       } as S3Client;
     } catch (error) {
       // Ensure we don't create the mock backend if region throws

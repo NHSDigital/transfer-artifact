@@ -17,7 +17,7 @@ describe('runDownload', () => {
     artifactName: 'test-artifact',
     concurrency: 5,
     searchPath: '/test/path',
-    folderName: 'test-folder'
+    folderName: 'test-folder',
   };
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('runDownload', () => {
     const mockS3Objects = [
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt',
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file2.txt',
-      'some-other-file.txt' // This one should be filtered out
+      'some-other-file.txt', // This one should be filtered out
     ];
 
     // Mock S3 operations
@@ -48,7 +48,7 @@ describe('runDownload', () => {
     // Verify S3 list operation was called with correct parameters
     expect(listS3Objects).toHaveBeenCalledWith({
       Bucket: 'test-bucket',
-      Prefix: 'ci-pipeline-upload-artifacts/test-folder/test-artifact'
+      Prefix: 'ci-pipeline-upload-artifacts/test-folder/test-artifact',
     });
 
     // Verify only matching files were downloaded
@@ -82,7 +82,7 @@ describe('runDownload', () => {
 
   it('should handle file system errors', async () => {
     const mockS3Objects = [
-      'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt'
+      'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt',
     ];
     const error = new Error('Failed to create directory');
 
@@ -98,7 +98,7 @@ describe('runDownload', () => {
 
   it('should log download information', async () => {
     const mockS3Objects = [
-      'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt'
+      'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt',
     ];
     const consoleLogSpy = jest.spyOn(console, 'log');
 
@@ -109,16 +109,23 @@ describe('runDownload', () => {
     await runDownload();
 
     // Verify correct logging of download statistics
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Downloaded'));
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('1000 bytes'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Downloaded')
+    );
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('1000 bytes')
+    );
     expect(consoleLogSpy).toHaveBeenCalledWith('Total objects downloaded: 1');
   });
 
   it('should process files with proper concurrency', async () => {
     // Create array of 10 mock files
-    const mockS3Objects = Array(10).fill(0).map((_, i) =>
-      `ci-pipeline-upload-artifacts/test-folder/test-artifact/file${i}.txt`
-    );
+    const mockS3Objects = Array(10)
+      .fill(0)
+      .map(
+        (_, i) =>
+          `ci-pipeline-upload-artifacts/test-folder/test-artifact/file${i}.txt`
+      );
 
     // Mock S3 operations
     (listS3Objects as jest.Mock).mockResolvedValue(mockS3Objects);
@@ -143,7 +150,7 @@ describe('logDownloadInformation', () => {
     const mockS3Objects = [
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt',
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file2.txt',
-      'ci-pipeline-upload-artifacts/test-folder/test-artifact/file3.txt'
+      'ci-pipeline-upload-artifacts/test-folder/test-artifact/file3.txt',
     ];
 
     // Setup the test with 3 files of 100 bytes each
@@ -153,7 +160,7 @@ describe('logDownloadInformation', () => {
     await runDownload();
 
     // Extract the download statistics log message
-    const logMessage = consoleLogSpy.mock.calls.find(call =>
+    const logMessage = consoleLogSpy.mock.calls.find((call) =>
       call[0].includes('Downloaded')
     )?.[0];
 

@@ -20,7 +20,7 @@ jobs:
       AWS_ACCESS_KEY_ID: mock-key
       AWS_SECRET_ACCESS_KEY: mock-secret
       AWS_REGION: us-east-1
-      DEBUG: "1"
+      DEBUG: '1'
       MOCK_AWS_S3_PATH: /tmp/mock-s3
 
     steps:
@@ -40,7 +40,7 @@ jobs:
         run: |
           # Create mock directory structure for storing artifacts
           mkdir -p $MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET
-          
+
           # Set up mock AWS configuration
           mkdir -p ~/.aws
           cat > ~/.aws/credentials << EOF
@@ -69,24 +69,25 @@ jobs:
           mkdir -p "test-files/special chars"
           echo "File with spaces" > "test-files/special chars/file with spaces.txt"
           echo "File with symbols" > "test-files/special chars/file-with-@#$symbols.txt"
-          
+
           # Run the full test suite
           NODE_OPTIONS=--experimental-vm-modules npm run test
 
       - name: Test artifact uploads
         run: |
           # Test empty directory
-          node ./dist/index.js \
-            --name "Empty-Dir-Test" \
-            --path "test-files/empty-dir" \
-            --if-no-files-found warn \
-            --artifact-bucket mock-bucket
+          export INPUT_PATH="test-files/empty-dir"
+          export INPUT_NAME="Empty-Dir-Test"
+          export INPUT_IF_NO_FILES_FOUND="warn"
+          export INPUT_ARTIFACT_BUCKET="mock-bucket"
+          node ./dist/index.js
 
           # Test special characters
-          node ./dist/index.js \
-            --name "Special-Chars-Test" \
-            --path "test-files/special chars/**" \
-            --artifact-bucket mock-bucket
+          export INPUT_PATH="test-files/special chars/**"
+          export INPUT_NAME="Special-Chars-Test"
+          export INPUT_IF_NO_FILES_FOUND="warn"
+          export INPUT_ARTIFACT_BUCKET="mock-bucket"
+          node ./dist/index.js
 
           # Verify uploads using environment variable paths
           test -d "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Empty-Dir-Test" || exit 1
