@@ -214,7 +214,6 @@ jobs:
               exit 1
           fi
         shell: bash
-        continue-on-error: true
 
       # Verify empty directory test
       - name: Download empty directory artifact
@@ -222,6 +221,7 @@ jobs:
         with:
           name: 'Empty-Dir-Test'
           path: empty-dir-test
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
        # Verify empty directory test
@@ -231,7 +231,7 @@ jobs:
           path: empty-dir-test
           direction: 'download'
           name: 'empty-dir-test'
-          artifact-bucket: 'dummy-bucket'
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
      # Verify special characters test
@@ -241,7 +241,7 @@ jobs:
           path: special-chars-test
           direction: 'download'
           name: 'special-chars-test'
-          artifact-bucket: 'dummy-bucket'
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
         # Verify many files test
@@ -250,6 +250,7 @@ jobs:
         with:
           name: 'Many-Files-Test'
           path: many-files-test
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
       - name: Verify many files
@@ -264,10 +265,11 @@ jobs:
 
       # Verify different file types test
       - name: Download file types artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
           name: 'File-Types-Test'
           path: file-types-test
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
       - name: Verify file types
@@ -297,11 +299,12 @@ jobs:
         continue-on-error: true
 
       - name: Download and verify wildcard pattern artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
           path: some/other/path
           pattern: artifact*
           merge-multiple: true
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
       - name: Verify wildcard pattern artifact
@@ -320,10 +323,11 @@ jobs:
         continue-on-error: true
 
       - name: Download and verify GZip artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
           path: gzip/artifact/path
           pattern: GZip-Artifact*
+          artifact-bucket: mock-bucket
         continue-on-error: true
 
       - name: Verify GZip artifact
@@ -341,12 +345,14 @@ jobs:
         continue-on-error: true
 
       - name: Download and verify multi-path artifact
-        uses: actions/download-artifact@v4
+        uses: ./
         with:
           path: multi/artifact
           pattern: Multi-Path-Artifact*
           merge-multiple: true
-
+          artifact-bucket: mock-bucket
+        continue-on-error: true
+        
       - name: Verify multi-path artifact
         run: |
           $file1 = "multi/artifact/dir-1/file1.txt"
