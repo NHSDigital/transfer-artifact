@@ -3,29 +3,37 @@ import { region } from './locations';
 
 let s3Client: S3Client | null = null;
 
-/**
- * Returns a singleton S3 client that supports LocalStack
- */
 export function getS3Client(): S3Client {
   if (!s3Client) {
-    const isLocalStack = process.env.AWS_ENDPOINT_URL || process.env.GITHUB_ACTIONS || process.env.NODE_ENV === 'test';
+    // Base options that will be used in all environments
+    const baseOptions = {
+      region: region()
+    };
 
-    s3Client = new S3Client({
-      forcePathStyle: isLocalStack, // Required for LocalStack
-      region: process.env.AWS_REGION || 'us-east-1',
-      endpoint: isLocalStack ? process.env.AWS_ENDPOINT_URL || 'http://localhost:4566' : undefined,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
-      }
-    });
+    // For CI/LocalStack environments (either in test or actual CI)
+    if (process.env.AWS_ENDPOINT_URL || process.env.NODE_ENV === 'test' || process.env.GITHUB_ACTIONS) {
+      s3Client = new S3Client({
+        forcePathStyle: true, // Required for LocalStack
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'mock-key',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'mock-secret'
+        },
+        endpoint: process.env.AWS_ENDPOINT_URL || 'http://localhost:4566',
+        // The region must be set for LocalStack, even though it's not used
+        region: process.env.AWS_REGION || 'us-east-1'
+      });
+      return s3Client;
+    }
+
+    // For production environment, use standard AWS configuration
+    s3Client = new S3Client(baseOptions);
   }
 
   return s3Client;
 }
 
 /**
- * Resets the S3 client singleton instance (useful for testing)
+ * Resets the S3 client singleton instance
  */
 export function resetS3Client(): void {
   s3Client = null;
