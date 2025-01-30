@@ -20,7 +20,7 @@ jobs:
       AWS_ACCESS_KEY_ID: mock-key
       AWS_SECRET_ACCESS_KEY: mock-secret
       AWS_REGION: us-east-1
-      DEBUG: "1"
+      DEBUG: '1'
       MOCK_AWS_S3_PATH: /tmp/mock-s3
 
     steps:
@@ -39,7 +39,7 @@ jobs:
         run: |
           # Create mock directory structure for storing artifacts
           mkdir -p $MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET
-          
+
           # Set up mock AWS configuration
           mkdir -p ~/.aws
           cat > ~/.aws/credentials << EOF
@@ -99,22 +99,22 @@ jobs:
             echo "Empty directory upload failed"
             exit 1
           fi
-          
+
           # Check special characters directory
           if [ ! -d "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Special-Chars-Test" ]; then
             echo "Special characters directory upload failed"
             exit 1
           fi
-          
+
           # Check specific files
           if [ ! -f "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Special-Chars-Test/file with spaces.txt" ]; then
             echo "File with spaces upload failed"
             exit 1
           fi
-          
+
           if [ ! -f "$MOCK_AWS_S3_PATH/$ARTIFACTS_S3_BUCKET/ci-pipeline-upload-artifacts/Special-Chars-Test/file-with-@#\$symbols.txt" ]; then
             echo "File with symbols upload failed"
             exit 1
           fi
-          
+
           echo "All upload verifications passed successfully"

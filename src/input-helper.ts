@@ -48,13 +48,15 @@ export function getInputs(): UploadInputs {
   const path = getActionInput(Inputs.Path) || raiseError('no path supplied');
 
   // Get the bucket with special env var handling
-  const bucket = getActionInput(Inputs.ArtifactBucket) ||
-                process.env.ARTIFACTS_S3_BUCKET ||
-                raiseError('no artifact-bucket supplied');
+  const bucket =
+    getActionInput(Inputs.ArtifactBucket) ||
+    process.env.ARTIFACTS_S3_BUCKET ||
+    raiseError('no artifact-bucket supplied');
 
   const name = getActionInput(Inputs.FolderName, 'upload-artifacts');
   const direction = getActionInput(Inputs.Direction, 'upload');
-  const runNumber = getActionInput(Inputs.RunNumber) || process.env.GITHUB_RUN_NUMBER || '';
+  const runNumber =
+    getActionInput(Inputs.RunNumber) || process.env.GITHUB_RUN_NUMBER || '';
   const concurrency = parseInt(getActionInput(Inputs.Concurrency, '8'));
 
   // Handle if-no-files-found setting with validation
@@ -77,7 +79,7 @@ export function getInputs(): UploadInputs {
     ifNoFilesFound,
     direction,
     folderName: name,
-    concurrency
+    concurrency,
   };
 
   // Handle retention days if specified
