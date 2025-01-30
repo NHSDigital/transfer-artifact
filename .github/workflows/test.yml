@@ -56,9 +56,21 @@ jobs:
             NODE_OPTIONS=--experimental-vm-modules npm run test
           fi
 
+      # Start LocalStack and wait for it to be ready
       - name: Start LocalStack
         run: docker run -d -p 4566:4566 localstack/localstack
 
+      - name: Wait for LocalStack to be Ready
+        run: |
+          for i in {1..10}; do
+            if aws --endpoint-url=http://localhost:4566 s3 ls > /dev/null 2>&1; then
+              echo "LocalStack is ready"
+              exit 0
+            fi
+            echo "Waiting for LocalStack..."
+            sleep 3
+          done
+          echo "LocalStack did not start in time" && exit 1
 
       - name: Set up mock AWS credentials
         run: |
@@ -67,15 +79,18 @@ jobs:
           echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
           echo "AWS_ENDPOINT_URL=http://localhost:4566" >> $GITHUB_ENV
 
-
       - name: Create Mock S3 Bucket
-        run: aws --endpoint-url=http://localhost:4566 s3 mb s3://dummy-bucket
+        run: aws --endpoint-url=http://localhost:4566 s3 mb s3://dummy-bucket || true
+
+      # Debugging LocalStack
+      - name: List Buckets to Confirm S3 is Working
+        run: aws --endpoint-url=http://localhost:4566 s3 ls
 
       # Test special character handling
       - name: Create files with special characters
         run: |
           mkdir -p "path/to/special_chars"
-          echo "File with spaces" > "path/to/special_chars/file_with_spaces.txt"
+          echo "File with spaces" > "path/to/special_chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special_chars/file-with-symbols.txt"
 
       - name: Upload special character files to mock S3
@@ -85,7 +100,6 @@ jobs:
           direction: 'upload'
           name: 'special-chars-test'
           artifact-bucket: 'dummy-bucket'
-          endpoint-url: 'http://localhost:4566'
 
       # Test large number of files
       - name: Create many small files
