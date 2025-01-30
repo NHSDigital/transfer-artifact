@@ -7,32 +7,54 @@ function raiseError(errorMessage: string): never {
 }
 
 /**
- * Gets input with proper precedence: core.getInput -> ENV -> default
+ * Gets input with proper precedence: command line args -> core.getInput -> ENV -> default
  */
 function getActionInput(name: string, defaultValue: string = ''): string {
-  const inputName = name.replace(/-/g, '_').toUpperCase();
-  return (
-    core.getInput(name) || process.env[`INPUT_${inputName}`] || defaultValue
-  );
+  const cliArgName = `--${name}`;
+  const envName = `INPUT_${name.replace(/-/g, '_').toUpperCase()}`;
+
+  // Check command line arguments
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    // Handle --name=value format
+    if (args[i].startsWith(`${cliArgName}=`)) {
+      return args[i].split('=')[1];
+    }
+    // Handle --name value format
+    if (args[i] === cliArgName && i + 1 < args.length) {
+      return args[i + 1];
+    }
+  }
+
+  // Check core.getInput and environment variables
+  const coreInput = core.getInput(name);
+  if (coreInput) {
+    return coreInput;
+  }
+
+  const envInput = process.env[envName];
+  if (envInput) {
+    return envInput;
+  }
+
+  return defaultValue;
 }
 
 /**
  * Helper to get all the inputs for the action
  */
 export function getInputs(): UploadInputs {
-  // Get required inputs with defaults matching action.yml
-  const path = getActionInput(Inputs.Path) || './';
+  // Get the path first
+  const path = getActionInput(Inputs.Path) || raiseError('no path supplied');
 
   // Get the bucket with special env var handling
-  const bucket =
-    getActionInput(Inputs.ArtifactBucket) ||
-    process.env.ARTIFACTS_S3_BUCKET ||
-    raiseError('no artifact-bucket supplied');
+  const bucket = getActionInput(Inputs.ArtifactBucket) ||
+                process.env.ARTIFACTS_S3_BUCKET ||
+                raiseError('no artifact-bucket supplied');
 
   const name = getActionInput(Inputs.FolderName, 'upload-artifacts');
   const direction = getActionInput(Inputs.Direction, 'upload');
-  const runNumber =
-    getActionInput(Inputs.RunNumber) || process.env.GITHUB_RUN_NUMBER || '';
+  const runNumber = getActionInput(Inputs.RunNumber) || process.env.GITHUB_RUN_NUMBER || '';
   const concurrency = parseInt(getActionInput(Inputs.Concurrency, '8'));
 
   // Handle if-no-files-found setting with validation
@@ -45,7 +67,7 @@ export function getInputs(): UploadInputs {
     );
   }
 
-  // Generate artifact name from run number and folder name
+  // Generate artifact name
   const artifactName = runNumber ? `${runNumber}-${name}` : name;
 
   const inputs: UploadInputs = {
@@ -55,7 +77,7 @@ export function getInputs(): UploadInputs {
     ifNoFilesFound,
     direction,
     folderName: name,
-    concurrency,
+    concurrency
   };
 
   // Handle retention days if specified
