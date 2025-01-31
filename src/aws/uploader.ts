@@ -8,12 +8,11 @@ import {
   UploadSpecification,
 } from '../upload-specification';
 import pMap from 'p-map';
-import { Inputs } from '../constants';
 
 function logUploadInformation(begin: number, uploads: void[]) {
   const finish = Date.now();
   let fileCount = 0;
-  for (const item of uploads) {
+  for (let i = 0; i < uploads.length; i++) {
     fileCount += 1;
   }
   const duration = finish - begin;

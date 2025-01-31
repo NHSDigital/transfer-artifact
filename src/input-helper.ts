@@ -24,11 +24,7 @@ export function getInputs(): UploadInputs {
   const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
   const noFileBehavior = ifNoFilesFound;
 
-  // 2009 - rename to uploadFolderName
-  // also rename UploadInputs
   const folderName = core.getInput(Inputs.FolderName);
-
-  const concurrency = core.getInput(Inputs.Concurrency);
 
   if (!noFileBehavior) {
     core.setFailed(
