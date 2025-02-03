@@ -1,9 +1,12 @@
-import * as core from '@actions/core';
 import fs from 'node:fs/promises';
-import { getInputs } from '../input-helper';
-import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
-import pMap from 'p-map';
 import * as path from 'path';
+
+import * as core from '@actions/core';
+import pMap from 'p-map';
+
+import { getInputs } from '../input-helper';
+
+import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
 
 /**
  * Gets the path to an item by removing the folder prefix
@@ -90,7 +93,7 @@ export async function runDownload(): Promise<number[]> {
     };
 
     const result = await pMap(newObjectList, mapper, {
-      concurrency: concurrency,
+      concurrency,
     });
 
     logDownloadInformation(startTime, result);

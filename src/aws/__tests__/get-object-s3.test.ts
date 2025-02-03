@@ -1,14 +1,9 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 import { Readable } from 'node:stream';
-import {
-  getS3Object,
-  listS3Objects,
-  writeS3ObjectToFile,
-  getS3ObjectStream,
-} from '../get-object-s3';
-import { getPathToItem } from '../downloader';
+
+import { writeS3ObjectToFile, getS3ObjectStream } from '../get-object-s3';
 
 // Mock the S3 client
 const mockSend = jest.fn();
@@ -50,11 +45,11 @@ describe('writeS3ObjectToFile', () => {
     );
 
     // Verify correct number of bytes were written
-    expect(bytesWritten).toEqual(testContent.length);
+    expect(bytesWritten).toStrictEqual(testContent.length);
 
     // Verify file contents match expected data
     const data = await fs.readFile(filename, { encoding: 'utf8' });
-    expect(data).toEqual(testContent);
+    expect(data).toStrictEqual(testContent);
   });
 
   it('should throw error with detailed message when S3 request fails', async () => {
@@ -95,11 +90,11 @@ describe('writeS3ObjectToFile', () => {
     );
 
     // Verify zero bytes were written
-    expect(bytesWritten).toEqual(0);
+    expect(bytesWritten).toStrictEqual(0);
 
     // Verify file exists but is empty
     const data = await fs.readFile(filename, { encoding: 'utf8' });
-    expect(data).toEqual('');
+    expect(data).toStrictEqual('');
   });
 
   it('should handle large file downloads', async () => {
@@ -122,11 +117,11 @@ describe('writeS3ObjectToFile', () => {
     );
 
     // Verify correct number of bytes were written
-    expect(bytesWritten).toEqual(1024 * 1024);
+    expect(bytesWritten).toStrictEqual(1024 * 1024);
 
     // Verify file size matches expected size
     const stats = await fs.stat(filename);
-    expect(stats.size).toEqual(1024 * 1024);
+    expect(stats.size).toStrictEqual(1024 * 1024);
   });
 });
 
@@ -158,7 +153,7 @@ describe('getS3ObjectStream', () => {
     for await (const chunk of stream) {
       content += chunk;
     }
-    expect(content).toEqual(testContent);
+    expect(content).toStrictEqual(testContent);
   });
 
   it('should throw error when S3 response body is not readable', async () => {

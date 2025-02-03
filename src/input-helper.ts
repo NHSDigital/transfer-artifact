@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
+
 import { Inputs } from './constants';
-import { UploadInputs } from './upload-inputs';
+import type { UploadInputs } from './upload-inputs';
 
 function raiseError(errorMessage: string): never {
   throw new Error(errorMessage);
@@ -37,8 +38,8 @@ export function getInputs(): UploadInputs {
     artifactBucket: bucket,
     searchPath: path,
     ifNoFilesFound: noFileBehavior,
-    direction: direction,
-    folderName: folderName,
+    direction,
+    folderName,
   } as UploadInputs;
 
   const retentionDaysStr = core.getInput(Inputs.RetentionDays);

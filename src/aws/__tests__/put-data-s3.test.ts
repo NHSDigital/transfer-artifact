@@ -50,7 +50,7 @@ describe('putDataS3', () => {
     });
 
     // Verify response matches expected
-    expect(result).toEqual(expectedResponse);
+    expect(result).toStrictEqual(expectedResponse);
 
     // Verify S3 client was called with correct params
     expect(mockSend).toHaveBeenCalledWith(
@@ -75,7 +75,7 @@ describe('putDataS3', () => {
     mockSend.mockResolvedValueOnce(expectedResponse);
 
     // Upload empty object
-    const result = await putDataS3(
+    await putDataS3(
       {},
       {
         // empty here
@@ -144,7 +144,7 @@ describe('uploadObjectToS3', () => {
     );
 
     // Verify response and logging
-    expect(result).toEqual(expectedResponse);
+    expect(result).toStrictEqual(expectedResponse);
     expect(mockLogger.info).toHaveBeenCalledWith(
       'Starting upload to s3://bucket-name/config.test.json'
     );
@@ -212,7 +212,7 @@ describe('uploadObjectToS3', () => {
         },
         mockLogger
       )
-    ).rejects.toEqual(nonErrorObject);
+    ).rejects.toStrictEqual(nonErrorObject);
   });
 
   it('should handle zero-byte uploads', async () => {

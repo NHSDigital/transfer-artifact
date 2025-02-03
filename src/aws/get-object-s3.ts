@@ -1,8 +1,10 @@
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
-import { promisify } from 'node:util';
 import { pipeline, type Readable } from 'node:stream';
+import { promisify } from 'node:util';
+
 import { GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+
 import { getS3Client } from './s3-client';
 import { StreamCounter } from './stream-counter';
 import type { S3Location } from './types';
@@ -16,7 +18,7 @@ function isReadable(
 }
 
 export async function streamToString(Body: Readable) {
-  return new Promise<string>((resolve, reject) => {
+  return await new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
     Body.on('data', (chunk: ArrayBuffer | SharedArrayBuffer) =>
       chunks.push(Buffer.from(chunk))

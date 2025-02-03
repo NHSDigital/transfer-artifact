@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
-import { getInputs } from '../src/input-helper';
+
 import { Inputs } from '../src/constants';
+import { getInputs } from '../src/input-helper';
 
 // Mock the @actions/core package
 jest.mock('@actions/core');
@@ -44,7 +45,7 @@ describe('getInputs', () => {
     const result = getInputs();
 
     // Verify the returned object has the expected structure and values
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       artifactName: '123-test-folder', // Combined from RunNumber and FolderName
       artifactBucket: 'test-bucket',
       searchPath: '/test/path',

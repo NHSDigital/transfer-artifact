@@ -1,6 +1,8 @@
 import * as fs from 'fs';
-import { debug } from '@actions/core';
 import { join, normalize, resolve } from 'path';
+
+import { debug } from '@actions/core';
+
 import { checkArtifactFilePath } from './path-and-artifact-name-validation';
 
 export interface UploadSpecification {

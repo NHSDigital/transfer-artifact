@@ -1,5 +1,3 @@
-import { S3Client } from '@aws-sdk/client-s3';
-
 // Create mock for S3Client
 const mockS3Client = jest.fn().mockImplementation(() => ({
   send: jest.fn(),
@@ -17,6 +15,7 @@ jest.mock('../locations', () => ({
 }));
 
 describe('getS3Client', () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   let getS3Client: typeof import('../s3-client').getS3Client;
 
   beforeEach(() => {
@@ -31,6 +30,7 @@ describe('getS3Client', () => {
     mockRegion.mockReset();
 
     // Import fresh instance AFTER resetting mocks
+    // eslint-disable-next-line @typescript-eslint/no-require-imports,@typescript-eslint/no-var-requires
     getS3Client = require('../s3-client').getS3Client;
   });
 

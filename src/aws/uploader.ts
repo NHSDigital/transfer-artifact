@@ -1,13 +1,14 @@
 /* eslint-disable no-unused-vars */
-import { type UploadOptions } from '@actions/artifact';
-import { uploadObjectToS3 } from './put-data-s3';
 import fs from 'node:fs';
+
+import { type UploadOptions } from '@actions/artifact';
 import * as core from '@actions/core';
-import {
-  getUploadSpecification,
-  UploadSpecification,
-} from '../upload-specification';
 import pMap from 'p-map';
+
+import type { UploadSpecification } from '../upload-specification';
+import { getUploadSpecification } from '../upload-specification';
+
+import { uploadObjectToS3 } from './put-data-s3';
 
 function logUploadInformation(begin: number, uploads: void[]) {
   const finish = Date.now();
@@ -56,7 +57,7 @@ export async function uploadArtifact(
     }
   };
 
-  const result = await pMap(uploadSpec, mapper, { concurrency: concurrency });
+  const result = await pMap(uploadSpec, mapper, { concurrency });
 
   logUploadInformation(startTime, result);
 

@@ -1,8 +1,8 @@
-import { runDownload } from '../downloader';
-import * as core from '@actions/core';
-import * as inputHelper from '../../input-helper';
-import { listS3Objects, writeS3ObjectToFile } from '../get-object-s3';
 import fs from 'node:fs/promises';
+
+import * as inputHelper from '../../input-helper';
+import { runDownload } from '../downloader';
+import { listS3Objects, writeS3ObjectToFile } from '../get-object-s3';
 
 // Mock all external dependencies
 jest.mock('@actions/core');
