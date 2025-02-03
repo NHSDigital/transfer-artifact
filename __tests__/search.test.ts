@@ -70,10 +70,11 @@ const lonelyFilePath = path.join(
 describe('Search', () => {
   beforeAll(async () => {
     // mock all output so that there is less noise when running tests
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(core, 'debug').mockImplementation(() => {});
-    jest.spyOn(core, 'info').mockImplementation(() => {});
-    jest.spyOn(core, 'warning').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(jest.fn());
+
+    jest.spyOn(core, 'debug').mockImplementation(jest.fn());
+    jest.spyOn(core, 'info').mockImplementation(jest.fn());
+    jest.spyOn(core, 'warning').mockImplementation(jest.fn());
 
     // clear temp directory
     await io.rmRF(root);

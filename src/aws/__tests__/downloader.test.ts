@@ -24,7 +24,7 @@ describe('runDownload', () => {
     // Reset all mocks before each test to ensure clean state
     jest.clearAllMocks();
     // Mock console.log to prevent test output pollution
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(jest.fn());
     // Setup default mock returns
     (inputHelper.getInputs as jest.Mock).mockReturnValue(mockInputs);
     (fs.mkdir as jest.Mock).mockResolvedValue(undefined);

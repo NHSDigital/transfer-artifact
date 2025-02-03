@@ -30,7 +30,7 @@ describe('getS3Client', () => {
     mockRegion.mockReset();
 
     // Import fresh instance AFTER resetting mocks
-    // eslint-disable-next-line @typescript-eslint/no-require-imports,@typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     getS3Client = require('../s3-client').getS3Client;
   });
 

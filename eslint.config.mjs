@@ -35,7 +35,6 @@ export default [
     },
     rules: {
       'import/no-unresolved': 'off',
-      'no-console': ['warn', { allow: ['info', 'warn', 'error'] }],
       'prefer-const': 'error',
       'no-var': 'error',
     },
@@ -122,12 +121,6 @@ export default [
       '@typescript-eslint/prefer-optional-chain': 'error',
 
       // General
-      'no-console': [
-        'warn',
-        {
-          allow: ['info', 'warn', 'error'],
-        },
-      ],
       eqeqeq: ['error', 'always', { null: 'ignore' }],
       'no-var': 'error',
       'prefer-const': 'error',
@@ -156,7 +149,6 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
-      'no-console': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       'jest/expect-expect': 'error',
       'jest/no-disabled-tests': 'error',

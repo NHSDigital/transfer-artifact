@@ -19,7 +19,7 @@ describe('putDataS3', () => {
     // Reset all mocks before each test
     jest.clearAllMocks();
     // Mock console.log to prevent test output
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(jest.fn());
   });
 
   it('should throw error with detailed message if upload fails', async () => {
