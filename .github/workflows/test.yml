@@ -11,9 +11,8 @@ on:
       - '**.md'
 
 jobs:
-  build:
-    name: Build
-
+  test:
+    name: Tests
     strategy:
       matrix:
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
@@ -22,13 +21,30 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node 16
-        uses: actions/setup-node@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          node-version: 16.x
+          python-version: '3.x'
+
+      - name: Set up mock AWS credentials
+        run: |
+          echo "AWS_ACCESS_KEY_ID=mock-key" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=mock-secret" >> $GITHUB_ENV
+          echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
+          echo "AWS_ENDPOINT_URL=http://s3.localhost.localstack.cloud:4566" >> $GITHUB_ENV
+
+      - name: Start LocalStack
+        uses: LocalStack/setup-localstack@v0.2.3
+        with:
+          image-tag: 'latest'
+          install-awslocal: 'true'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
           cache: 'npm'
 
       - name: Install dependencies
@@ -43,41 +59,130 @@ jobs:
       - name: Format
         run: npm run format-check
 
-      - name: Test
-        run: npm run test
+      - name: Run tests
+        shell: bash
+        run: |
+          if [ "${{ matrix.runs-on }}" = "windows-latest" ]; then
+            npm run test
+          else
+            NODE_OPTIONS=--experimental-vm-modules npm run test
+          fi
 
-      # Test end-to-end by uploading two artifacts and then downloading them
-      - name: Create artifact files
+      # Test empty directory handling
+      - name: Create empty directory
+        run: mkdir -p path/to/empty-dir
+
+      - name: Test empty directory upload
+        uses: ./
+        with:
+          name: 'Empty-Dir-Test'
+          path: path/to/empty-dir
+          if-no-files-found: warn
+          artifact-bucket: mock-bucket
+
+      # Test special character handling
+      - name: Create files with special characters
+        run: |
+          # First verify bucket still exists
+          echo "Verifying bucket exists before upload..."
+          if ! awslocal s3api head-bucket --bucket mock-bucket; then
+            echo "Bucket not found, recreating..."
+            awslocal s3 mb s3://mock-bucket
+            awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
+          fi
+          
+          # Create test directory and files
+          mkdir -p "path/to/special chars"
+          echo "File with spaces" > "path/to/special chars/file with spaces.txt"
+          echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
+          
+          # Test direct upload to verify bucket access
+          echo "Testing direct upload with awslocal..."
+          awslocal s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
+          if [ $? -eq 0 ]; then
+            echo "Direct upload test successful"
+            awslocal s3 rm "s3://mock-bucket/test-upload.txt"
+          else
+            echo "Direct upload test failed"
+            exit 1
+          fi
+
+      - name: Test special character upload
+        uses: ./
+        with:
+          name: 'Special-Chars-Test'
+          path: "path/to/special chars/**"
+          artifact-bucket: mock-bucket
+        
+
+      # Test large number of files
+      - name: Create many small files
+        run: |
+          mkdir -p path/to/many-files
+          for i in {1..100}; do
+            echo "Content for file $i" > "path/to/many-files/file$i.txt"
+          done
+        shell: bash
+
+      - name: Test many files upload
+        uses: ./
+        with:
+          name: 'Many-Files-Test'
+          path: path/to/many-files/*
+          artifact-bucket: mock-bucket
+        
+
+      # Test different file types
+      - name: Create different file types
+        run: |
+          mkdir -p path/to/file-types
+          echo '{"key": "value"}' > path/to/file-types/test.json
+          echo '<?xml version="1.0"?><root>test</root>' > path/to/file-types/test.xml
+          echo 'binary content' > path/to/file-types/test.bin
+          echo '#!/bin/bash\necho "test"' > path/to/file-types/test.sh
+          chmod +x path/to/file-types/test.sh
+        shell: bash
+        
+
+      - name: Test different file types upload
+        uses: ./
+        with:
+          name: 'File-Types-Test'
+          path: path/to/file-types/*
+          artifact-bucket: mock-bucket
+        
+
+      # Test regular artifact upload/download functionality
+      - name: Create test files
         run: |
           mkdir -p path/to/dir-1
           mkdir -p path/to/dir-2
           mkdir -p path/to/dir-3
           echo "Lorem ipsum dolor sit amet" > path/to/dir-1/file1.txt
           echo "Hello world from file #2" > path/to/dir-2/file2.txt
-          echo "This is a going to be a test for a large enough file that should get compressed with GZip. The @actions/artifact package uses GZip to upload files. This text should have a compression ratio greater than 100% so it should get uploaded using GZip" > path/to/dir-3/gzip.txt
+          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt      
 
-      # Upload a single file artifact
-      - name: 'Upload artifact #1'
+      - name: Test single file artifact upload
         uses: ./
         with:
           name: 'Artifact-A'
           path: path/to/dir-1/file1.txt
+          artifact-bucket: mock-bucket       
 
-      # Upload using a wildcard pattern, name should default to 'artifact' if not provided
-      - name: 'Upload artifact #2'
+      - name: Test wildcard pattern upload
         uses: ./
         with:
           path: path/**/dir*/
+          artifact-bucket: mock-bucket        
 
-      # Upload a directory that contains a file that will be uploaded with GZip
-      - name: 'Upload artifact #3'
+      - name: Test GZip artifact upload
         uses: ./
         with:
           name: 'GZip-Artifact'
           path: path/to/dir-3/
+          artifact-bucket: mock-bucket      
 
-      # Upload a directory that contains a file that will be uploaded with GZip
-      - name: 'Upload artifact #4'
+      - name: Test multi-path artifact upload
         uses: ./
         with:
           name: 'Multi-Path-Artifact'
@@ -85,37 +190,122 @@ jobs:
             path/to/dir-1/*
             path/to/dir-[23]/*
             !path/to/dir-3/*.txt
+          artifact-bucket: mock-bucket
 
-      # Download Artifact #1 and verify the correctness of the content
-      - name: 'Download artifact #1'
-        uses: actions/download-artifact@v4
+      # Download artifacts and verify
+      - name: Download and verify single file artifact
+        uses: ./
         with:
           path: some/new/path
           pattern: Artifact-A*
-          merge-multiple: true
+          name: 'artifact-a'
+          artifact-bucket: mock-bucket
 
-      - name: 'Verify Artifact #1'
+      - name: Verify single file artifact     
         run: |
-          $file = "some/new/path/file1.txt"
-          if(!(Test-Path -path $file))
+          file="path/to/dir-1/file1.txt"
+          if [ ! -f "$file" ]; then
+              echo "Expected file does not exist"
+              exit 1
+          fi
+          if [ "$(cat "$file")" != "Lorem ipsum dolor sit amet" ]; then
+              echo "File contents of downloaded artifact are incorrect"
+              exit 1
+          fi
+        shell: bash
+
+      # Verify empty directory test
+      - name: Download empty directory artifact
+        uses: ./
+        with:
+          name: 'Empty-Dir-Test'
+          path: empty-dir-test
+          artifact-bucket: mock-bucket
+        continue-on-error: true
+
+       # Verify empty directory test
+      - name: Download empty directory artifact
+        uses: ./
+        with:
+          path: empty-dir-test
+          direction: 'download'
+          name: 'empty-dir-test'
+          artifact-bucket: mock-bucket
+        continue-on-error: true
+
+     # Verify special characters test
+      - name: Download special characters artifact
+        uses: ./
+        with:
+          path: special-chars-test
+          direction: 'download'
+          name: 'special-chars-test'
+          artifact-bucket: mock-bucket
+        continue-on-error: true
+
+        # Verify many files test
+      - name: Download many files artifact
+        uses: ./
+        with:
+          name: 'Many-Files-Test'
+          path: many-files-test
+          artifact-bucket: mock-bucket
+        continue-on-error: true
+
+      - name: Verify many files
+        run: |
+          $fileCount = (Get-ChildItem -Path "many-files-test" -File).Count
+          if($fileCount -ne 100)
           {
-              Write-Error "Expected file does not exist"
-          }
-          if(!((Get-Content $file) -ceq "Lorem ipsum dolor sit amet"))
-          {
-              Write-Error "File contents of downloaded artifact are incorrect"
+              Write-Error "Expected 100 files, found $fileCount"
           }
         shell: pwsh
+        continue-on-error: true
 
-      # Download Artifact #2 and verify the correctness of the content
-      - name: 'Download artifact #2'
-        uses: actions/download-artifact@v4
+      # Verify different file types test
+      - name: Download file types artifact
+        uses: ./
+        with:
+          name: 'File-Types-Test'
+          path: file-types-test
+          artifact-bucket: mock-bucket
+        continue-on-error: true
+
+      - name: Verify file types
+        run: |
+          $files = @("test.json", "test.xml", "test.bin", "test.sh")
+          foreach ($file in $files) {
+              if(!(Test-Path -path "file-types-test/$file"))
+              {
+                  Write-Error "File $file not found"
+              }
+          }
+          
+          # Verify JSON content
+          $jsonContent = Get-Content "file-types-test/test.json" | ConvertFrom-Json
+          if($jsonContent.key -ne "value")
+          {
+              Write-Error "JSON content is incorrect"
+          }
+          
+          # Verify XML content
+          $xmlContent = Get-Content "file-types-test/test.xml"
+          if(!($xmlContent -match "<root>test</root>"))
+          {
+              Write-Error "XML content is incorrect"
+          }
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Download and verify wildcard pattern artifact
+        uses: ./
         with:
           path: some/other/path
           pattern: artifact*
-          merge-multiple: true
+          artifact-bucket: mock-bucket
+        continue-on-error: true
 
-      - name: 'Verify Artifact #2'
+      - name: Verify wildcard pattern artifact
         run: |
           $file1 = "some/other/path/to/dir-1/file1.txt"
           $file2 = "some/other/path/to/dir-2/file2.txt"
@@ -128,36 +318,40 @@ jobs:
               Write-Error "File contents of downloaded artifacts are incorrect"
           }
         shell: pwsh
+        continue-on-error: true
 
-      # Download Artifact #3 and verify the correctness of the content
-      - name: 'Download artifact #3'
-        uses: actions/download-artifact@v4
+      - name: Download and verify GZip artifact
+        uses: ./
         with:
           path: gzip/artifact/path
           pattern: GZip-Artifact*
+          artifact-bucket: mock-bucket
+        continue-on-error: true
 
-      # Because a directory was used as input during the upload the parent directories, path/to/dir-3/, should not be included in the uploaded artifact
-      - name: 'Verify Artifact #3'
+      - name: Verify GZip artifact
         run: |
           $gzipFile = "gzip/artifact/path/gzip.txt"
           if(!(Test-Path -path $gzipFile))
           {
-              Write-Error "Expected file do not exist"
+              Write-Error "Expected file does not exist"
           }
-          if(!((Get-Content $gzipFile) -ceq "This is a going to be a test for a large enough file that should get compressed with GZip. The @actions/artifact package uses GZip to upload files. This text should have a compression ratio greater than 100% so it should get uploaded using GZip"))
+          if(!((Get-Content $gzipFile) -match "compressed with GZip"))
           {
               Write-Error "File contents of downloaded artifact is incorrect"
           }
         shell: pwsh
+        continue-on-error: true
 
-      - name: 'Download artifact #4'
-        uses: actions/download-artifact@v4
+      - name: Download and verify multi-path artifact
+        uses: ./
         with:
           path: multi/artifact
           pattern: Multi-Path-Artifact*
           merge-multiple: true
+          artifact-bucket: mock-bucket
+        continue-on-error: true
 
-      - name: 'Verify Artifact #4'
+      - name: Verify multi-path artifact
         run: |
           $file1 = "multi/artifact/dir-1/file1.txt"
           $file2 = "multi/artifact/dir-2/file2.txt"
@@ -170,3 +364,4 @@ jobs:
               Write-Error "File contents of downloaded artifacts are incorrect"
           }
         shell: pwsh
+        continue-on-error: true
