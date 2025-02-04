@@ -18,6 +18,7 @@ export function getInputs(): UploadInputs {
   const path = core.getInput(Inputs.Path, { required: true });
   const bucket =
     core.getInput(Inputs.ArtifactBucket) ||
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     process.env.ARTIFACTS_S3_BUCKET ||
     raiseError('no artifact-bucket supplied');
   const direction = core.getInput(Inputs.Direction);

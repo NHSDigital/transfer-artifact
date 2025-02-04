@@ -102,7 +102,6 @@ export default [
 
       // TypeScript
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-empty-function': 'warn',
@@ -149,7 +148,6 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'off',
       'jest/expect-expect': 'error',
       'jest/no-disabled-tests': 'error',
       'jest/no-focused-tests': 'error',

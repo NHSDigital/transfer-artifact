@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 export const Inputs = {
   RunNumber: 'run-number',
   Path: 'path',

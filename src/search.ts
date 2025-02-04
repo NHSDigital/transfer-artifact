@@ -86,7 +86,7 @@ export async function findFilesToUpload(
   const searchResults: string[] = [];
   const globber = await glob.create(
     searchPath,
-    globOptions || getDefaultGlobOptions()
+    globOptions ?? getDefaultGlobOptions()
   );
   const rawSearchResults: string[] = await globber.glob();
 

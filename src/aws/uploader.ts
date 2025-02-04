@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import fs from 'node:fs';
 
 import { type UploadOptions } from '@actions/artifact';
@@ -13,9 +12,7 @@ import { uploadObjectToS3 } from './put-data-s3';
 function logUploadInformation(begin: number, uploads: void[]) {
   const finish = Date.now();
   let fileCount = 0;
-  for (let i = 0; i < uploads.length; i++) {
-    fileCount += 1;
-  }
+  fileCount += uploads.length;
   const duration = finish - begin;
   console.log(
     `Uploaded ${fileCount} files. It took ${(duration / 1000).toFixed(
@@ -33,6 +30,7 @@ export async function uploadArtifact(
   folderName: string,
   concurrency: number
   // the p-map does all the work and then returns a null array
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
   const startTime = Date.now();
 
