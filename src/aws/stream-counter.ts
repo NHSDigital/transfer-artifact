@@ -16,6 +16,7 @@ export class StreamCounter extends Transform {
   }
 
   override _transform(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chunk: any,
     encoding: BufferEncoding,
     cb: TransformCallback

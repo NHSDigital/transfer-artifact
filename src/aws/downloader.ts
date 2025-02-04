@@ -1,19 +1,29 @@
-import * as core from '@actions/core';
 import fs from 'node:fs/promises';
-import { getInputs } from '../input-helper';
-import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
-import pMap from 'p-map';
 import * as path from 'path';
 
-/* Get the path to the file, including the filename and ending.
-  Exclude the prefix or folder name which has been used to find the item in S3 */
+import * as core from '@actions/core';
+import pMap from 'p-map';
 
-export function getPathToItem(fullName: string, folderName: string) {
+import { getInputs } from '../input-helper';
+
+import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
+
+/**
+ * Gets the path to an item by removing the folder prefix
+ * @param fullName The full S3 key path
+ * @param folderName The folder name to remove (can be full path or just name)
+ * @returns Clean path - with leading slash if folderName is just name, without if it's a full path
+ */
+export function getPathToItem(fullName: string, folderName: string): string {
   const lastCharacterOfFolderName =
     fullName.indexOf(folderName) + folderName.length;
   const nameExcludingFolder = fullName.substring(lastCharacterOfFolderName);
 
-  return nameExcludingFolder;
+  // If folderName contains a slash, it's a full path - remove leading slash
+  // Otherwise, it's just a name - keep the leading slash
+  return folderName.includes('/')
+    ? nameExcludingFolder.replace(/^\/+/, '')
+    : nameExcludingFolder;
 }
 
 function logDownloadInformation(begin: number, downloads: number[]) {
@@ -33,7 +43,7 @@ function logDownloadInformation(begin: number, downloads: number[]) {
   );
 }
 
-export async function runDownload(): Promise<any> {
+export async function runDownload(): Promise<number[]> {
   try {
     const startTime = Date.now();
     const inputs = getInputs();
@@ -48,7 +58,7 @@ export async function runDownload(): Promise<any> {
       Prefix: `ci-pipeline-upload-artifacts/${folderName}/${name}`,
     });
 
-    let newObjectList: string[] = [];
+    const newObjectList: string[] = [];
 
     /* listS3Objects brings back everything in the S3 bucket
     Use an if statement to find only files relevant to this pipeline */
@@ -83,7 +93,7 @@ export async function runDownload(): Promise<any> {
     };
 
     const result = await pMap(newObjectList, mapper, {
-      concurrency: concurrency,
+      concurrency,
     });
 
     logDownloadInformation(startTime, result);
@@ -93,5 +103,6 @@ export async function runDownload(): Promise<any> {
     return result;
   } catch (error) {
     core.setFailed((error as Error).message);
+    return [];
   }
 }

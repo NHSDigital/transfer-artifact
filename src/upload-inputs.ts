@@ -1,4 +1,4 @@
-import { NoFileOptions, DirectionOptions } from './constants';
+import type { NoFileOptions, DirectionOptions } from './constants';
 
 export interface UploadInputs {
   /**

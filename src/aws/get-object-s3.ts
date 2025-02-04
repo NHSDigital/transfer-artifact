@@ -1,8 +1,10 @@
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
-import { promisify } from 'node:util';
 import { pipeline, type Readable } from 'node:stream';
+import { promisify } from 'node:util';
+
 import { GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+
 import { getS3Client } from './s3-client';
 import { StreamCounter } from './stream-counter';
 import type { S3Location } from './types';
@@ -16,7 +18,7 @@ function isReadable(
 }
 
 export async function streamToString(Body: Readable) {
-  return new Promise<string>((resolve, reject) => {
+  return await new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
     Body.on('data', (chunk: ArrayBuffer | SharedArrayBuffer) =>
       chunks.push(Buffer.from(chunk))
@@ -101,13 +103,18 @@ export async function writeS3ObjectToFile(
   try {
     return await writeToFile(await getS3ObjectStream(location), filename);
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(
-        `Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${error.message}`
-      );
-    } else {
-      throw error;
-    }
+    // Extract the original error message without the S3 prefix
+    const originalMessage =
+      error instanceof Error
+        ? error.message.replace(
+            /^Could not retrieve from bucket '[^']*' from S3: /,
+            ''
+          )
+        : String(error);
+
+    throw new Error(
+      `Could not retrieve from bucket 's3://${location.Bucket}/${location.Key}'. Error was: ${originalMessage}`
+    );
   }
 }
 

@@ -1,6 +1,7 @@
 import type { Buffer } from 'node:buffer';
 import type { Readable } from 'node:stream';
-import { ObjectCannedACL } from '@aws-sdk/client-s3';
+
+import type { ObjectCannedACL } from '@aws-sdk/client-s3';
 
 // we can find objects using an exact Key, which has the full path to the object
 // or we can use a Prefix, e.g. the bucket name, to return every file with a specific prefix

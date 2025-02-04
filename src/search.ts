@@ -1,9 +1,10 @@
-import * as glob from '@actions/glob';
-import * as path from 'path';
-import { debug, info } from '@actions/core';
 import { stat } from 'fs';
+import * as path from 'path';
 import { dirname } from 'path';
 import { promisify } from 'util';
+
+import { debug, info } from '@actions/core';
+import * as glob from '@actions/glob';
 const stats = promisify(stat);
 
 export interface SearchResult {
@@ -85,7 +86,7 @@ export async function findFilesToUpload(
   const searchResults: string[] = [];
   const globber = await glob.create(
     searchPath,
-    globOptions || getDefaultGlobOptions()
+    globOptions ?? getDefaultGlobOptions()
   );
   const rawSearchResults: string[] = await globber.glob();
 

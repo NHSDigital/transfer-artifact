@@ -1,8 +1,10 @@
+import type { UploadOptions } from '@actions/artifact';
+import { create } from '@actions/artifact';
 import * as core from '@actions/core';
-import { create, UploadOptions } from '@actions/artifact';
-import { findFilesToUpload } from './search';
-import { getInputs } from './input-helper';
+
 import { uploadArtifact } from './aws/uploader';
+import { getInputs } from './input-helper';
+import { findFilesToUpload } from './search';
 
 export async function runUpload(): Promise<void> {
   try {

@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
+
 import { Inputs } from './constants';
-import { UploadInputs } from './upload-inputs';
+import type { UploadInputs } from './upload-inputs';
 
 function raiseError(errorMessage: string): never {
   throw new Error(errorMessage);
@@ -17,6 +18,7 @@ export function getInputs(): UploadInputs {
   const path = core.getInput(Inputs.Path, { required: true });
   const bucket =
     core.getInput(Inputs.ArtifactBucket) ||
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     process.env.ARTIFACTS_S3_BUCKET ||
     raiseError('no artifact-bucket supplied');
   const direction = core.getInput(Inputs.Direction);
@@ -24,11 +26,7 @@ export function getInputs(): UploadInputs {
   const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound);
   const noFileBehavior = ifNoFilesFound;
 
-  // 2009 - rename to uploadFolderName
-  // also rename UploadInputs
   const folderName = core.getInput(Inputs.FolderName);
-
-  const concurrency = core.getInput(Inputs.Concurrency);
 
   if (!noFileBehavior) {
     core.setFailed(
@@ -41,8 +39,8 @@ export function getInputs(): UploadInputs {
     artifactBucket: bucket,
     searchPath: path,
     ifNoFilesFound: noFileBehavior,
-    direction: direction,
-    folderName: folderName,
+    direction,
+    folderName,
   } as UploadInputs;
 
   const retentionDaysStr = core.getInput(Inputs.RetentionDays);

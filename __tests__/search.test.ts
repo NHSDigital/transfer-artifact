@@ -1,7 +1,9 @@
-import * as core from '@actions/core';
-import * as path from 'path';
-import * as io from '@actions/io';
 import { promises as fs } from 'fs';
+import * as path from 'path';
+
+import * as core from '@actions/core';
+import * as io from '@actions/io';
+
 import { findFilesToUpload } from '../src/search';
 
 const root = path.join(__dirname, '_temp', 'search');
@@ -68,10 +70,11 @@ const lonelyFilePath = path.join(
 describe('Search', () => {
   beforeAll(async () => {
     // mock all output so that there is less noise when running tests
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(core, 'debug').mockImplementation(() => {});
-    jest.spyOn(core, 'info').mockImplementation(() => {});
-    jest.spyOn(core, 'warning').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(jest.fn());
+
+    jest.spyOn(core, 'debug').mockImplementation(jest.fn());
+    jest.spyOn(core, 'info').mockImplementation(jest.fn());
+    jest.spyOn(core, 'warning').mockImplementation(jest.fn());
 
     // clear temp directory
     await io.rmRF(root);
@@ -146,9 +149,9 @@ describe('Search', () => {
 
   it('Single file search - Absolute Path', async () => {
     const searchResult = await findFilesToUpload(extraFileInFolderCPath);
-    expect(searchResult.filesToUpload.length).toEqual(1);
-    expect(searchResult.filesToUpload[0]).toEqual(extraFileInFolderCPath);
-    expect(searchResult.rootDirectory).toEqual(
+    expect(searchResult.filesToUpload.length).toStrictEqual(1);
+    expect(searchResult.filesToUpload[0]).toStrictEqual(extraFileInFolderCPath);
+    expect(searchResult.rootDirectory).toStrictEqual(
       path.join(root, 'folder-a', 'folder-b', 'folder-c')
     );
   });
@@ -165,9 +168,9 @@ describe('Search', () => {
     );
 
     const searchResult = await findFilesToUpload(relativePath);
-    expect(searchResult.filesToUpload.length).toEqual(1);
-    expect(searchResult.filesToUpload[0]).toEqual(searchItem1Path);
-    expect(searchResult.rootDirectory).toEqual(
+    expect(searchResult.filesToUpload.length).toStrictEqual(1);
+    expect(searchResult.filesToUpload[0]).toStrictEqual(searchItem1Path);
+    expect(searchResult.rootDirectory).toStrictEqual(
       path.join(root, 'folder-a', 'folder-b', 'folder-c')
     );
   });
@@ -176,85 +179,99 @@ describe('Search', () => {
     const expectedRoot = path.join(root, 'folder-h');
     const searchPath = path.join(root, 'folder-h', '**/*lonely*');
     const searchResult = await findFilesToUpload(searchPath);
-    expect(searchResult.filesToUpload.length).toEqual(1);
-    expect(searchResult.filesToUpload[0]).toEqual(lonelyFilePath);
-    expect(searchResult.rootDirectory).toEqual(expectedRoot);
+    expect(searchResult.filesToUpload.length).toStrictEqual(1);
+    expect(searchResult.filesToUpload[0]).toStrictEqual(lonelyFilePath);
+    expect(searchResult.rootDirectory).toStrictEqual(expectedRoot);
   });
 
   it('Single file using directory', async () => {
     const searchPath = path.join(root, 'folder-h', 'folder-j');
     const searchResult = await findFilesToUpload(searchPath);
-    expect(searchResult.filesToUpload.length).toEqual(1);
-    expect(searchResult.filesToUpload[0]).toEqual(lonelyFilePath);
-    expect(searchResult.rootDirectory).toEqual(searchPath);
+    expect(searchResult.filesToUpload.length).toStrictEqual(1);
+    expect(searchResult.filesToUpload[0]).toStrictEqual(lonelyFilePath);
+    expect(searchResult.rootDirectory).toStrictEqual(searchPath);
   });
 
   it('Directory search - Absolute Path', async () => {
     const searchPath = path.join(root, 'folder-h');
     const searchResult = await findFilesToUpload(searchPath);
-    expect(searchResult.filesToUpload.length).toEqual(4);
+    expect(searchResult.filesToUpload.length).toStrictEqual(4);
 
     expect(
       searchResult.filesToUpload.includes(amazingFileInFolderHPath)
-    ).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem4Path)).toEqual(
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem4Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem5Path)
+    ).toStrictEqual(true);
+    expect(searchResult.filesToUpload.includes(lonelyFilePath)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem5Path)).toEqual(
-      true
-    );
-    expect(searchResult.filesToUpload.includes(lonelyFilePath)).toEqual(true);
 
-    expect(searchResult.rootDirectory).toEqual(searchPath);
+    expect(searchResult.rootDirectory).toStrictEqual(searchPath);
   });
 
   it('Directory search - Relative Path', async () => {
     const searchPath = path.join('__tests__', '_temp', 'search', 'folder-h');
     const expectedRootDirectory = path.join(root, 'folder-h');
     const searchResult = await findFilesToUpload(searchPath);
-    expect(searchResult.filesToUpload.length).toEqual(4);
+    expect(searchResult.filesToUpload.length).toStrictEqual(4);
 
     expect(
       searchResult.filesToUpload.includes(amazingFileInFolderHPath)
-    ).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem4Path)).toEqual(
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem4Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem5Path)
+    ).toStrictEqual(true);
+    expect(searchResult.filesToUpload.includes(lonelyFilePath)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem5Path)).toEqual(
-      true
-    );
-    expect(searchResult.filesToUpload.includes(lonelyFilePath)).toEqual(true);
 
-    expect(searchResult.rootDirectory).toEqual(expectedRootDirectory);
+    expect(searchResult.rootDirectory).toStrictEqual(expectedRootDirectory);
   });
 
   it('Wildcard search - Absolute Path', async () => {
     const searchPath = path.join(root, '**/*[Ss]earch*');
     const searchResult = await findFilesToUpload(searchPath);
-    expect(searchResult.filesToUpload.length).toEqual(10);
+    expect(searchResult.filesToUpload.length).toStrictEqual(10);
 
-    expect(searchResult.filesToUpload.includes(searchItem1Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem2Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem3Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem4Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem5Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem1Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem1Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem2Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem2Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem3Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem3Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem4Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem4Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem5Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem5Path)).toStrictEqual(
       true
     );
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem1Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem2Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem3Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem4Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem5Path)
+    ).toStrictEqual(true);
 
-    expect(searchResult.rootDirectory).toEqual(root);
+    expect(searchResult.rootDirectory).toStrictEqual(root);
   });
 
   it('Wildcard search - Relative Path', async () => {
@@ -265,54 +282,72 @@ describe('Search', () => {
       '**/*[Ss]earch*'
     );
     const searchResult = await findFilesToUpload(searchPath);
-    expect(searchResult.filesToUpload.length).toEqual(10);
+    expect(searchResult.filesToUpload.length).toStrictEqual(10);
 
-    expect(searchResult.filesToUpload.includes(searchItem1Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem2Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem3Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem4Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem5Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem1Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem1Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem2Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem2Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem3Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem3Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem4Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem4Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem5Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem5Path)).toStrictEqual(
       true
     );
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem1Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem2Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem3Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem4Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem5Path)
+    ).toStrictEqual(true);
 
-    expect(searchResult.rootDirectory).toEqual(root);
+    expect(searchResult.rootDirectory).toStrictEqual(root);
   });
 
   it('Multi path search - root directory', async () => {
     const searchPath1 = path.join(root, 'folder-a');
     const searchPath2 = path.join(root, 'folder-d');
 
-    const searchPaths = searchPath1 + '\n' + searchPath2;
+    const searchPaths = `${searchPath1}\n${searchPath2}`;
     const searchResult = await findFilesToUpload(searchPaths);
 
-    expect(searchResult.rootDirectory).toEqual(root);
-    expect(searchResult.filesToUpload.length).toEqual(7);
-    expect(searchResult.filesToUpload.includes(searchItem1Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem2Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem3Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem4Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem1Path)).toEqual(
+    expect(searchResult.rootDirectory).toStrictEqual(root);
+    expect(searchResult.filesToUpload.length).toStrictEqual(7);
+    expect(searchResult.filesToUpload.includes(searchItem1Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem2Path)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem2Path)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraFileInFolderCPath)).toEqual(
+    expect(searchResult.filesToUpload.includes(searchItem3Path)).toStrictEqual(
       true
     );
+    expect(searchResult.filesToUpload.includes(searchItem4Path)).toStrictEqual(
+      true
+    );
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem1Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem2Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraFileInFolderCPath)
+    ).toStrictEqual(true);
   });
 
   it('Multi path search - with exclude character', async () => {
@@ -326,18 +361,26 @@ describe('Search', () => {
     );
 
     // negating the third search path
-    const searchPaths = searchPath1 + '\n' + searchPath2 + '\n!' + searchPath3;
+    const searchPaths = `${searchPath1}\n${searchPath2}\n!${searchPath3}`;
     const searchResult = await findFilesToUpload(searchPaths);
 
-    expect(searchResult.rootDirectory).toEqual(root);
-    expect(searchResult.filesToUpload.length).toEqual(5);
-    expect(searchResult.filesToUpload.includes(searchItem1Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem2Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem3Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(searchItem4Path)).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem2Path)).toEqual(
+    expect(searchResult.rootDirectory).toStrictEqual(root);
+    expect(searchResult.filesToUpload.length).toStrictEqual(5);
+    expect(searchResult.filesToUpload.includes(searchItem1Path)).toStrictEqual(
       true
     );
+    expect(searchResult.filesToUpload.includes(searchItem2Path)).toStrictEqual(
+      true
+    );
+    expect(searchResult.filesToUpload.includes(searchItem3Path)).toStrictEqual(
+      true
+    );
+    expect(searchResult.filesToUpload.includes(searchItem4Path)).toStrictEqual(
+      true
+    );
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem2Path)
+    ).toStrictEqual(true);
   });
 
   it('Multi path search - non root directory', async () => {
@@ -348,17 +391,21 @@ describe('Search', () => {
     const searchPaths = [searchPath1, searchPath2, searchPath3].join('\n');
     const searchResult = await findFilesToUpload(searchPaths);
 
-    expect(searchResult.rootDirectory).toEqual(path.join(root, 'folder-h'));
-    expect(searchResult.filesToUpload.length).toEqual(4);
+    expect(searchResult.rootDirectory).toStrictEqual(
+      path.join(root, 'folder-h')
+    );
+    expect(searchResult.filesToUpload.length).toStrictEqual(4);
     expect(
       searchResult.filesToUpload.includes(amazingFileInFolderHPath)
-    ).toEqual(true);
-    expect(searchResult.filesToUpload.includes(extraSearchItem4Path)).toEqual(
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem4Path)
+    ).toStrictEqual(true);
+    expect(
+      searchResult.filesToUpload.includes(extraSearchItem5Path)
+    ).toStrictEqual(true);
+    expect(searchResult.filesToUpload.includes(lonelyFilePath)).toStrictEqual(
       true
     );
-    expect(searchResult.filesToUpload.includes(extraSearchItem5Path)).toEqual(
-      true
-    );
-    expect(searchResult.filesToUpload.includes(lonelyFilePath)).toEqual(true);
   });
 });
