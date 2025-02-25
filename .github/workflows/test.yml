@@ -68,7 +68,6 @@ jobs:
             NODE_OPTIONS=--experimental-vm-modules npm run test
           fi
 
-      # Test empty directory handling
       - name: Create empty directory
         run: mkdir -p path/to/empty-dir
 
@@ -80,7 +79,6 @@ jobs:
           if-no-files-found: warn
           artifact-bucket: mock-bucket
 
-      # Test special character handling
       - name: Create files with special characters
         run: |
           # First verify bucket still exists
@@ -114,7 +112,6 @@ jobs:
           path: 'path/to/special chars/**'
           artifact-bucket: mock-bucket
 
-      # Test large number of files
       - name: Create many small files
         run: |
           mkdir -p path/to/many-files
@@ -130,7 +127,6 @@ jobs:
           path: path/to/many-files/*
           artifact-bucket: mock-bucket
 
-      # Test different file types
       - name: Create different file types
         run: |
           mkdir -p path/to/file-types
@@ -148,7 +144,6 @@ jobs:
           path: path/to/file-types/*
           artifact-bucket: mock-bucket
 
-      # Test regular artifact upload/download functionality
       - name: Create test files
         run: |
           mkdir -p path/to/dir-1
@@ -194,7 +189,6 @@ jobs:
           echo "Lorem ipsum dolor sit amet" > some/new/path/file1.txt
         shell: bash
 
-      # Download artifacts and verify
       - name: Download and verify single file artifact
         uses: ./
         with:
@@ -215,16 +209,15 @@ jobs:
           fi
         shell: bash
 
-      # Verify empty directory test
-      - name: Download empty directory artifact
+      - name: Upload empty directory artifact
         uses: ./
         with:
           name: 'Empty-Dir-Test'
+          direction: 'upload'
           path: empty-dir-test
           artifact-bucket: mock-bucket
           if-no-files-found: ignore
 
-        # Verify empty directory test
       - name: Download empty directory artifact
         uses: ./
         with:
@@ -232,9 +225,7 @@ jobs:
           direction: 'download'
           name: 'empty-dir-test'
           artifact-bucket: mock-bucket
-        continue-on-error: true
 
-      # Verify special characters test
       - name: Download special characters artifact
         uses: ./
         with:
@@ -242,28 +233,24 @@ jobs:
           direction: 'download'
           name: 'special-chars-test'
           artifact-bucket: mock-bucket
-        continue-on-error: true
 
-        # Verify many files test
+      - name: Verify many files
+        run: |
+          fileCount=$(find many-files-test -type f | wc -l)
+          if [ "$fileCount" -ne 100 ]; then
+              echo "Expected 100 files, found $fileCount"
+              exit 1
+          fi
+        shell: bash
+
       - name: Download many files artifact
         uses: ./
         with:
           name: 'Many-Files-Test'
+          direction: 'download'
           path: many-files-test
           artifact-bucket: mock-bucket
-        continue-on-error: true
 
-      - name: Verify many files
-        run: |
-          $fileCount = (Get-ChildItem -Path "many-files-test" -File).Count
-          if($fileCount -ne 100)
-          {
-              Write-Error "Expected 100 files, found $fileCount"
-          }
-        shell: pwsh
-        continue-on-error: true
-
-      # Verify different file types test
       - name: Download file types artifact
         uses: ./
         with:
