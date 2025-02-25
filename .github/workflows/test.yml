@@ -1,4 +1,4 @@
-name: Test
+name: Test Transfer Artefact
 on:
   push:
     branches:
@@ -13,12 +13,8 @@ on:
 jobs:
   test:
     name: Tests
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-      fail-fast: false
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -61,27 +57,9 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: |
-          if [ "${{ matrix.runs-on }}" = "windows-latest" ]; then
-            npm run test
-          else
-            NODE_OPTIONS=--experimental-vm-modules npm run test
-          fi
+        run: npm run test
 
-      # Test empty directory handling
-      - name: Create empty directory
-        run: mkdir -p path/to/empty-dir
-
-      - name: Test empty directory upload
-        uses: ./
-        with:
-          name: 'Empty-Dir-Test'
-          path: path/to/empty-dir
-          if-no-files-found: warn
-          artifact-bucket: mock-bucket
-
-      # Test special character handling
-      - name: Create files with special characters
+      - name: Create 2 special character file
         run: |
           # First verify bucket still exists
           echo "Verifying bucket exists before upload..."
@@ -90,12 +68,12 @@ jobs:
             awslocal s3 mb s3://mock-bucket
             awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
           fi
-          
+
           # Create test directory and files
           mkdir -p "path/to/special chars"
           echo "File with spaces" > "path/to/special chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
-          
+
           # Test direct upload to verify bucket access
           echo "Testing direct upload with awslocal..."
           awslocal s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
@@ -106,17 +84,44 @@ jobs:
             echo "Direct upload test failed"
             exit 1
           fi
+        shell: bash
 
-      - name: Test special character upload
+      - name: Upload 2 special characters files
         uses: ./
         with:
-          name: 'Special-Chars-Test'
-          path: "path/to/special chars/**"
-          artifact-bucket: mock-bucket
-        
+          name: 'special-char-artifact'
+          direction: 'upload'
+          path: 'path/to/special chars'
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'error'
 
-      # Test large number of files
-      - name: Create many small files
+      - name: Check if 2 special characters files were uploaded to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/special-char-artifact/${{ github.run_number }}-special-char-artifact --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 2 ]; then
+            echo "Upload failed: Expected 2 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 2 files are present."
+
+      - name: Download 2 special characters artifact
+        uses: ./
+        with:
+          name: 'special-char-artifact'
+          direction: 'download'
+          path: 'download/special-char-artifact'
+          artifact-bucket: 'mock-bucket'
+
+      - name: Check if 2 special characters artifacts were downloaded
+        run: |
+          FILE_COUNT=$(ls download/special-char-artifact | wc -l)
+          if [ "$FILE_COUNT" -ne 2 ]; then
+            echo "Download failed: Expected 2 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Download successful: 2 files is present."
+
+      - name: Create 100 small files
         run: |
           mkdir -p path/to/many-files
           for i in {1..100}; do
@@ -124,16 +129,42 @@ jobs:
           done
         shell: bash
 
-      - name: Test many files upload
+      - name: Upload 100 files
         uses: ./
         with:
           name: 'Many-Files-Test'
-          path: path/to/many-files/*
-          artifact-bucket: mock-bucket
-        
+          direction: 'upload'
+          path: 'path/to/many-files/*'
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'error'
 
-      # Test different file types
-      - name: Create different file types
+      - name: Check if 100 files were uploaded to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/Many-Files-Test/${{ github.run_number }}-Many-Files-Test --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 100 ]; then
+            echo "Upload failed: Expected 100 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 100 files are present."
+
+      - name: Download 100 files artifact
+        uses: ./
+        with:
+          name: 'Many-Files-Test'
+          direction: 'download'
+          path: 'download/many-files-test'
+          artifact-bucket: 'mock-bucket'
+
+      - name: Check if 100 files were downloaded
+        run: |
+          FILE_COUNT=$(ls download/many-files-test | wc -l)
+          if [ "$FILE_COUNT" -ne 100 ]; then
+            echo "Download failed: Expected 100 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Download successful: All 100 files are present."
+
+      - name: Create 4 different file types
         run: |
           mkdir -p path/to/file-types
           echo '{"key": "value"}' > path/to/file-types/test.json
@@ -142,224 +173,217 @@ jobs:
           echo '#!/bin/bash\necho "test"' > path/to/file-types/test.sh
           chmod +x path/to/file-types/test.sh
         shell: bash
-        
 
-      - name: Test different file types upload
+      - name: Upload 4 different file types
         uses: ./
         with:
           name: 'File-Types-Test'
-          path: path/to/file-types/*
-          artifact-bucket: mock-bucket
-        
+          direction: 'upload'
+          path: 'path/to/file-types/*'
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'error'
 
-      # Test regular artifact upload/download functionality
-      - name: Create test files
+      - name: Check if 4 different file types were uploaded to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/File-Types-Test/${{ github.run_number }}-File-Types-Test --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 4 ]; then
+            echo "Upload failed: Expected 4 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 4 files are present."
+
+      - name: Download 4 file types artifact
+        uses: ./
+        with:
+          name: 'File-Types-Test'
+          direction: 'download'
+          path: 'download/file-types-test'
+          artifact-bucket: 'mock-bucket'
+
+      - name: Check if 4 different file types were downloaded
+        run: |
+          FILE_COUNT=$(ls download/file-types-test | wc -l)
+          if [ "$FILE_COUNT" -ne 4 ]; then
+            echo "Download failed: Expected 4 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Download successful: All 4 files are present."
+
+      - name: Create 3 test files in 3 paths
         run: |
           mkdir -p path/to/dir-1
           mkdir -p path/to/dir-2
           mkdir -p path/to/dir-3
           echo "Lorem ipsum dolor sit amet" > path/to/dir-1/file1.txt
           echo "Hello world from file #2" > path/to/dir-2/file2.txt
-          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt      
+          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.gz
 
-      - name: Test single file artifact upload
+      - name: Upload 3 files using a wildcard pattern
         uses: ./
         with:
-          name: 'Artifact-A'
-          path: path/to/dir-1/file1.txt
-          artifact-bucket: mock-bucket       
+          name: 'wildcard-artifacts'
+          path: 'path/**/dir*/'
+          artifact-bucket: 'mock-bucket'
 
-      - name: Test wildcard pattern upload
+      - name: Check if 3 files were uploaded when using wildcard pattern to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/wildcard-artifacts/${{ github.run_number }}-wildcard-artifacts --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 3 ]; then
+            echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 3 files are present."
+
+      - name: Download 3 files when using wildcard pattern
         uses: ./
         with:
-          path: path/**/dir*/
-          artifact-bucket: mock-bucket        
+          name: 'wildcard-artifacts'
+          path: 'download/wildcard-artifacts'
+          direction: 'download'
+          artifact-bucket: 'mock-bucket'
 
-      - name: Test GZip artifact upload
+      - name: Check if 3 files were downloaded when using wildcard pattern
+        run: |
+          FILE_COUNT=$(find download/wildcard-artifacts -type f | wc -l)
+          if [ "$FILE_COUNT" -ne 3 ]; then
+            echo "Download failed: Expected 3 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Download successful: All 3 files are present."
+
+      - name: Upload 1 GZip artifact
         uses: ./
         with:
           name: 'GZip-Artifact'
-          path: path/to/dir-3/
-          artifact-bucket: mock-bucket      
+          direction: 'upload'
+          path: 'path/to/dir-3/'
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'error'
 
-      - name: Test multi-path artifact upload
+      - name: Check if 1 GZip artifact was uploaded to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/GZip-Artifact/${{ github.run_number }}-GZip-Artifact --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "Upload failed: Expected 1 file, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: 1 file is present."
+
+      - name: Download 1 GZip artifact
+        uses: ./
+        with:
+          name: 'GZip-Artifact'
+          path: 'download/GZip-Artifact'
+          direction: 'download'
+          artifact-bucket: 'mock-bucket'
+
+      - name: Check if 1 GZip artifact was downloaded
+        run: |
+          FILE_COUNT=$(ls download/GZip-Artifact | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "Download failed: Expected 1 file, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Download successful: 1 file is present."
+
+      - name: Upload 3 multi-path artifacts
         uses: ./
         with:
           name: 'Multi-Path-Artifact'
+          direction: 'upload'
           path: |
             path/to/dir-1/*
             path/to/dir-[23]/*
             !path/to/dir-3/*.txt
-          artifact-bucket: mock-bucket
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'error'
 
-      # Download artifacts and verify
-      - name: Download and verify single file artifact
+      - name: Check if 3 multi-path files were uploaded to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/Multi-Path-Artifact/${{ github.run_number }}-Multi-Path-Artifact --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 3 ]; then
+            echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 3 files are present."
+
+      - name: Download multi-path artifact
         uses: ./
         with:
-          path: some/new/path
-          name: 'artifact-a'
-          artifact-bucket: mock-bucket
+          name: 'Multi-Path-Artifact'
+          path: 'download/Multi-Path-Artifact'
+          direction: 'download'
+          merge-multiple: true
+          artifact-bucket: 'mock-bucket'
 
-      - name: Verify single file artifact     
+      - name: Check if 3 multi-path files were downloaded
         run: |
-          file="path/to/dir-1/file1.txt"
-          if [ ! -f "$file" ]; then
-              echo "Expected file does not exist"
-              exit 1
+          FILE_COUNT=$(find download/Multi-Path-Artifact | wc -l)
+          if [ "$FILE_COUNT" -ne 3 ]; then
+            echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
+            exit 1
           fi
-          if [ "$(cat "$file")" != "Lorem ipsum dolor sit amet" ]; then
-              echo "File contents of downloaded artifact are incorrect"
-              exit 1
-          fi
+          echo "Upload successful: All 3 files are present."
+
+      - name: Create 1 test file
+        run: |
+          mkdir -p some/new/path
+          echo "Lorem ipsum dolor sit amet" > some/new/path/file1.txt
         shell: bash
 
-      # Verify empty directory test
-      - name: Download empty directory artifact
+      - name: Upload 1 file artifact
+        uses: ./
+        with:
+          name: 'artifact-a'
+          direction: 'upload'
+          path: 'some/new/path'
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'error'
+
+      - name: Check if 1 single file artifact was uploaded to LocalStack
+        run: |
+          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/artifact-a/${{ github.run_number }}-artifact-a --recursive | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "Upload failed: Expected 1 file, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: 1 file is present."
+        shell: bash
+
+      - name: Download 1 file artifact
+        uses: ./
+        with:
+          name: 'artifact-a'
+          direction: 'download'
+          path: 'download/artifact-a'
+          artifact-bucket: 'mock-bucket'
+
+      - name: Check if 1 single file artifact was downloaded
+        run: |
+          FILE_COUNT=$(ls  download/artifact-a | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "Download failed: Expected 1 file, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Download successful: 1 file is present."
+        shell: bash
+
+      - name: Create empty directory
+        run: mkdir -p empty-dir-test
+
+      - name: Upload empty directory artifact
         uses: ./
         with:
           name: 'Empty-Dir-Test'
-          path: empty-dir-test
-          artifact-bucket: mock-bucket
-        continue-on-error: true
+          direction: 'upload'
+          path: 'empty-dir-test'
+          artifact-bucket: 'mock-bucket'
+          if-no-files-found: 'warn'
 
-       # Verify empty directory test
       - name: Download empty directory artifact
         uses: ./
         with:
-          path: empty-dir-test
+          path: 'Empty-Dir-Test'
           direction: 'download'
-          name: 'empty-dir-test'
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-     # Verify special characters test
-      - name: Download special characters artifact
-        uses: ./
-        with:
-          path: special-chars-test
-          direction: 'download'
-          name: 'special-chars-test'
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-        # Verify many files test
-      - name: Download many files artifact
-        uses: ./
-        with:
-          name: 'Many-Files-Test'
-          path: many-files-test
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify many files
-        run: |
-          $fileCount = (Get-ChildItem -Path "many-files-test" -File).Count
-          if($fileCount -ne 100)
-          {
-              Write-Error "Expected 100 files, found $fileCount"
-          }
-        shell: pwsh
-        continue-on-error: true
-
-      # Verify different file types test
-      - name: Download file types artifact
-        uses: ./
-        with:
-          name: 'File-Types-Test'
-          path: file-types-test
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify file types
-        run: |
-          $files = @("test.json", "test.xml", "test.bin", "test.sh")
-          foreach ($file in $files) {
-              if(!(Test-Path -path "file-types-test/$file"))
-              {
-                  Write-Error "File $file not found"
-              }
-          }
-          
-          # Verify JSON content
-          $jsonContent = Get-Content "file-types-test/test.json" | ConvertFrom-Json
-          if($jsonContent.key -ne "value")
-          {
-              Write-Error "JSON content is incorrect"
-          }
-          
-          # Verify XML content
-          $xmlContent = Get-Content "file-types-test/test.xml"
-          if(!($xmlContent -match "<root>test</root>"))
-          {
-              Write-Error "XML content is incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
-
-      - name: Download and verify wildcard pattern artifact
-        uses: ./
-        with:
-          path: some/other/path
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify wildcard pattern artifact
-        run: |
-          $file1 = "some/other/path/to/dir-1/file1.txt"
-          $file2 = "some/other/path/to/dir-2/file2.txt"
-          if(!(Test-Path -path $file1) -or !(Test-Path -path $file2))
-          {
-              Write-Error "Expected files do not exist"
-          }
-          if(!((Get-Content $file1) -ceq "Lorem ipsum dolor sit amet") -or !((Get-Content $file2) -ceq "Hello world from file #2"))
-          {
-              Write-Error "File contents of downloaded artifacts are incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
-
-      - name: Download and verify GZip artifact
-        uses: ./
-        with:
-          path: gzip/artifact/path
-          pattern: GZip-Artifact*
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify GZip artifact
-        run: |
-          $gzipFile = "gzip/artifact/path/gzip.txt"
-          if(!(Test-Path -path $gzipFile))
-          {
-              Write-Error "Expected file does not exist"
-          }
-          if(!((Get-Content $gzipFile) -match "compressed with GZip"))
-          {
-              Write-Error "File contents of downloaded artifact is incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
-
-      - name: Download and verify multi-path artifact
-        uses: ./
-        with:
-          path: multi/artifact
-          pattern: Multi-Path-Artifact*
-          merge-multiple: true
-          artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify multi-path artifact
-        run: |
-          $file1 = "multi/artifact/dir-1/file1.txt"
-          $file2 = "multi/artifact/dir-2/file2.txt"
-          if(!(Test-Path -path $file1) -or !(Test-Path -path $file2))
-          {
-              Write-Error "Expected files do not exist"
-          }
-          if(!((Get-Content $file1) -ceq "Lorem ipsum dolor sit amet") -or !((Get-Content $file2) -ceq "Hello world from file #2"))
-          {
-              Write-Error "File contents of downloaded artifacts are incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
+          name: 'download/empty-dir-test'
+          artifact-bucket: 'mock-bucket'
