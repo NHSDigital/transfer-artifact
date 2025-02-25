@@ -200,6 +200,7 @@ jobs:
         with:
           name: 'artifact-a'
           path: some/new/path
+          artifact-bucket: mock-bucket
 
       - name: Verify single file artifact
         run: |
