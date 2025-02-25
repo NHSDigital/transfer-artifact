@@ -75,6 +75,7 @@ jobs:
         uses: ./
         with:
           name: 'Empty-Dir-Test'
+          direction: 'upload'
           path: path/to/empty-dir
           if-no-files-found: warn
           artifact-bucket: mock-bucket
@@ -109,6 +110,7 @@ jobs:
         uses: ./
         with:
           name: 'Special-Chars-Test'
+          direction: 'upload'
           path: 'path/to/special chars/**'
           artifact-bucket: mock-bucket
 
@@ -124,6 +126,7 @@ jobs:
         uses: ./
         with:
           name: 'Many-Files-Test'
+          direction: 'upload'
           path: path/to/many-files/*
           artifact-bucket: mock-bucket
 
@@ -141,6 +144,7 @@ jobs:
         uses: ./
         with:
           name: 'File-Types-Test'
+          direction: 'upload'
           path: path/to/file-types/*
           artifact-bucket: mock-bucket
 
@@ -157,6 +161,7 @@ jobs:
         uses: ./
         with:
           name: 'Artifact-A'
+          direction: 'upload'
           path: path/to/dir-1/file1.txt
           artifact-bucket: mock-bucket
 
@@ -170,6 +175,7 @@ jobs:
         uses: ./
         with:
           name: 'GZip-Artifact'
+          direction: 'upload'
           path: path/to/dir-3/
           artifact-bucket: mock-bucket
 
@@ -177,6 +183,7 @@ jobs:
         uses: ./
         with:
           name: 'Multi-Path-Artifact'
+          direction: 'upload'
           path: |
             path/to/dir-1/*
             path/to/dir-[23]/*
@@ -193,6 +200,7 @@ jobs:
         uses: ./
         with:
           name: 'artifact-a'
+          direction: 'download'
           pattern: some/*
           path: some/new/path
           artifact-bucket: mock-bucket
@@ -365,5 +373,6 @@ jobs:
         with:
           path: multi/artifact
           pattern: Multi-Path-Artifact*
+          direction: 'download'
           merge-multiple: true
           artifact-bucket: mock-bucket
