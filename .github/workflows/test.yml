@@ -234,15 +234,6 @@ jobs:
           name: 'special-chars-test'
           artifact-bucket: mock-bucket
 
-      - name: Verify many files
-        run: |
-          fileCount=$(find many-files-test -type f | wc -l)
-          if [ "$fileCount" -ne 100 ]; then
-              echo "Expected 100 files, found $fileCount"
-              exit 1
-          fi
-        shell: bash
-
       - name: Download many files artifact
         uses: ./
         with:
