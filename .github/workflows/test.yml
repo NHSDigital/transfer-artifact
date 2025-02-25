@@ -62,7 +62,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          if [ "${{ matrix.runs-on }}" = "windows-latest" ]; then
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
             npm run test
           else
             NODE_OPTIONS=--experimental-vm-modules npm run test
@@ -188,13 +188,18 @@ jobs:
             !path/to/dir-3/*.txt
           artifact-bucket: mock-bucket
 
+      - name: Create test file
+        run: |
+          mkdir -p some/new/path
+          echo "Lorem ipsum dolor sit amet" > some/new/path/file1.txt
+        shell: bash
+
       # Download artifacts and verify
       - name: Download and verify single file artifact
         uses: ./
         with:
-          path: some/new/path
           name: 'artifact-a'
-          artifact-bucket: mock-bucket
+          path: some/new/path
 
       - name: Verify single file artifact
         run: |
@@ -216,7 +221,7 @@ jobs:
           name: 'Empty-Dir-Test'
           path: empty-dir-test
           artifact-bucket: mock-bucket
-        continue-on-error: true
+          if-no-files-found: ignore
 
         # Verify empty directory test
       - name: Download empty directory artifact
