@@ -3,11 +3,12 @@ name: 'Code scanning - action'
 on:
   push:
     branches-ignore: 'dependabot/**'
+    branches:
+      - main
+      - feature/**
   pull_request:
-    paths-ignore:
-      - '**.md'
-  schedule:
-    - cron: '0 6 * * 3'
+    branches:
+      - main
 
 jobs:
   CodeQL-Build:
