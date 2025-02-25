@@ -193,6 +193,7 @@ jobs:
         uses: ./
         with:
           name: 'artifact-a'
+          pattern: some/*
           path: some/new/path
           artifact-bucket: mock-bucket
 
@@ -273,31 +274,38 @@ jobs:
         uses: ./
         with:
           name: 'File-Types-Test'
+          direction: 'download'
           path: file-types-test
           artifact-bucket: mock-bucket
-        continue-on-error: true
+
+      - name: Verify wildcard pattern artifact
+        run: |
+          file1="some/other/path/to/dir-1/file1.txt"
+          file2="some/other/path/to/dir-2/file2.txt"
+
+          # Check if files exist
+          if [ ! -f "$file1" ] || [ ! -f "$file2" ]; then
+            echo "Expected files do not exist"
+            exit 1
+          fi
+
+          # Verify file contents
+          file1_content=$(cat "$file1" 2>/dev/null)
+          file2_content=$(cat "$file2" 2>/dev/null)
+
+          if [ "$file1_content" != "Lorem ipsum dolor sit amet" ] || [ "$file2_content" != "Hello world from file #2" ]; then
+            echo "File contents of downloaded artifacts are incorrect"
+            exit 1
+          fi
+        shell: bash
 
       - name: Download and verify wildcard pattern artifact
         uses: ./
         with:
           path: some/other/path
+          direction: 'download'
+          pattern: some/*/to/**
           artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify wildcard pattern artifact
-        run: |
-          $file1 = "some/other/path/to/dir-1/file1.txt"
-          $file2 = "some/other/path/to/dir-2/file2.txt"
-          if(!(Test-Path -path $file1) -or !(Test-Path -path $file2))
-          {
-              Write-Error "Expected files do not exist"
-          }
-          if(!((Get-Content $file1) -ceq "Lorem ipsum dolor sit amet") -or !((Get-Content $file2) -ceq "Hello world from file #2"))
-          {
-              Write-Error "File contents of downloaded artifacts are incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
 
       - name: Download and verify GZip artifact
         uses: ./
