@@ -242,38 +242,39 @@ jobs:
           path: many-files-test
           artifact-bucket: mock-bucket
 
+      - name: Verify file types
+        run: |
+          files=("test.json" "test.xml" "test.bin" "test.sh")
+
+          # Check if files exist
+          for file in "${files[@]}"; do
+            if [ ! -f "file-types-test/$file" ]; then
+              echo "File $file not found"
+              exit 1
+            fi
+          done
+
+          # Verify JSON content
+          jsonContent=$(jq -r '.key' file-types-test/test.json 2>/dev/null)
+          if [ "$jsonContent" != "value" ]; then
+            echo "JSON content is incorrect"
+            exit 1
+          fi
+
+          # Verify XML content
+          xmlContent=$(cat file-types-test/test.xml 2>/dev/null)
+          if [[ "$xmlContent" != *"<root>test</root>"* ]]; then
+            echo "XML content is incorrect"
+            exit 1
+          fi
+        shell: bash
+
       - name: Download file types artifact
         uses: ./
         with:
           name: 'File-Types-Test'
           path: file-types-test
           artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify file types
-        run: |
-          $files = @("test.json", "test.xml", "test.bin", "test.sh")
-          foreach ($file in $files) {
-              if(!(Test-Path -path "file-types-test/$file"))
-              {
-                  Write-Error "File $file not found"
-              }
-          }
-
-          # Verify JSON content
-          $jsonContent = Get-Content "file-types-test/test.json" | ConvertFrom-Json
-          if($jsonContent.key -ne "value")
-          {
-              Write-Error "JSON content is incorrect"
-          }
-
-          # Verify XML content
-          $xmlContent = Get-Content "file-types-test/test.xml"
-          if(!($xmlContent -match "<root>test</root>"))
-          {
-              Write-Error "XML content is incorrect"
-          }
-        shell: pwsh
         continue-on-error: true
 
       - name: Download and verify wildcard pattern artifact
