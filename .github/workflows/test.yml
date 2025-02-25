@@ -90,12 +90,12 @@ jobs:
             awslocal s3 mb s3://mock-bucket
             awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
           fi
-          
+
           # Create test directory and files
           mkdir -p "path/to/special chars"
           echo "File with spaces" > "path/to/special chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
-          
+
           # Test direct upload to verify bucket access
           echo "Testing direct upload with awslocal..."
           awslocal s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
@@ -111,9 +111,8 @@ jobs:
         uses: ./
         with:
           name: 'Special-Chars-Test'
-          path: "path/to/special chars/**"
+          path: 'path/to/special chars/**'
           artifact-bucket: mock-bucket
-        
 
       # Test large number of files
       - name: Create many small files
@@ -130,7 +129,6 @@ jobs:
           name: 'Many-Files-Test'
           path: path/to/many-files/*
           artifact-bucket: mock-bucket
-        
 
       # Test different file types
       - name: Create different file types
@@ -142,7 +140,6 @@ jobs:
           echo '#!/bin/bash\necho "test"' > path/to/file-types/test.sh
           chmod +x path/to/file-types/test.sh
         shell: bash
-        
 
       - name: Test different file types upload
         uses: ./
@@ -150,7 +147,6 @@ jobs:
           name: 'File-Types-Test'
           path: path/to/file-types/*
           artifact-bucket: mock-bucket
-        
 
       # Test regular artifact upload/download functionality
       - name: Create test files
@@ -160,27 +156,27 @@ jobs:
           mkdir -p path/to/dir-3
           echo "Lorem ipsum dolor sit amet" > path/to/dir-1/file1.txt
           echo "Hello world from file #2" > path/to/dir-2/file2.txt
-          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt      
+          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt
 
       - name: Test single file artifact upload
         uses: ./
         with:
           name: 'Artifact-A'
           path: path/to/dir-1/file1.txt
-          artifact-bucket: mock-bucket       
+          artifact-bucket: mock-bucket
 
       - name: Test wildcard pattern upload
         uses: ./
         with:
           path: path/**/dir*/
-          artifact-bucket: mock-bucket        
+          artifact-bucket: mock-bucket
 
       - name: Test GZip artifact upload
         uses: ./
         with:
           name: 'GZip-Artifact'
           path: path/to/dir-3/
-          artifact-bucket: mock-bucket      
+          artifact-bucket: mock-bucket
 
       - name: Test multi-path artifact upload
         uses: ./
@@ -200,7 +196,7 @@ jobs:
           name: 'artifact-a'
           artifact-bucket: mock-bucket
 
-      - name: Verify single file artifact     
+      - name: Verify single file artifact
         run: |
           file="path/to/dir-1/file1.txt"
           if [ ! -f "$file" ]; then
@@ -222,7 +218,7 @@ jobs:
           artifact-bucket: mock-bucket
         continue-on-error: true
 
-       # Verify empty directory test
+        # Verify empty directory test
       - name: Download empty directory artifact
         uses: ./
         with:
@@ -232,7 +228,7 @@ jobs:
           artifact-bucket: mock-bucket
         continue-on-error: true
 
-     # Verify special characters test
+      # Verify special characters test
       - name: Download special characters artifact
         uses: ./
         with:
@@ -279,14 +275,14 @@ jobs:
                   Write-Error "File $file not found"
               }
           }
-          
+
           # Verify JSON content
           $jsonContent = Get-Content "file-types-test/test.json" | ConvertFrom-Json
           if($jsonContent.key -ne "value")
           {
               Write-Error "JSON content is incorrect"
           }
-          
+
           # Verify XML content
           $xmlContent = Get-Content "file-types-test/test.xml"
           if(!($xmlContent -match "<root>test</root>"))
