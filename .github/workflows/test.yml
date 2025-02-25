@@ -307,27 +307,30 @@ jobs:
           pattern: some/*/to/*
           artifact-bucket: mock-bucket
 
+      - name: Verify GZip artifact
+        run: |
+          gzipFile="path/to/dir-3/gzip.txt"
+
+          # Check if the GZip file exists
+          if [ ! -f "$gzipFile" ]; then
+            echo "Expected file does not exist"
+            exit 1
+          fi
+
+          # Verify file contents
+          if ! grep -q "compressed with GZip" "$gzipFile"; then
+            echo "File contents of downloaded artifact is incorrect"
+            exit 1
+          fi
+        shell: bash
+
       - name: Download and verify GZip artifact
         uses: ./
         with:
           path: gzip/artifact/path
           pattern: GZip-Artifact*
+          direction: 'download'
           artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify GZip artifact
-        run: |
-          $gzipFile = "gzip/artifact/path/gzip.txt"
-          if(!(Test-Path -path $gzipFile))
-          {
-              Write-Error "Expected file does not exist"
-          }
-          if(!((Get-Content $gzipFile) -match "compressed with GZip"))
-          {
-              Write-Error "File contents of downloaded artifact is incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
 
       - name: Download and verify multi-path artifact
         uses: ./
