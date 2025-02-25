@@ -280,8 +280,8 @@ jobs:
 
       - name: Verify wildcard pattern artifact
         run: |
-          file1="some/other/path/to/dir-1/file1.txt"
-          file2="some/other/path/to/dir-2/file2.txt"
+          file1="path/to/dir-1/file1.txt"
+          file2="path/to/dir-2/file2.txt"
 
           # Check if files exist
           if [ ! -f "$file1" ] || [ ! -f "$file2" ]; then
@@ -304,7 +304,7 @@ jobs:
         with:
           path: some/other/path
           direction: 'download'
-          pattern: some/*/to/**
+          pattern: some/*/to/*
           artifact-bucket: mock-bucket
 
       - name: Download and verify GZip artifact
