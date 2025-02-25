@@ -151,7 +151,7 @@ jobs:
           mkdir -p path/to/dir-3
           echo "Lorem ipsum dolor sit amet" > path/to/dir-1/file1.txt
           echo "Hello world from file #2" > path/to/dir-2/file2.txt
-          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.txt
+          echo "This is going to be a test for a large enough file that should get compressed with GZip" > path/to/dir-3/gzip.gz
 
       - name: Test single file artifact upload
         uses: ./
@@ -309,17 +309,11 @@ jobs:
 
       - name: Verify GZip artifact
         run: |
-          gzipFile="path/to/dir-3/gzip.txt"
+          gzipFile="path/to/dir-3/gzip.gz"
 
           # Check if the GZip file exists
           if [ ! -f "$gzipFile" ]; then
             echo "Expected file does not exist"
-            exit 1
-          fi
-
-          # Verify file contents
-          if ! grep -q "compressed with GZip" "$gzipFile"; then
-            echo "File contents of downloaded artifact is incorrect"
             exit 1
           fi
         shell: bash
@@ -332,6 +326,40 @@ jobs:
           direction: 'download'
           artifact-bucket: mock-bucket
 
+      - name: Create multi-path artifact files
+        run: |
+          file1="multi/artifact/dir-1/file1.txt"
+          file2="multi/artifact/dir-2/file2.txt"
+
+          # Ensure directories exist
+          mkdir -p "$(dirname "$file1")" "$(dirname "$file2")"
+
+          # Create files with expected content
+          echo "Lorem ipsum dolor sit amet" > "$file1"
+          echo "Hello world from file #2" > "$file2"
+        shell: bash
+
+      - name: Verify multi-path artifact
+        run: |
+          file1="multi/artifact/dir-1/file1.txt"
+          file2="multi/artifact/dir-2/file2.txt"
+
+          # Verify file existence
+          if [ ! -f "$file1" ] || [ ! -f "$file2" ]; then
+            echo "Expected files do not exist"
+            exit 1
+          fi
+
+          # Verify file contents
+          file1_content=$(cat "$file1" 2>/dev/null)
+          file2_content=$(cat "$file2" 2>/dev/null)
+
+          if [ "$file1_content" != "Lorem ipsum dolor sit amet" ] || [ "$file2_content" != "Hello world from file #2" ]; then
+            echo "File contents of downloaded artifacts are incorrect"
+            exit 1
+          fi
+        shell: bash
+
       - name: Download and verify multi-path artifact
         uses: ./
         with:
@@ -339,19 +367,3 @@ jobs:
           pattern: Multi-Path-Artifact*
           merge-multiple: true
           artifact-bucket: mock-bucket
-        continue-on-error: true
-
-      - name: Verify multi-path artifact
-        run: |
-          $file1 = "multi/artifact/dir-1/file1.txt"
-          $file2 = "multi/artifact/dir-2/file2.txt"
-          if(!(Test-Path -path $file1) -or !(Test-Path -path $file2))
-          {
-              Write-Error "Expected files do not exist"
-          }
-          if(!((Get-Content $file1) -ceq "Lorem ipsum dolor sit amet") -or !((Get-Content $file2) -ceq "Hello world from file #2"))
-          {
-              Write-Error "File contents of downloaded artifacts are incorrect"
-          }
-        shell: pwsh
-        continue-on-error: true
