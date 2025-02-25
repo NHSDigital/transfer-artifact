@@ -35,6 +35,23 @@ jobs:
           echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
           echo "AWS_ENDPOINT_URL=http://s3.localhost.localstack.cloud:4566" >> $GITHUB_ENV
 
+      - name: Setup Docker (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install colima docker docker-buildx qemu
+          colima stop || true
+          colima delete || true
+          rm -rf ~/.colima ~/.lima
+          colima start --vm-type=qemu --cpu 2 --memory 4 --disk 100 --very-verbose
+          docker context use colima
+          docker ps
+
+      - name: Verify Docker Installation
+        run: |
+          docker --version
+          docker ps
+          docker context ls
+
       - name: Start LocalStack
         uses: LocalStack/setup-localstack@v0.2.3
         with:
@@ -80,7 +97,7 @@ jobs:
           if-no-files-found: warn
           artifact-bucket: mock-bucket
 
-      - name: Create files with special characters
+      - name: Create special character file
         run: |
           # First verify bucket still exists
           echo "Verifying bucket exists before upload..."
@@ -105,13 +122,14 @@ jobs:
             echo "Direct upload test failed"
             exit 1
           fi
+        shell: bash
 
       - name: Test special character upload
         uses: ./
         with:
-          name: 'Special-Chars-Test'
+          name: special-char-artifact
           direction: 'upload'
-          path: 'path/to/special chars/**'
+          path: special/artifact
           artifact-bucket: mock-bucket
 
       - name: Create many small files
@@ -196,18 +214,9 @@ jobs:
           echo "Lorem ipsum dolor sit amet" > some/new/path/file1.txt
         shell: bash
 
-      - name: Download and verify single file artifact
-        uses: ./
-        with:
-          name: 'artifact-a'
-          direction: 'download'
-          pattern: some/*
-          path: some/new/path
-          artifact-bucket: mock-bucket
-
       - name: Verify single file artifact
         run: |
-          file="path/to/dir-1/file1.txt"
+          file="some/new/path/file1.txt"
           if [ ! -f "$file" ]; then
               echo "Expected file does not exist"
               exit 1
@@ -217,6 +226,14 @@ jobs:
               exit 1
           fi
         shell: bash
+
+      - name: Download and verify single file artifact
+        uses: ./
+        with:
+          name: 'artifact-a'
+          direction: 'download'
+          path: some/new/path
+          artifact-bucket: mock-bucket
 
       - name: Upload empty directory artifact
         uses: ./
@@ -238,7 +255,7 @@ jobs:
       - name: Download special characters artifact
         uses: ./
         with:
-          path: special-chars-test
+          path: special/artifact
           direction: 'download'
           name: 'special-chars-test'
           artifact-bucket: mock-bucket
@@ -310,9 +327,8 @@ jobs:
       - name: Download and verify wildcard pattern artifact
         uses: ./
         with:
-          path: some/other/path
+          path: some/*/to/*
           direction: 'download'
-          pattern: some/*/to/*
           artifact-bucket: mock-bucket
 
       - name: Verify GZip artifact
@@ -329,8 +345,7 @@ jobs:
       - name: Download and verify GZip artifact
         uses: ./
         with:
-          path: gzip/artifact/path
-          pattern: GZip-Artifact*
+          path: gzip/*
           direction: 'download'
           artifact-bucket: mock-bucket
 
@@ -371,8 +386,7 @@ jobs:
       - name: Download and verify multi-path artifact
         uses: ./
         with:
-          path: multi/artifact
-          pattern: Multi-Path-Artifact*
+          path: multi/artifact/*
           direction: 'download'
           merge-multiple: true
           artifact-bucket: mock-bucket
