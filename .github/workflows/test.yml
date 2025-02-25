@@ -248,21 +248,21 @@ jobs:
 
           # Check if files exist
           for file in "${files[@]}"; do
-            if [ ! -f "file-types-test/$file" ]; then
+            if [ ! -f "path/to/file-types/$file" ]; then
               echo "File $file not found"
               exit 1
             fi
           done
 
           # Verify JSON content
-          jsonContent=$(jq -r '.key' file-types-test/test.json 2>/dev/null)
+          jsonContent=$(jq -r '.key' path/to/file-types/test.json 2>/dev/null)
           if [ "$jsonContent" != "value" ]; then
             echo "JSON content is incorrect"
             exit 1
           fi
 
           # Verify XML content
-          xmlContent=$(cat file-types-test/test.xml 2>/dev/null)
+          xmlContent=$(cat path/to/file-types/test.xml 2>/dev/null)
           if [[ "$xmlContent" != *"<root>test</root>"* ]]; then
             echo "XML content is incorrect"
             exit 1
