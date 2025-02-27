@@ -121,7 +121,7 @@ jobs:
           direction: 'upload'
           path: path/to/many-files/*
           artifact-bucket: mock-bucket
-      
+
       - name: Check if 100 files were uploaded
         run: |
           FILE_COUNT=$(ls path/to/many-files | wc -l)
