@@ -31,10 +31,12 @@ jobs:
         run: |
           docker run --rm \
             -v $(pwd):/repo \
+            -v $(pwd)/.gitleaksignore:/repo/.gitleaksignore \
             zricethezav/gitleaks:latest detect \
             --source="/repo" \
             --verbose \
-            --redact
+            --redact \
+            --gitleaks-ignore-path="/repo/.gitleaksignore"
 
   check-dist:
     runs-on: ubuntu-latest
