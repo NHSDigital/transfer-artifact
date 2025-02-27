@@ -229,7 +229,7 @@ jobs:
 
       - name: Check if 3 multi-path files were uploaded
         run: |
-          FILE_COUNT=$(find path/to/dir-1 path/to/dir-2 path/to/dir-3 -type f ! -name "*.txt" | wc -l)
+          FILE_COUNT=$(find path/to/dir-1 path/to/dir-2 path/to/dir-3 -type f | grep -v "path/to/dir-3/.*\.txt" | wc -l)
           if [ "$FILE_COUNT" -ne 3 ]; then
             echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
             exit 1
