@@ -299,7 +299,7 @@ jobs:
 
       - name: Verify total objects downloaded
         run: |
-          LOG_OUTPUT="${{ steps.download_many_artifacts.outputs.* }}"
+          LOG_OUTPUT=${{join(steps.download_many_artifacts.outputs.*, '\n')}}
           TOTAL_DOWNLOADED=$(echo "$LOG_OUTPUT" | grep -oP 'Total objects downloaded: \K\d+')
 
           EXPECTED_COUNT=100
