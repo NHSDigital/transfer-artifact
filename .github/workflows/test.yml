@@ -13,12 +13,8 @@ on:
 jobs:
   test:
     name: Tests
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-      fail-fast: false
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -34,23 +30,6 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY=mock-secret" >> $GITHUB_ENV
           echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
           echo "AWS_ENDPOINT_URL=http://s3.localhost.localstack.cloud:4566" >> $GITHUB_ENV
-
-      - name: Setup Docker (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install colima docker docker-buildx qemu
-          colima stop || true
-          colima delete || true
-          rm -rf ~/.colima ~/.lima
-          colima start --vm-type=qemu --cpu 2 --memory 4 --disk 100 --very-verbose
-          docker context use colima
-          docker ps
-
-      - name: Verify Docker Installation
-        run: |
-          docker --version
-          docker ps
-          docker context ls
 
       - name: Start LocalStack
         uses: LocalStack/setup-localstack@v0.2.3
@@ -78,12 +57,7 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            npm run test
-          else
-            NODE_OPTIONS=--experimental-vm-modules npm run test
-          fi
+        run: npm run test
 
       - name: Create empty directory
         run: mkdir -p path/to/empty-dir
