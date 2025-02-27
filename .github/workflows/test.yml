@@ -1,4 +1,4 @@
-name: Test
+name: Test Transfer Artefact
 on:
   push:
     branches:
@@ -103,10 +103,10 @@ jobs:
         with:
           name: special-char-artifact
           direction: 'upload'
-          path: special/artifact
+          path: path/to/special
           artifact-bucket: mock-bucket
 
-      - name: Create many small files
+      - name: Create 100 small files
         run: |
           mkdir -p path/to/many-files
           for i in {1..100}; do
@@ -114,13 +114,22 @@ jobs:
           done
         shell: bash
 
-      - name: Test many files upload
+      - name: Test 100 files upload
         uses: ./
         with:
           name: 'Many-Files-Test'
           direction: 'upload'
           path: path/to/many-files/*
           artifact-bucket: mock-bucket
+      
+      - name: Check if 100 files were uploaded
+        run: |
+          FILE_COUNT=$(ls path/to/many-files | wc -l)
+          if [ "$FILE_COUNT" -ne 100 ]; then
+            echo "Upload failed: Expected 100 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 100 files are present."
 
       - name: Create different file types
         run: |
