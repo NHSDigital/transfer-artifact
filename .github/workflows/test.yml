@@ -190,6 +190,15 @@ jobs:
           path: path/**/dir*/
           artifact-bucket: mock-bucket
 
+      - name: Check if 3 files were uploaded when using wildcard pattern
+        run: |
+          FILE_COUNT=$(find path -type f -path "*/dir*/*" | wc -l)
+          if [ "$FILE_COUNT" -ne 3 ]; then
+            echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 3 files are present."
+
       - name: Test GZip artifact upload
         uses: ./
         with:
@@ -197,6 +206,15 @@ jobs:
           direction: 'upload'
           path: path/to/dir-3/
           artifact-bucket: mock-bucket
+
+      - name: Check if 1 GZip artifact was uploaded
+        run: |
+          FILE_COUNT=$(ls  path/to/dir-3 | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "Upload failed: Expected 1 file, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: 1 file is present."
 
       - name: Test multi-path artifact upload
         uses: ./
@@ -208,6 +226,15 @@ jobs:
             path/to/dir-[23]/*
             !path/to/dir-3/*.txt
           artifact-bucket: mock-bucket
+
+      - name: Check if 3 multi-path files were uploaded
+        run: |
+          FILE_COUNT=$(find path/to/dir-1 path/to/dir-2 path/to/dir-3 -type f ! -name "*.txt" | wc -l)
+          if [ "$FILE_COUNT" -ne 3 ]; then
+            echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 3 files are present."
 
       - name: Create test file
         run: |
