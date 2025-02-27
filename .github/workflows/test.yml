@@ -149,6 +149,15 @@ jobs:
           path: path/to/file-types/*
           artifact-bucket: mock-bucket
 
+      - name: Check if 4 different file types were uploaded
+        run: |
+          FILE_COUNT=$(ls path/to/file-types | wc -l)
+          if [ "$FILE_COUNT" -ne 4 ]; then
+            echo "Upload failed: Expected 4 files, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: All 4 files are present."
+
       - name: Create test files
         run: |
           mkdir -p path/to/dir-1
@@ -165,6 +174,15 @@ jobs:
           direction: 'upload'
           path: path/to/dir-1/file1.txt
           artifact-bucket: mock-bucket
+
+      - name: Check if 1 file was uploaded
+        run: |
+          FILE_COUNT=$(ls  path/to/dir-1 | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "Upload failed: Expected 1 file, but found $FILE_COUNT."
+            exit 1
+          fi
+          echo "Upload successful: 1 file is present."
 
       - name: Test wildcard pattern upload
         uses: ./
