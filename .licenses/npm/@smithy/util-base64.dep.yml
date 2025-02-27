@@ -1,6 +1,6 @@
 ---
 name: "@smithy/util-base64"
-version: 2.3.0
+version: 4.0.0
 type: npm
 summary: A Base64 <-> UInt8Array converter
 homepage: https://github.com/awslabs/smithy-typescript/tree/main/packages/util-base64

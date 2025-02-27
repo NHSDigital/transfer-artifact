@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/middleware-host-header"
-version: 3.511.0
+version: 3.734.0
 type: npm
 summary:
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/middleware-host-header

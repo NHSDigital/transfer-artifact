@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/token-providers"
-version: 3.511.0
+version: 3.758.0
 type: npm
 summary: A collection of token providers
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/token-providers

@@ -1,6 +1,6 @@
 ---
 name: "@smithy/util-config-provider"
-version: 2.3.0
+version: 4.0.0
 type: npm
 summary: Utilities package for configuration providers
 homepage: https://github.com/awslabs/smithy-typescript/tree/main/packages/util-config-provider

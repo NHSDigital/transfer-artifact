@@ -1,10 +1,10 @@
 ---
 name: "@aws-sdk/signature-v4-crt"
-version: 3.511.0
+version: 3.758.0
 type: npm
 summary: A revision of AWS Signature V4 request signer based on AWS Common Runtime
   https://github.com/awslabs/aws-crt-nodejs
-homepage: https://github.com/aws/aws-sdk-js-v3/tree/master/packages/signature-v4-crt
+homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/signature-v4-crt
 license: apache-2.0
 licenses:
 - sources: LICENSE

@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/util-user-agent-node"
-version: 3.511.0
+version: 3.758.0
 type: npm
 summary:
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/util-user-agent-node

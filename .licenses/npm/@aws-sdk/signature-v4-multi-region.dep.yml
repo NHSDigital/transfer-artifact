@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/signature-v4-multi-region"
-version: 3.511.0
+version: 3.758.0
 type: npm
 summary:
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/signature-v4-multi-region

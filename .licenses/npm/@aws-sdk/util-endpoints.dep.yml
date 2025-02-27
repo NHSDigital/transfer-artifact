@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/util-endpoints"
-version: 3.511.0
+version: 3.743.0
 type: npm
 summary: Utilities to help with endpoint resolution
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/util-endpoints

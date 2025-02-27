@@ -1,6 +1,6 @@
 ---
 name: "@smithy/core"
-version: 1.4.2
+version: 3.1.5
 type: npm
 summary:
 homepage: https://github.com/awslabs/smithy-typescript/tree/main/packages/core
