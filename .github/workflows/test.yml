@@ -299,8 +299,10 @@ jobs:
 
       - name: Verify total objects downloaded
         run: |
-          LOG_OUTPUT="${{ steps.download_many_artifacts.outputs.log }}"
-          TOTAL_DOWNLOADED=$(echo "$LOG_OUTPUT" | grep -oP 'Total objects downloaded: \K\d+')
+          echo "Download logs:"
+          cat $GITHUB_WORKSPACE/some/new/path/download.log  # Adjust this path if needed
+
+          TOTAL_DOWNLOADED=$(grep -oP 'Total objects downloaded: \K\d+' $GITHUB_WORKSPACE/some/new/path/download.log)
 
           EXPECTED_COUNT=100
           if [ "$TOTAL_DOWNLOADED" -ne "$EXPECTED_COUNT" ]; then
