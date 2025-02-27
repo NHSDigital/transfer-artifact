@@ -289,12 +289,25 @@ jobs:
           artifact-bucket: mock-bucket
 
       - name: Download many files artifact
+        id: download_many_artifacts
         uses: ./
         with:
           name: 'Many-Files-Test'
           direction: 'download'
           path: many-files-test
           artifact-bucket: mock-bucket
+
+      - name: Verify total objects downloaded
+        run: |
+          LOG_OUTPUT="${{ steps.download_many_artifacts.outputs.log }}"
+          TOTAL_DOWNLOADED=$(echo "$LOG_OUTPUT" | grep -oP 'Total objects downloaded: \K\d+')
+
+          EXPECTED_COUNT=100
+          if [ "$TOTAL_DOWNLOADED" -ne "$EXPECTED_COUNT" ]; then
+            echo "Download failed: Expected $EXPECTED_COUNT objects, but found $TOTAL_DOWNLOADED."
+            exit 1
+          fi
+          echo "Download successful: $TOTAL_DOWNLOADED objects downloaded."
 
       - name: Verify file types
         run: |
