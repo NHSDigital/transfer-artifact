@@ -1,5 +1,7 @@
-import type { UploadOptions } from '@actions/artifact';
-import { create } from '@actions/artifact';
+import {
+  DefaultArtifactClient,
+  type UploadArtifactOptions,
+} from '@actions/artifact';
 import * as core from '@actions/core';
 
 import { uploadArtifact } from './aws/uploader';
@@ -46,10 +48,9 @@ export async function runUpload(): Promise<void> {
         );
       }
 
-      const artifactClient = create();
-      const options: UploadOptions = {
-        continueOnError: false,
-      };
+      const artifactClient = new DefaultArtifactClient();
+
+      const options: UploadArtifactOptions = {};
       if (inputs.retentionDays) {
         options.retentionDays = inputs.retentionDays;
       }
