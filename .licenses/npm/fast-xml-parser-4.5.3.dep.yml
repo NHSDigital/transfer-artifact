@@ -1,16 +1,16 @@
 ---
-name: tmp
-version: 0.2.3
+name: fast-xml-parser
+version: 4.5.3
 type: npm
-summary: Temporary file and directory creator
-homepage: http://github.com/raszi/node-tmp
+summary: Validate XML, Parse XML, Build XML without C/C++ based libraries
+homepage:
 license: mit
 licenses:
 - sources: LICENSE
   text: |
-    The MIT License (MIT)
+    MIT License
 
-    Copyright (c) 2014 KARASZI István
+    Copyright (c) 2017 Amit Kumar Gupta
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -29,4 +29,9 @@ licenses:
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
+- sources: README.md
+  text: |-
+    * MIT License
+
+    ![Donate $5](static/img/donation_quote.png)
 notices: []
