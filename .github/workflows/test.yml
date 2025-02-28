@@ -319,7 +319,6 @@ jobs:
       - name: Check if 3 multi-path files were downloaded
         run: |
           FILE_COUNT=$(find download/Multi-Path-Artifact -type f | wc -l)
-          
           if [ "$FILE_COUNT" -ne 3 ]; then
             echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
             exit 1
