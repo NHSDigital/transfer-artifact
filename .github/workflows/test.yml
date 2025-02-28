@@ -307,7 +307,7 @@ jobs:
           fi
           echo "Upload successful: All 3 files are present."
 
-      - name: Download multi-path artifact
+      - name: Download 3 multi-path artifact
         uses: ./
         with:
           name: 'Multi-Path-Artifact'
