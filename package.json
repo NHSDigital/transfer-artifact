@@ -37,6 +37,7 @@
     "@aws-sdk/client-s3": "3.511.0",
     "@aws-sdk/signature-v4-crt": "3.511.0",
     "@aws-sdk/types": "3.511.0",
+    "globals": "^16.0.0",
     "p-map": "^4.0.0"
   },
   "devDependencies": {
