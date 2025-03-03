@@ -9,7 +9,7 @@ import { getUploadSpecification } from '../upload-specification';
 
 import { uploadObjectToS3 } from './put-data-s3';
 
-function logUploadInformation(begin: number, uploads: void[]) {
+function logUploadInformation(begin: number, uploads: void[]): void {
   const finish = Date.now();
   let fileCount = 0;
   fileCount += uploads.length;
@@ -40,7 +40,7 @@ export async function uploadArtifact(
     filesToUpload
   );
 
-  const mapper = async (fileSpec: UploadSpecification) => {
+  const mapper = async (fileSpec: UploadSpecification): Promise<void> => {
     try {
       await uploadObjectToS3(
         {

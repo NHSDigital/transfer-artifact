@@ -4,7 +4,7 @@ import { region } from './locations';
 
 let s3Client: S3ClientConstructor;
 
-export function getS3Client() {
+export function getS3Client(): S3ClientConstructor {
   if (!s3Client) {
     s3Client = new S3ClientConstructor({ region: region() });
   }
