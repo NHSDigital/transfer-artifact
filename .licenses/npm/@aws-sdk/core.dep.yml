@@ -1,9 +1,9 @@
 ---
 name: "@aws-sdk/core"
-version: 3.511.0
+version: 3.758.0
 type: npm
-summary: Core functions & classes shared by multiple AWS SDK clients
-homepage: https://github.com/aws/aws-sdk-js-v3/tree/master/packages/core
+summary: Core functions & classes shared by multiple AWS SDK clients.
+homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/core
 license: apache-2.0
 licenses:
 - sources: Auto-generated Apache-2.0 license text

@@ -1,6 +1,6 @@
 ---
 name: "@aws-crypto/sha1-browser"
-version: 3.0.0
+version: 5.2.0
 type: npm
 summary:
 homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/sha1-browser

@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/xml-builder"
-version: 3.496.0
+version: 3.734.0
 type: npm
 summary: XML builder for the AWS SDK
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/xml-builder

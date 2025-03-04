@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/types"
-version: 3.511.0
+version: 3.734.0
 type: npm
 summary: Types for the AWS SDK
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/types

@@ -1,6 +1,6 @@
 ---
 name: "@aws-sdk/util-arn-parser"
-version: 3.495.0
+version: 3.723.0
 type: npm
 summary: A parser to Amazon Resource Names
 homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/util-arn-parser
