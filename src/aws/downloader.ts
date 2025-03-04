@@ -26,7 +26,7 @@ export function getPathToItem(fullName: string, folderName: string): string {
     : nameExcludingFolder;
 }
 
-function logDownloadInformation(begin: number, downloads: number[]) {
+function logDownloadInformation(begin: number, downloads: number[]): void {
   const finish = Date.now();
   let fileCount = 0;
   let byteCount = 0;
@@ -74,7 +74,7 @@ export async function runDownload(): Promise<number[]> {
       }
     }
 
-    const mapper = async (artifactPath: string) => {
+    const mapper = async (artifactPath: string): Promise<number> => {
       const downloadLocation = path.join(
         downloadFolder,
         getPathToItem(artifactPath, name)

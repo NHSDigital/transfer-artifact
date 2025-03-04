@@ -35,6 +35,7 @@ export default [
     },
     rules: {
       'import/no-unresolved': 'off',
+      'no-console': ['warn', { allow: ['info', 'warn', 'error', 'log'] }],
       'prefer-const': 'error',
       'no-var': 'error',
     },
@@ -103,6 +104,7 @@ export default [
       // TypeScript
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-empty-function': 'warn',
       '@typescript-eslint/no-var-requires': 'error',
@@ -120,6 +122,7 @@ export default [
       '@typescript-eslint/prefer-optional-chain': 'error',
 
       // General
+      'no-console': ['warn', { allow: ['info', 'warn', 'error', 'log'] }],
       eqeqeq: ['error', 'always', { null: 'ignore' }],
       'no-var': 'error',
       'prefer-const': 'error',
@@ -148,6 +151,8 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      'no-console': 'warn',
       'jest/expect-expect': 'error',
       'jest/no-disabled-tests': 'error',
       'jest/no-focused-tests': 'error',

@@ -17,7 +17,7 @@ function isReadable(
   return body !== undefined && body && (body as Readable).read !== undefined;
 }
 
-export async function streamToString(Body: Readable) {
+export async function streamToString(Body: Readable): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
     Body.on('data', (chunk: ArrayBuffer | SharedArrayBuffer) =>
