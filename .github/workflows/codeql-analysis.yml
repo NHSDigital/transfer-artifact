@@ -2,7 +2,9 @@ name: 'Code scanning - action'
 
 on:
   push:
-    branches-ignore: 'dependabot/**'
+    branches:
+      - main
+      - feature/**
   pull_request:
     branches:
       - main

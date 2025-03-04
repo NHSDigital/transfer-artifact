@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import { type UploadOptions } from '@actions/artifact';
+import { type UploadArtifactOptions } from '@actions/artifact';
 import * as core from '@actions/core';
 import pMap from 'p-map';
 
@@ -25,7 +25,7 @@ export async function uploadArtifact(
   artifactName: string,
   filesToUpload: string[],
   rootDirectory: string,
-  options: UploadOptions,
+  options: UploadArtifactOptions,
   bucket: string,
   folderName: string,
   concurrency: number

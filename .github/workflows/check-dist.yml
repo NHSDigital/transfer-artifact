@@ -31,10 +31,12 @@ jobs:
         run: |
           docker run --rm \
             -v $(pwd):/repo \
+            -v $(pwd)/.gitleaks.toml:/repo/.gitleaks.toml \
             zricethezav/gitleaks:latest detect \
             --source="/repo" \
             --verbose \
-            --redact
+            --redact \
+            --config="/repo/.gitleaks.toml"
 
   check-dist:
     runs-on: ubuntu-latest
