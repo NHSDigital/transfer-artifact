@@ -1,1 +1,2 @@
-* @actions/artifacts-actions
+# Default owners for everything in the repo - unless a later match takes precedence
+* @NHSDigital/caas-code-owners
