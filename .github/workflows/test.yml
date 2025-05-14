@@ -18,12 +18,12 @@ jobs:
 
     steps:
       - name: Checkout Repository Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
         with:
           python-version: '3.x'
 
@@ -35,13 +35,13 @@ jobs:
           echo "AWS_ENDPOINT_URL=http://s3.localhost.localstack.cloud:4566" >> $GITHUB_ENV
 
       - name: Start LocalStack
-        uses: LocalStack/setup-localstack@v0.2.3
+        uses: LocalStack/setup-localstack@a9b3e54ee0052a2f40a4eb4ca8b39dfd3bc2bc65 # v0.2.3
         with:
           image-tag: 'latest'
           install-awslocal: 'true'
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20.x
           cache: 'npm'
@@ -63,7 +63,7 @@ jobs:
         run: npm run test
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@aa494459d7c39c106cc77b166de8b4250a32bb97 # v5.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
