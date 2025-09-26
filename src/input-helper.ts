@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 
-import { Inputs } from './constants';
-import type { UploadInputs } from './upload-inputs';
+import { Inputs } from './constants.ts';
+import type { UploadInputs } from './upload-inputs.ts';
 
 function raiseError(errorMessage: string): never {
   throw new Error(errorMessage);

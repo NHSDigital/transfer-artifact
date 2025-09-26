@@ -4,9 +4,9 @@ import {
 } from '@actions/artifact';
 import * as core from '@actions/core';
 
-import { uploadArtifact } from './aws/uploader';
-import { getInputs } from './input-helper';
-import { findFilesToUpload } from './search';
+import { uploadArtifact } from './aws/uploader.ts';
+import { getInputs } from './input-helper.ts';
+import { findFilesToUpload } from './search.ts';
 
 export async function runUpload(): Promise<void> {
   try {

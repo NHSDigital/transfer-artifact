@@ -34,10 +34,10 @@ inputs:
   concurrency:
     description: >
       The rate of concurrency
-    default: 8
+    default: '8'
   run-number:
     description: 'Github run number used to identify artifacts'
     default: ${{ github.run_number }}
 runs:
   using: node20
-  main: 'dist/index.js'
+  main: 'dist/index.mjs'

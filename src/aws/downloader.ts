@@ -4,9 +4,9 @@ import * as path from 'path';
 import * as core from '@actions/core';
 import pMap from 'p-map';
 
-import { getInputs } from '../input-helper';
+import { getInputs } from '../input-helper.ts';
 
-import { listS3Objects, writeS3ObjectToFile } from './get-object-s3';
+import { listS3Objects, writeS3ObjectToFile } from './get-object-s3.ts';
 
 /**
  * Gets the path to an item by removing the folder prefix

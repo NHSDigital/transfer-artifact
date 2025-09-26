@@ -3,7 +3,7 @@ import { join, normalize, resolve } from 'path';
 
 import { debug } from '@actions/core';
 
-import { checkArtifactFilePath } from './path-and-artifact-name-validation';
+import { checkArtifactFilePath } from './path-and-artifact-name-validation.ts';
 
 export interface UploadSpecification {
   absoluteFilePath: string;

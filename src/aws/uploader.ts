@@ -4,10 +4,10 @@ import { type UploadArtifactOptions } from '@actions/artifact';
 import * as core from '@actions/core';
 import pMap from 'p-map';
 
-import type { UploadSpecification } from '../upload-specification';
-import { getUploadSpecification } from '../upload-specification';
+import type { UploadSpecification } from '../upload-specification.ts';
+import { getUploadSpecification } from '../upload-specification.ts';
 
-import { uploadObjectToS3 } from './put-data-s3';
+import { uploadObjectToS3 } from './put-data-s3.ts';
 
 function logUploadInformation(begin: number, uploads: void[]): void {
   const finish = Date.now();

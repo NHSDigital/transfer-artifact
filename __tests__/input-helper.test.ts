@@ -1,10 +1,29 @@
-import * as core from '@actions/core';
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
-import { Inputs } from '../src/constants';
-import { getInputs } from '../src/input-helper';
+import { Inputs } from '../src/constants.ts';
+import type { UploadInputs } from '../src/upload-inputs.ts';
 
-// Mock the @actions/core package
-jest.mock('@actions/core');
+const mockGetInput =
+  jest.fn<(name: string, options?: { required?: boolean }) => string>();
+const mockSetFailed = jest.fn<(message: string) => void>();
+
+jest.unstable_mockModule('@actions/core', () => ({
+  getInput: mockGetInput,
+  setFailed: mockSetFailed,
+}));
+
+let getInputs: () => UploadInputs;
+
+beforeAll(async () => {
+  ({ getInputs } = await import('../src/input-helper.ts'));
+});
 
 describe('getInputs', () => {
   // Store original process.env to restore after tests
@@ -37,9 +56,7 @@ describe('getInputs', () => {
     };
 
     // Mock the core.getInput function to return our test values
-    (core.getInput as jest.Mock).mockImplementation(
-      (name) => mockInputs[name] || ''
-    );
+    mockGetInput.mockImplementation((name) => mockInputs[name] || '');
 
     // Execute the function
     const result = getInputs();
@@ -55,7 +72,7 @@ describe('getInputs', () => {
     });
 
     // Verify that required inputs were checked
-    expect(core.getInput).toHaveBeenCalledWith(Inputs.Path, { required: true });
+    expect(mockGetInput).toHaveBeenCalledWith(Inputs.Path, { required: true });
   });
 
   it('should use environment variable for bucket if input not provided', () => {
@@ -72,9 +89,7 @@ describe('getInputs', () => {
       [Inputs.IfNoFilesFound]: 'warn',
     };
 
-    (core.getInput as jest.Mock).mockImplementation(
-      (name) => mockInputs[name] || ''
-    );
+    mockGetInput.mockImplementation((name) => mockInputs[name] || '');
 
     const result = getInputs();
 
@@ -93,9 +108,7 @@ describe('getInputs', () => {
       [Inputs.IfNoFilesFound]: 'warn',
     };
 
-    (core.getInput as jest.Mock).mockImplementation(
-      (name) => mockInputs[name] || ''
-    );
+    mockGetInput.mockImplementation((name) => mockInputs[name] || '');
 
     // Verify that the function throws with the expected error message
     expect(() => getInputs()).toThrow('no artifact-bucket supplied');
@@ -113,9 +126,7 @@ describe('getInputs', () => {
       [Inputs.RetentionDays]: '90',
     };
 
-    (core.getInput as jest.Mock).mockImplementation(
-      (name) => mockInputs[name] || ''
-    );
+    mockGetInput.mockImplementation((name) => mockInputs[name] || '');
 
     const result = getInputs();
 
@@ -135,16 +146,13 @@ describe('getInputs', () => {
       [Inputs.RetentionDays]: 'invalid', // Non-numeric value
     };
 
-    (core.getInput as jest.Mock).mockImplementation(
-      (name) => mockInputs[name] || ''
-    );
-    const setFailedMock = core.setFailed as jest.Mock;
+    mockGetInput.mockImplementation((name) => mockInputs[name] || '');
 
     // Execute function with invalid retention days
     getInputs();
 
     // Verify error was properly handled
-    expect(setFailedMock).toHaveBeenCalledWith('Invalid retention-days');
+    expect(mockSetFailed).toHaveBeenCalledWith('Invalid retention-days');
   });
 
   it('should set failed for invalid ifNoFilesFound', () => {
@@ -158,16 +166,13 @@ describe('getInputs', () => {
       [Inputs.IfNoFilesFound]: '', // Invalid empty value
     };
 
-    (core.getInput as jest.Mock).mockImplementation(
-      (name) => mockInputs[name] || ''
-    );
-    const setFailedMock = core.setFailed as jest.Mock;
+    mockGetInput.mockImplementation((name) => mockInputs[name] || '');
 
     // Execute function with invalid ifNoFilesFound
     getInputs();
 
     // Verify error was handled with proper message
-    expect(setFailedMock).toHaveBeenCalledWith(
+    expect(mockSetFailed).toHaveBeenCalledWith(
       expect.stringContaining('Unrecognized if-no-files-found input')
     );
   });

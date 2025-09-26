@@ -1,18 +1,59 @@
-import fs from 'node:fs/promises';
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
-import * as inputHelper from '../../input-helper';
-import { runDownload } from '../downloader';
-import { listS3Objects, writeS3ObjectToFile } from '../get-object-s3';
+type Inputs = {
+  artifactBucket: string;
+  artifactName: string;
+  concurrency: number;
+  searchPath: string;
+  folderName: string;
+};
 
-// Mock all external dependencies
-jest.mock('@actions/core');
-jest.mock('../../input-helper');
-jest.mock('../get-object-s3');
-jest.mock('node:fs/promises');
+const mockGetInputs = jest.fn<() => Inputs>();
+const mockListS3Objects = jest.fn<() => Promise<string[]>>();
+const mockWriteS3ObjectToFile = jest.fn<() => Promise<number>>();
+const mockSetFailed = jest.fn<(message: string) => void>();
+const mockMkdir =
+  jest.fn<(path: string, options?: { recursive?: boolean }) => Promise<void>>();
+const mockPMap = jest.fn(
+  async <T, U>(input: T[], mapper: (item: T) => Promise<U>): Promise<U[]> =>
+    await Promise.all(input.map((item) => mapper(item)))
+);
+
+jest.unstable_mockModule('@actions/core', () => ({
+  setFailed: mockSetFailed,
+}));
+
+jest.unstable_mockModule('../../input-helper.ts', () => ({
+  getInputs: mockGetInputs,
+}));
+
+jest.unstable_mockModule('../get-object-s3.ts', () => ({
+  listS3Objects: mockListS3Objects,
+  writeS3ObjectToFile: mockWriteS3ObjectToFile,
+}));
+
+jest.unstable_mockModule('node:fs/promises', () => ({
+  default: {
+    mkdir: mockMkdir,
+  },
+  mkdir: mockMkdir,
+}));
+
+jest.unstable_mockModule('p-map', () => ({
+  default: mockPMap,
+}));
 
 describe('runDownload', () => {
-  // Define common test inputs that will be used across multiple tests
-  const mockInputs = {
+  let runDownload: () => Promise<number[]>;
+
+  const mockInputs: Inputs = {
     artifactBucket: 'test-bucket',
     artifactName: 'test-artifact',
     concurrency: 5,
@@ -20,43 +61,38 @@ describe('runDownload', () => {
     folderName: 'test-folder',
   };
 
+  beforeAll(async () => {
+    ({ runDownload } = await import('../downloader.ts'));
+  });
+
   beforeEach(() => {
-    // Reset all mocks before each test to ensure clean state
     jest.clearAllMocks();
-    // Mock console.log to prevent test output pollution
-    jest.spyOn(console, 'log').mockImplementation(jest.fn());
-    // Setup default mock returns
-    (inputHelper.getInputs as jest.Mock).mockReturnValue(mockInputs);
-    (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
+    jest.restoreAllMocks();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetInputs.mockReturnValue(mockInputs);
+    mockMkdir.mockResolvedValue(undefined);
   });
 
   it('should correctly calculate and log download statistics', async () => {
     const consoleLogSpy = jest.spyOn(console, 'log');
-
-    // Mock S3 objects and their download
     const mockS3Objects = [
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file1.txt',
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file2.txt',
       'ci-pipeline-upload-artifacts/test-folder/test-artifact/file3.txt',
     ];
 
-    // Setup the test with 3 files of 100 bytes each
-    (listS3Objects as jest.Mock).mockResolvedValue(mockS3Objects);
-    (writeS3ObjectToFile as jest.Mock).mockResolvedValue(100);
+    mockListS3Objects.mockResolvedValue(mockS3Objects);
+    mockWriteS3ObjectToFile.mockResolvedValue(100);
 
     await runDownload();
 
-    // Find all log messages
     const logMessages = consoleLogSpy.mock.calls.map((call) => call[0]);
-
-    // Find the download statistics log message
     const downloadStatMessage = logMessages.find(
       (message) => message.includes('Downloaded') && message.includes('bytes')
     );
 
-    // Assert on the download statistics message
     expect(downloadStatMessage).toBeDefined();
-    expect(downloadStatMessage).toContain('300 bytes'); // 3 files * 100 bytes
+    expect(downloadStatMessage).toContain('300 bytes');
     expect(downloadStatMessage).toContain('3 files');
   });
 });
