@@ -40,4 +40,4 @@ inputs:
     default: ${{ github.run_number }}
 runs:
   using: node24
-  main: 'dist/index.mjs'
+  main: 'dist/index.cjs'

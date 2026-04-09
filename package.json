@@ -4,11 +4,11 @@
   "description": "Upload or download a build artifact to an S3 bucket",
   "type": "module",
   "exports": {
-    "/": "./dist/index.mjs"
+    "/": "./dist/index.cjs"
   },
   "scripts": {
     "build": "tsc",
-    "release": "esbuild src/upload-or-download.ts --tree-shaking=true --bundle --minify --platform=node --outfile=dist/index.mjs --charset=utf8 --banner:js='//This generated code is run directly by github actions, remeber to rebuild if you change and source code or dependencies' && git add -f dist/",
+    "release": "esbuild src/upload-or-download.ts --tree-shaking=true --bundle --minify --platform=node --format=cjs --outfile=dist/index.cjs --charset=utf8 --banner:js='//This generated code is run directly by github actions, remeber to rebuild if you change and source code or dependencies' && git add -f dist/",
     "check-all": "concurrently \"npm:format-check\" \"npm:lint\" \"npm:test\" \"npm:build\"",
     "fix": "prettier -w . && eslint --quiet --fix .",
     "format": "prettier --write .",
