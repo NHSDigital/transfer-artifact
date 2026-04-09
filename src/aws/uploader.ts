@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 
-import { type UploadArtifactOptions } from '@actions/artifact';
 import * as core from '@actions/core';
 import pMap from 'p-map';
 
+import type { UploadOptions } from '../upload-options.ts';
 import type { UploadSpecification } from '../upload-specification.ts';
 import { getUploadSpecification } from '../upload-specification.ts';
 
@@ -25,7 +25,7 @@ export async function uploadArtifact(
   artifactName: string,
   filesToUpload: string[],
   rootDirectory: string,
-  options: UploadArtifactOptions,
+  options: UploadOptions,
   bucket: string,
   folderName: string,
   concurrency: number

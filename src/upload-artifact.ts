@@ -1,12 +1,9 @@
-import {
-  DefaultArtifactClient,
-  type UploadArtifactOptions,
-} from '@actions/artifact';
 import * as core from '@actions/core';
 
 import { uploadArtifact } from './aws/uploader.ts';
 import { getInputs } from './input-helper.ts';
 import { findFilesToUpload } from './search.ts';
+import type { UploadOptions } from './upload-options.ts';
 
 export async function runUpload(): Promise<void> {
   try {
@@ -48,9 +45,7 @@ export async function runUpload(): Promise<void> {
         );
       }
 
-      const artifactClient = new DefaultArtifactClient();
-
-      const options: UploadArtifactOptions = {};
+      const options: UploadOptions = {};
       if (inputs.retentionDays) {
         options.retentionDays = inputs.retentionDays;
       }
@@ -59,25 +54,15 @@ export async function runUpload(): Promise<void> {
         `Trying to upload files into ${inputs.folderName}/${inputs.artifactName}...`
       );
 
-      const useS3 = true;
-      if (useS3) {
-        await uploadArtifact(
-          inputs.artifactName,
-          searchResult.filesToUpload,
-          searchResult.rootDirectory,
-          options,
-          inputs.artifactBucket,
-          inputs.folderName,
-          inputs.concurrency
-        );
-      } else {
-        await artifactClient.uploadArtifact(
-          inputs.artifactName,
-          searchResult.filesToUpload,
-          searchResult.rootDirectory,
-          options
-        );
-      }
+      await uploadArtifact(
+        inputs.artifactName,
+        searchResult.filesToUpload,
+        searchResult.rootDirectory,
+        options,
+        inputs.artifactBucket,
+        inputs.folderName,
+        inputs.concurrency
+      );
     }
   } catch (error) {
     core.setFailed((error as Error).message);
