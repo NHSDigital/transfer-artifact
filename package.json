@@ -29,6 +29,9 @@
     "url": "https://github.com/actions/upload-artifact/issues"
   },
   "homepage": "https://github.com/actions/upload-artifact#readme",
+  "engines": {
+    "node": ">=24"
+  },
   "dependencies": {
     "@actions/artifact": "^2.2.2",
     "@actions/core": "^1.11.1",
@@ -43,7 +46,7 @@
   "devDependencies": {
     "@jest/types": "^29.6.3",
     "@types/jest": "^29.5.14",
-    "@types/node": "^20.11.16",
+    "@types/node": "^24.0.0",
     "@typescript-eslint/eslint-plugin": "^8.25",
     "@typescript-eslint/parser": "^8.25.0",
     "esbuild": "^0.25.0",

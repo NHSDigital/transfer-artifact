@@ -1,4 +1,5 @@
-name: Test Transfer Artefact
+name: Test Transfer Artefact V2
+
 on:
   push:
     branches:
@@ -12,9 +13,20 @@ on:
 
 jobs:
   test:
-    name: Tests
-
+    name: Test Transfer Artefact V2
     runs-on: ubuntu-latest
+
+    services:
+      floci:
+        image: hectorvent/floci:latest
+        ports:
+          - 4566:4566
+
+    env:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localhost:4566
 
     steps:
       - name: Checkout Repository Code
@@ -27,18 +39,28 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Set up mock AWS credentials
+      - name: Install AWS CLI
         run: |
-          echo "AWS_ACCESS_KEY_ID=mock-key" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=mock-secret" >> $GITHUB_ENV
-          echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-          echo "AWS_ENDPOINT_URL=http://s3.localhost.localstack.cloud:4566" >> $GITHUB_ENV
+          python -m pip install --upgrade pip
+          pip install awscli
 
-      - name: Start LocalStack
-        uses: LocalStack/setup-localstack@a9b3e54ee0052a2f40a4eb4ca8b39dfd3bc2bc65 # v0.2.3
-        with:
-          image-tag: 'latest'
-          install-awslocal: 'true'
+      - name: Wait for Floci
+        shell: bash
+        run: |
+          for i in {1..30}; do
+            if aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls >/dev/null 2>&1; then
+              echo "Floci is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Floci did not become ready in time"
+          exit 1
+
+      - name: Create mock bucket
+        shell: bash
+        run: |
+          aws --endpoint-url="$AWS_ENDPOINT_URL" s3 mb s3://mock-bucket || true
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -68,31 +90,19 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Create 2 special character file
+        shell: bash
         run: |
-          # First verify bucket still exists
-          echo "Verifying bucket exists before upload..."
-          if ! awslocal s3api head-bucket --bucket mock-bucket; then
-            echo "Bucket not found, recreating..."
-            awslocal s3 mb s3://mock-bucket
-            awslocal s3api put-bucket-acl --bucket mock-bucket --acl public-read-write
-          fi
-
-          # Create test directory and files
           mkdir -p "path/to/special chars"
           echo "File with spaces" > "path/to/special chars/file with spaces.txt"
           echo "File with symbols" > "path/to/special chars/file-with-@#$symbols.txt"
 
-          # Test direct upload to verify bucket access
-          echo "Testing direct upload with awslocal..."
-          awslocal s3 cp "path/to/special chars/file with spaces.txt" "s3://mock-bucket/test-upload.txt"
-          if [ $? -eq 0 ]; then
-            echo "Direct upload test successful"
-            awslocal s3 rm "s3://mock-bucket/test-upload.txt"
-          else
-            echo "Direct upload test failed"
-            exit 1
-          fi
-        shell: bash
+          echo "Testing direct upload with aws..."
+          aws --endpoint-url="$AWS_ENDPOINT_URL" s3 cp \
+            "path/to/special chars/file with spaces.txt" \
+            "s3://mock-bucket/test-upload.txt"
+
+          aws --endpoint-url="$AWS_ENDPOINT_URL" s3 rm \
+            "s3://mock-bucket/test-upload.txt"
 
       - name: Upload 2 special characters files
         uses: ./
@@ -103,9 +113,10 @@ jobs:
           artifact-bucket: 'mock-bucket'
           if-no-files-found: 'error'
 
-      - name: Check if 2 special characters files were uploaded to LocalStack
+      - name: Check if 2 special characters files were uploaded to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/special-char-artifact/${{ github.run_number }}-special-char-artifact --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/special-char-artifact/${{ github.run_number }}-special-char-artifact --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 2 ]; then
             echo "Upload failed: Expected 2 files, but found $FILE_COUNT."
             exit 1
@@ -121,6 +132,7 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 2 special characters artifacts were downloaded
+        shell: bash
         run: |
           FILE_COUNT=$(ls download/special-char-artifact | wc -l)
           if [ "$FILE_COUNT" -ne 2 ]; then
@@ -130,12 +142,12 @@ jobs:
           echo "Download successful: 2 files is present."
 
       - name: Create 100 small files
+        shell: bash
         run: |
           mkdir -p path/to/many-files
           for i in {1..100}; do
             echo "Content for file $i" > "path/to/many-files/file$i.txt"
           done
-        shell: bash
 
       - name: Upload 100 files
         uses: ./
@@ -146,9 +158,10 @@ jobs:
           artifact-bucket: 'mock-bucket'
           if-no-files-found: 'error'
 
-      - name: Check if 100 files were uploaded to LocalStack
+      - name: Check if 100 files were uploaded to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/Many-Files-Test/${{ github.run_number }}-Many-Files-Test --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/Many-Files-Test/${{ github.run_number }}-Many-Files-Test --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 100 ]; then
             echo "Upload failed: Expected 100 files, but found $FILE_COUNT."
             exit 1
@@ -164,6 +177,7 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 100 files were downloaded
+        shell: bash
         run: |
           FILE_COUNT=$(ls download/many-files-test | wc -l)
           if [ "$FILE_COUNT" -ne 100 ]; then
@@ -173,6 +187,7 @@ jobs:
           echo "Download successful: All 100 files are present."
 
       - name: Create 4 different file types
+        shell: bash
         run: |
           mkdir -p path/to/file-types
           echo '{"key": "value"}' > path/to/file-types/test.json
@@ -180,7 +195,6 @@ jobs:
           echo 'binary content' > path/to/file-types/test.bin
           echo '#!/bin/bash\necho "test"' > path/to/file-types/test.sh
           chmod +x path/to/file-types/test.sh
-        shell: bash
 
       - name: Upload 4 different file types
         uses: ./
@@ -191,9 +205,10 @@ jobs:
           artifact-bucket: 'mock-bucket'
           if-no-files-found: 'error'
 
-      - name: Check if 4 different file types were uploaded to LocalStack
+      - name: Check if 4 different file types were uploaded to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/File-Types-Test/${{ github.run_number }}-File-Types-Test --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/File-Types-Test/${{ github.run_number }}-File-Types-Test --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 4 ]; then
             echo "Upload failed: Expected 4 files, but found $FILE_COUNT."
             exit 1
@@ -209,6 +224,7 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 4 different file types were downloaded
+        shell: bash
         run: |
           FILE_COUNT=$(ls download/file-types-test | wc -l)
           if [ "$FILE_COUNT" -ne 4 ]; then
@@ -218,6 +234,7 @@ jobs:
           echo "Download successful: All 4 files are present."
 
       - name: Create 3 test files in 3 paths
+        shell: bash
         run: |
           mkdir -p path/to/dir-1
           mkdir -p path/to/dir-2
@@ -233,9 +250,10 @@ jobs:
           path: 'path/**/dir*/'
           artifact-bucket: 'mock-bucket'
 
-      - name: Check if 3 files were uploaded when using wildcard pattern to LocalStack
+      - name: Check if 3 files were uploaded when using wildcard pattern to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/wildcard-artifacts/${{ github.run_number }}-wildcard-artifacts --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/wildcard-artifacts/${{ github.run_number }}-wildcard-artifacts --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 3 ]; then
             echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
             exit 1
@@ -251,6 +269,7 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 3 files were downloaded when using wildcard pattern
+        shell: bash
         run: |
           FILE_COUNT=$(find download/wildcard-artifacts -type f | wc -l)
           if [ "$FILE_COUNT" -ne 3 ]; then
@@ -268,9 +287,10 @@ jobs:
           artifact-bucket: 'mock-bucket'
           if-no-files-found: 'error'
 
-      - name: Check if 1 GZip artifact was uploaded to LocalStack
+      - name: Check if 1 GZip artifact was uploaded to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/GZip-Artifact/${{ github.run_number }}-GZip-Artifact --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/GZip-Artifact/${{ github.run_number }}-GZip-Artifact --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 1 ]; then
             echo "Upload failed: Expected 1 file, but found $FILE_COUNT."
             exit 1
@@ -286,6 +306,7 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 1 GZip artifact was downloaded
+        shell: bash
         run: |
           FILE_COUNT=$(ls download/GZip-Artifact | wc -l)
           if [ "$FILE_COUNT" -ne 1 ]; then
@@ -306,9 +327,10 @@ jobs:
           artifact-bucket: 'mock-bucket'
           if-no-files-found: 'error'
 
-      - name: Check if 3 multi-path files were uploaded to LocalStack
+      - name: Check if 3 multi-path files were uploaded to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/Multi-Path-Artifact/${{ github.run_number }}-Multi-Path-Artifact --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/Multi-Path-Artifact/${{ github.run_number }}-Multi-Path-Artifact --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 3 ]; then
             echo "Upload failed: Expected 3 files, but found $FILE_COUNT."
             exit 1
@@ -325,6 +347,7 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 3 multi-path files were downloaded
+        shell: bash
         run: |
           FILE_COUNT=$(find download/Multi-Path-Artifact -type f | wc -l)
           if [ "$FILE_COUNT" -ne 3 ]; then
@@ -334,10 +357,10 @@ jobs:
           echo "Upload successful: All 3 files are present."
 
       - name: Create 1 test file
+        shell: bash
         run: |
           mkdir -p some/new/path
           echo "Lorem ipsum dolor sit amet" > some/new/path/file1.txt
-        shell: bash
 
       - name: Upload 1 file artifact
         uses: ./
@@ -348,15 +371,15 @@ jobs:
           artifact-bucket: 'mock-bucket'
           if-no-files-found: 'error'
 
-      - name: Check if 1 single file artifact was uploaded to LocalStack
+      - name: Check if 1 single file artifact was uploaded to Floci
+        shell: bash
         run: |
-          FILE_COUNT=$(aws --endpoint-url=http://localhost:4566 s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/artifact-a/${{ github.run_number }}-artifact-a --recursive | wc -l)
+          FILE_COUNT=$(aws --endpoint-url="$AWS_ENDPOINT_URL" s3 ls s3://mock-bucket/ci-pipeline-upload-artifacts/artifact-a/${{ github.run_number }}-artifact-a --recursive | wc -l)
           if [ "$FILE_COUNT" -ne 1 ]; then
             echo "Upload failed: Expected 1 file, but found $FILE_COUNT."
             exit 1
           fi
           echo "Upload successful: 1 file is present."
-        shell: bash
 
       - name: Download 1 file artifact
         uses: ./
@@ -367,14 +390,14 @@ jobs:
           artifact-bucket: 'mock-bucket'
 
       - name: Check if 1 single file artifact was downloaded
+        shell: bash
         run: |
-          FILE_COUNT=$(ls  download/artifact-a | wc -l)
+          FILE_COUNT=$(ls download/artifact-a | wc -l)
           if [ "$FILE_COUNT" -ne 1 ]; then
             echo "Download failed: Expected 1 file, but found $FILE_COUNT."
             exit 1
           fi
           echo "Download successful: 1 file is present."
-        shell: bash
 
       - name: Create empty directory
         run: mkdir -p empty-dir-test
