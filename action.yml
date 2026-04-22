@@ -39,5 +39,5 @@ inputs:
     description: 'Github run number used to identify artifacts'
     default: ${{ github.run_number }}
 runs:
-  using: node20
+  using: node24
   main: 'dist/index.js'
