@@ -35,6 +35,24 @@ Artifact related issues will be tracked in this repository so please do not open
 9. Push to your fork and [submit a pull request][pr]
 10. Pat your self on the back and wait for your pull request to be reviewed and merged.
 
+## Run the integration workflow locally
+
+The repository keeps the GitHub Actions integration coverage in `.github/workflows/test_v2.yml`.
+You can run that workflow locally with [`act`](https://nektosact.com/):
+
+1. Install the tool versions from `.tool-versions`, for example with `mise install`
+2. Start Docker Desktop, or another Docker Engine API compatible runtime
+3. Run `npm run test:workflow:local`
+
+Notes:
+
+- The local command uses `workflow_dispatch`, so it works from any branch.
+- `act` caches data under `.cache/` by default in this repository-local command, so it does not need to manage a separate cache directory in your home folder.
+- The SonarQube step is skipped automatically when the workflow is running under `act`.
+- The default local command lets `act` use the host architecture. That means Apple Silicon machines will use `linux/arm64` by default, while most Windows developers running WSL on x86_64 will use `linux/amd64`.
+- If you need to force a specific architecture, use `npm run test:workflow:local:arm64` or `npm run test:workflow:local:amd64`.
+- The first run may take a while because `act` will pull `catthehacker/ubuntu:full-latest`, which is intentionally closer to a GitHub-hosted runner than the smaller default image.
+
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
 - Write tests.

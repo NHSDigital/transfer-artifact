@@ -1,6 +1,7 @@
 name: Test Transfer Artefact V2
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -19,6 +20,7 @@ jobs:
     services:
       floci:
         image: hectorvent/floci:latest
+        options: --workdir /app
         ports:
           - 4566:4566
 
@@ -85,6 +87,7 @@ jobs:
         run: npm run test
 
       - name: SonarQube Scan
+        if: ${{ !env.ACT }}
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
