@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
-module.exports = {
+const config = {
   clearMocks: true,
+  extensionsToTreatAsEsm: ['.ts'],
   moduleFileExtensions: ['js', 'ts'],
   roots: ['<rootDir>'],
   testEnvironment: 'node',
@@ -14,7 +15,7 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: 'tsconfig.json',
-        useESM: false,
+        useESM: true,
       },
     ],
   },
@@ -24,3 +25,5 @@ module.exports = {
   coverageProvider: 'v8',
   moduleDirectories: ['node_modules', 'src'],
 };
+
+export default config;

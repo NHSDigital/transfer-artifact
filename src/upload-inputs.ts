@@ -1,4 +1,4 @@
-import type { NoFileOptions, DirectionOptions } from './constants';
+import type { NoFileOptions, DirectionOptions } from './constants.ts';
 
 export interface UploadInputs {
   /**

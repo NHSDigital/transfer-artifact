@@ -3,13 +3,33 @@ import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 
-import { writeS3ObjectToFile, getS3ObjectStream } from '../get-object-s3';
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
-// Mock the S3 client
-const mockSend = jest.fn();
-jest.mock('../s3-client', () => ({
-  getS3Client: jest.fn(() => ({ send: mockSend })),
+import type { S3Location } from '../types.ts';
+
+const mockSend: any = jest.fn();
+
+jest.unstable_mockModule('../s3-client.ts', () => ({
+  getS3Client: () => ({ send: mockSend }),
 }));
+
+let writeS3ObjectToFile: (
+  location: S3Location,
+  filename: string
+) => Promise<number>;
+let getS3ObjectStream: ({ Bucket, Key }: S3Location) => Promise<Readable>;
+
+beforeAll(async () => {
+  ({ writeS3ObjectToFile, getS3ObjectStream } =
+    await import('../get-object-s3.ts'));
+});
 
 describe('writeS3ObjectToFile', () => {
   let temporaryDir: string;

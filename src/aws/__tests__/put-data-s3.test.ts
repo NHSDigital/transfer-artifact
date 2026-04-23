@@ -1,9 +1,19 @@
-import { putDataS3, uploadObjectToS3 } from '../put-data-s3';
+import type { PutObjectCommandOutput } from '@aws-sdk/client-s3';
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
-// Mock the S3 client
-const mockSend = jest.fn();
-jest.mock('../s3-client', () => ({
-  getS3Client: jest.fn(() => ({ send: mockSend })),
+import type { S3Location, Upload } from '../types.ts';
+
+const mockSend: any = jest.fn();
+
+jest.unstable_mockModule('../s3-client.ts', () => ({
+  getS3Client: () => ({ send: mockSend }),
 }));
 
 // Test data setup
@@ -13,6 +23,22 @@ const mockLogger = {
   info: jest.fn(),
   error: jest.fn(),
 };
+
+let putDataS3: (
+  fileData: Record<string, unknown>,
+  { Bucket, Key }: S3Location
+) => Promise<PutObjectCommandOutput>;
+let uploadObjectToS3: (
+  parameters: Upload,
+  log: {
+    info: (message: string) => void;
+    error: (message: string | Error) => void;
+  }
+) => Promise<PutObjectCommandOutput>;
+
+beforeAll(async () => {
+  ({ putDataS3, uploadObjectToS3 } = await import('../put-data-s3.ts'));
+});
 
 describe('putDataS3', () => {
   beforeEach(() => {

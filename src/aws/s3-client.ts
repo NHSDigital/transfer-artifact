@@ -1,6 +1,6 @@
 import { S3Client as S3ClientConstructor } from '@aws-sdk/client-s3';
 
-import { region } from './locations';
+import { region } from './locations.ts';
 
 let s3Client: S3ClientConstructor;
 

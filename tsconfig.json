@@ -1,17 +1,25 @@
 {
   "compilerOptions": {
-    "target": "es2022",
-    "module": "es2022",
+    "target": "es2024",
+    "module": "nodenext",
     "outDir": "./lib",
     "rootDir": ".",
     "strict": true,
+    "noEmit": true,
     "noImplicitAny": false,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "declaration": false,
     "sourceMap": true,
-    "lib": ["ES2022"]
+    "lib": [
+      "es2024",
+      "ESNext.Array",
+      "ESNext.Collection",
+      "ESNext.Iterator",
+      "ESNext.Promise"
+    ]
   },
   "include": ["src/**/*", "__tests__/**/*", "*.js", "*.mjs", "*.cjs"],
   "exclude": ["node_modules", "lib", "dist"]

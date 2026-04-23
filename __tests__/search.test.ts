@@ -1,10 +1,29 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-import * as core from '@actions/core';
+import type { GlobOptions } from '@actions/glob';
 import * as io from '@actions/io';
+import { beforeAll, describe, expect, it, jest } from '@jest/globals';
 
-import { findFilesToUpload } from '../src/search';
+import type { SearchResult } from '../src/search.ts';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const mockDebug = jest.fn();
+const mockInfo = jest.fn();
+const mockWarning = jest.fn();
+
+jest.unstable_mockModule('@actions/core', () => ({
+  debug: mockDebug,
+  info: mockInfo,
+  warning: mockWarning,
+}));
+
+let findFilesToUpload: (
+  searchPath: string,
+  globOptions?: GlobOptions
+) => Promise<SearchResult>;
 
 const root = path.join(__dirname, '_temp', 'search');
 const searchItem1Path = path.join(
@@ -69,12 +88,10 @@ const lonelyFilePath = path.join(
 
 describe('Search', () => {
   beforeAll(async () => {
+    ({ findFilesToUpload } = await import('../src/search.ts'));
+
     // mock all output so that there is less noise when running tests
     jest.spyOn(console, 'log').mockImplementation(jest.fn());
-
-    jest.spyOn(core, 'debug').mockImplementation(jest.fn());
-    jest.spyOn(core, 'info').mockImplementation(jest.fn());
-    jest.spyOn(core, 'warning').mockImplementation(jest.fn());
 
     // clear temp directory
     await io.rmRF(root);

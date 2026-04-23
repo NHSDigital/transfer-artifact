@@ -3,8 +3,8 @@ import {
   type PutObjectCommandOutput,
 } from '@aws-sdk/client-s3';
 
-import { getS3Client } from './s3-client';
-import type { Upload, S3Location } from './types';
+import { getS3Client } from './s3-client.ts';
+import type { Upload, S3Location } from './types.ts';
 
 export async function putDataS3(
   fileData: Record<string, unknown>,

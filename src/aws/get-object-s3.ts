@@ -5,9 +5,9 @@ import { promisify } from 'node:util';
 
 import { GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
-import { getS3Client } from './s3-client';
-import { StreamCounter } from './stream-counter';
-import type { S3Location } from './types';
+import { getS3Client } from './s3-client.ts';
+import { StreamCounter } from './stream-counter.ts';
+import type { S3Location } from './types.ts';
 
 const pipelineP = promisify(pipeline);
 
