@@ -11,7 +11,10 @@
     "format": "prettier --write .",
     "format-check": "prettier --check .",
     "lint": "eslint .",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --testTimeout 10000"
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --testTimeout 10000",
+    "test:workflow:local": "XDG_CACHE_HOME=${XDG_CACHE_HOME:-$PWD/.cache} act workflow_dispatch -W .github/workflows/test_v2.yml -j test -P ubuntu-latest=catthehacker/ubuntu:full-latest",
+    "test:workflow:local:arm64": "npm run test:workflow:local -- --container-architecture linux/arm64",
+    "test:workflow:local:amd64": "npm run test:workflow:local -- --container-architecture linux/amd64"
   },
   "repository": {
     "type": "git",
